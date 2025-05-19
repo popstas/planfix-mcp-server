@@ -18,6 +18,8 @@ test/
 Thumbs.db
 .env
 .env.*
+dist/.env
+dist/data/
 
 # Ignore local dev files
 *.tgz
