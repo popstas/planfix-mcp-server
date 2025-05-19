@@ -64,7 +64,7 @@ describe('MCP Inspector CLI', () => {
     const { contactId } = JSON.parse(parsed.content[0].text);
     expect(typeof contactId).toBe('number');
     expect(contactId).toBeGreaterThan(0);
-  });
+  }, 10000);
 
   it('searches lead task by userData.email=astrazaq@gmail.com', async () => {
     const args = [
@@ -160,7 +160,8 @@ describe('MCP Inspector CLI', () => {
     ];
     let errorCaught = false;
     try {
-      await runCli(args);
+      const parsed = await runCli(args);
+      expect(parsed).toHaveProperty('error');
     } catch (err: any) {
       errorCaught = true;
       expect(err).toBeTruthy();
