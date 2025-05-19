@@ -1,0 +1,23 @@
+# .npmignore for CS-Cart MCP Server
+# Ignore source files and configs not needed in npm package
+src/
+node_modules/
+logs/
+*.log
+*.ts
+*.tsbuildinfo
+.vscode/
+.idea/
+coverage/
+build/
+.history/
+data/
+pmlogs/
+test/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+
+# Ignore local dev files
+*.tgz

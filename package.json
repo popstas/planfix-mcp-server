@@ -1,0 +1,40 @@
+{
+  "name": "@popstas/planfix-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Planfix API integration",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "build": "tsc --project tsconfig.json",
+    "clean": "rimraf dist",
+    "lint": "eslint .",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "mcp-cli": "mcp-inspector --cli npm run dev"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "dotenv": "^16.5.0",
+    "js-yaml": "^4.1.0",
+    "mqtt": "^5.13.0",
+    "node-fetch": "^3.3.2",
+    "tsx": "^4.19.4",
+    "zod": "^3.24.3",
+    "zod-to-json-schema": "^3.24.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/inspector": "^0.11.0",
+    "@types/node": "^20.17.30",
+    "eslint": "^8.57.1",
+    "execa": "^9.5.2",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}
