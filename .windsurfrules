@@ -2,4 +2,25 @@
 - complex task filters - https://planfix.com/ru/help/REST_API:_Сложные_фильтры_задач
 - complext contact filters - https://help.planfix.com/ru/REST_API:_Сложные_фильтры_контактов
 
+lint all: `npm run lint src`
 lint file: `npm run lint [filePath]`
+
+tool test example:
+```
+import { describe, expect, it } from 'vitest';
+import { runTool } from '../helpers.js';
+
+describe('planfix_search_manager tool', () => {
+  it('searches manager by email=smirnov@expertizeme.org and returns manager_id', async () => {
+    const args = {
+      email: 'smirnov@expertizeme.org',
+    };
+    const {valid, content} = await runTool('planfix_search_manager', args);
+    expect(valid).toBe(true);
+
+    const { managerId } = content;
+    expect(typeof managerId).toBe('number');
+    expect(managerId).toBeGreaterThan(0);
+  });
+});
+```

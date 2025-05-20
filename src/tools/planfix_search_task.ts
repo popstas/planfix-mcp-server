@@ -25,18 +25,19 @@ interface Assignee {
   name?: string;
 }
 
-export async function searchPlanfixTask({
-                                          taskName,
-                                          clientId
-                                        }: {
-  taskName?: string;
-  clientId?: number
-}): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
+export async function searchPlanfixTask(
+  {
+    taskName,
+    clientId
+  }: {
+    taskName?: string;
+    clientId?: number
+  }): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
   let taskId: number | undefined = undefined;
   let assignees: { users: Assignee[] } | undefined;
 
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
-  const DAYS_TO_SEARCH = Number(process.env.PLANFIX_DAYS_TO_SEARCH) || 3;
+  // const DAYS_TO_SEARCH = Number(process.env.PLANFIX_DAYS_TO_SEARCH) || 1000;
 
   const postBody = {
     offset: 0,
@@ -65,11 +66,13 @@ export async function searchPlanfixTask({
       operator: 'equal',
       value: taskName,
     },
-    byLastDays: {
-      type: 12, // by last days
-      operator: 'greaterOrEqual',
-      value: Math.floor(Date.now() / 1000) - DAYS_TO_SEARCH * 24 * 3600,
-    },
+    /*byLastDays: {
+      type: 12, // created, by last days
+      operator: 'last',
+      value: {
+        dateValue: DAYS_TO_SEARCH,
+      },
+    },*/
   };
 
   async function searchWithFilter(
@@ -111,7 +114,7 @@ export async function searchPlanfixTask({
       assignees = result.assignees;
     }
     if (!taskId && taskName) {
-      const result = await searchWithFilter([filters.byName, filters.byLastDays]);
+      const result = await searchWithFilter([filters.byName/*, filters.byLastDays*/]);
       taskId = result.taskId;
       assignees = result.assignees;
     }

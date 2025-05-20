@@ -5,6 +5,7 @@ import {PLANFIX_ACCOUNT, PLANFIX_BASE_URL, PLANFIX_HEADERS} from './config.js';
 import {ToolInput, ToolOutput, ToolWithHandler} from './types.js';
 import {zodToJsonSchema} from 'zod-to-json-schema';
 import {z} from 'zod';
+import {execa} from 'execa';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,23 +13,30 @@ const __dirname = path.dirname(__filename);
 export function log(message: string) {
   // write to data/mcp.log, format [date time] message
   const logPath = path.join(__dirname, '..', 'data', 'mcp.log');
+  if (!fs.existsSync(logPath)) {
+    const dir = path.dirname(logPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir);
+    }
+  }
   const logMessage = `[${new Date().toISOString()}] ${message}\n`;
   fs.appendFileSync(logPath, logMessage);
 }
 
-export function getToolWithHandler<Input extends z.ZodType, Output extends z.ZodType>({
-                                                                                        name,
-                                                                                        description,
-                                                                                        inputSchema,
-                                                                                        outputSchema,
-                                                                                        handler,
-                                                                                      }: {
-  name: string;
-  description: string;
-  inputSchema: Input;
-  outputSchema: Output;
-  handler: (args: z.infer<Input>) => Promise<z.infer<Output>>;
-}): ToolWithHandler {
+export function getToolWithHandler<Input extends z.ZodType, Output extends z.ZodType>(
+  {
+    name,
+    description,
+    inputSchema,
+    outputSchema,
+    handler,
+  }: {
+    name: string;
+    description: string;
+    inputSchema: Input;
+    outputSchema: Output;
+    handler: (args: z.infer<Input>) => Promise<z.infer<Output>>;
+  }): ToolWithHandler {
   return {
     name,
     description,
@@ -48,8 +56,8 @@ export async function planfixRequest<T = unknown>(url: string, body?: Record<str
   const result = await response.json();
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`HTTP error! Status: ${response.status}, ${errorText}`);
+    log(`HTTP error! Status: ${response.status}, ${result.error}`);
+    throw new Error(result.error || `Unknown error: ${response.status}`);
   }
 
   return result;
@@ -65,4 +73,54 @@ export function getContactUrl(contactId?: number): string {
 
 export function getUserUrl(userId?: number): string {
   return userId ? `https://${PLANFIX_ACCOUNT}.planfix.com/user/${userId}` : '';
+}
+
+export async function runCli(args: string[]) {
+  try {
+    const cliArgs = ['-s', 'run', 'mcp-cli', '--'];
+    const { stdout } = await execa('npm', [...cliArgs, ...args], { stdin: 'inherit' });
+    return JSON.parse(stdout);
+  } catch (error: unknown) {
+    const errorObj = error as { stdout: string; stderr: string };
+    if (errorObj.stdout) console.error('CLI STDOUT:', errorObj.stdout);
+    if (errorObj.stderr) console.error('CLI STDERR:', errorObj.stderr);
+    throw error;
+  }
+}
+
+interface ToolResponse {
+  content: Array<{ text: string }>;
+  structuredContent?: {
+    content: unknown;
+  };
+}
+
+export async function runTool<T = unknown>(
+  toolName: string, 
+  params: Record<string, unknown>
+): Promise<{ parsed: ToolResponse; valid: boolean; content: T }> {
+  const args = [
+    '--method', 'tools/call',
+    '--tool-name', toolName,
+    ...Object.entries(params).flatMap(([key, value]) => {
+      const val = typeof value === 'string' ? value : JSON.stringify(value);
+      return ['--tool-arg', `${key}=${val}`]
+    }),
+  ];
+  const parsed = await runCli(args);
+  const valid = isValidToolResponse(parsed);
+  const content = JSON.parse(parsed.content[0].text);
+
+  return {parsed, valid, content};
+}
+
+export function isValidToolResponse(parsed: unknown): parsed is ToolResponse {
+  return (
+    typeof parsed === 'object' &&
+    parsed !== null &&
+    'content' in parsed &&
+    Array.isArray(parsed.content) &&
+    parsed.content.length > 0 &&
+    'structuredContent' in parsed
+  );
 }
