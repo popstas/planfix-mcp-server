@@ -76,6 +76,30 @@ export async function createSellTask({
       });
     }
 
+    const saleSourceValue = Number(process.env.PLANFIX_FIELD_ID_SALE_VALUE)
+    if (saleSourceValue) {
+      postBody.customFieldData.push({
+        field: {
+          id: PLANFIX_FIELD_IDS.saleSource,
+        },
+        value: {
+          id: saleSourceValue,
+        },
+      });
+    }
+
+    const serviceMatrixValue = Number(process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX_VALUE)
+    if (serviceMatrixValue) {
+      postBody.customFieldData.push({
+        field: {
+          id: PLANFIX_FIELD_IDS.serviceMatrix,
+        },
+        value: {
+          id: serviceMatrixValue,
+        },
+      });
+    }
+
     const result = await planfixRequest(`task/`, postBody, 'POST');
     const taskId = result.id;
     const url = getTaskUrl(taskId);
