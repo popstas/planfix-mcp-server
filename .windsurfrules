@@ -5,6 +5,8 @@
 lint all: `npm run lint src`
 lint file: `npm run lint [filePath]`
 
+Forbidden to use z.union for schema.
+
 tool test example:
 ```
 import { describe, expect, it } from 'vitest';

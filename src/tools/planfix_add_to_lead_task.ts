@@ -16,7 +16,7 @@ export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
 });
 
 
-const BaseOutputSchema = z.object({
+export const AddToLeadTaskOutputSchema = z.object({
   taskId: z.number(),
   clientId: z.number(),
   url: z.string().optional(),
@@ -34,15 +34,8 @@ const BaseOutputSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   agencyId: z.number().optional(),
+  error: z.string().optional(),
 });
-
-export const AddToLeadTaskOutputSchema = z.union([
-  BaseOutputSchema,
-  z.object({
-    error: z.string(),
-    taskId: z.number().optional(),
-  })
-]);
 
 // Helper: generate description for the task/comment
 function generateDescription(userData: z.infer<typeof UserDataInputSchema>, eventData: {
@@ -80,18 +73,17 @@ function generateDescription(userData: z.infer<typeof UserDataInputSchema>, even
  * @param params - Parameters including leadTaskId and content to add
  * @returns Promise with the result of the operation
  */
-export async function addToLeadTask({
-                                      name,
-                                      phone,
-                                      email,
-                                      telegram,
-                                      company,
-                                      header,
-                                      message,
-                                      managerEmail
-                                    }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<z.infer<typeof AddToLeadTaskOutputSchema> | {
-  error: string
-}> {
+export async function addToLeadTask(
+  {
+    name,
+    phone,
+    email,
+    telegram,
+    company,
+    header,
+    message,
+    managerEmail
+  }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<z.infer<typeof AddToLeadTaskOutputSchema>> {
   // Helper: template string replacement
   function replaceTemplateVars(template: string, vars: Record<string, string | undefined>): string {
     let result = template;
@@ -174,13 +166,13 @@ export async function addToLeadTask({
     return {taskId, clientId, url, clientUrl, assignees, firstName, lastName, agencyId};
   } catch (error) {
     // console.error('[leadToTask] Error:', error.message || error);
-    return {taskId: 0, error: error instanceof Error ? error.message : 'Unknown error'};
+    return {taskId: 0, clientId: 0, error: error instanceof Error ? error.message : 'Unknown error'};
   }
 }
 
 export async function handler(
   args?: Record<string, unknown>
-): Promise<z.infer<typeof AddToLeadTaskOutputSchema> | { error: string }> {
+): Promise<z.infer<typeof AddToLeadTaskOutputSchema>> {
   const parsedArgs = AddToLeadTaskInputSchema.parse(args);
   return addToLeadTask(parsedArgs);
 }
