@@ -47,6 +47,9 @@ export function getToolWithHandler<Input extends z.ZodType, Output extends z.Zod
 }
 
 export async function planfixRequest<T = unknown>(url: string, body?: Record<string, unknown>, method: 'GET' | 'POST' = 'POST'): Promise<T> {
+  if (!PLANFIX_ACCOUNT) {
+    throw new Error('PLANFIX_ACCOUNT is not defined');
+  }
   const response = await fetch(`${PLANFIX_BASE_URL}${url}`, {
     method: method || 'POST',
     headers: PLANFIX_HEADERS,
