@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { planfixRequest, getUserUrl, log, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {getToolWithHandler, getUserUrl, log, planfixRequest} from '../helpers.js';
 
 export const SearchManagerInputSchema = z.object({
   email: z.string(),
@@ -18,9 +18,9 @@ export const SearchManagerOutputSchema = z.object({
  * @param email - The email address to search for
  * @returns Promise with the manager's ID, URL, and name if found
  */
-export async function searchManager({ 
-  email 
-}: z.infer<typeof SearchManagerInputSchema>): Promise<z.infer<typeof SearchManagerOutputSchema>> {
+export async function searchManager({
+                                      email
+                                    }: z.infer<typeof SearchManagerInputSchema>): Promise<z.infer<typeof SearchManagerOutputSchema>> {
   try {
     const postBody = {
       offset: 0,
@@ -35,33 +35,44 @@ export async function searchManager({
       ],
     };
 
-    const result = await planfixRequest(`user/list`, postBody);
-    if (result.users && result.users.length > 0) {
-      const managerId = result.users[0].id;
-      const firstName = result.users[0].name;
-      const lastName = result.users[0].lastname;
+    const result = await planfixRequest('user/list', postBody) as {
+      users?: Array<{
+        id: number;
+        name?: string;
+        lastname?: string;
+      }>;
+    };
+    if (result.users?.[0]?.id) {
+      const manager = result.users[0];
+      const managerId = manager.id;
       const url = getUserUrl(managerId);
-      return { managerId, url, firstName, lastName };
-    } else {
-      return { 
-        managerId: 0, 
-        url: undefined, 
-        error: `No manager found with email: ${email}`
+      return {
+        managerId,
+        url,
+        firstName: manager.name,
+        lastName: manager.lastname
       };
     }
-  } catch (error: any) {
-    log(`[searchManager] Error: ${error.message}`);
-    return { 
-      managerId: 0, 
-      url: undefined, 
-      error: error.message || 'An error occurred while searching for the manager' 
+
+    return {
+      managerId: 0,
+      error: `No manager found with email: ${email}`
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    log(`[searchManager] Error: ${errorMessage}`);
+    return {
+      managerId: 0,
+      error: `An error occurred while searching for the manager: ${errorMessage}`
     };
   }
 }
 
-export function handler(args?: Record<string, unknown>) {
+export async function handler(
+  args?: Record<string, unknown>
+): Promise<z.infer<typeof SearchManagerOutputSchema>> {
   const parsedArgs = SearchManagerInputSchema.parse(args);
-  return searchManager(parsedArgs);
+  return await searchManager(parsedArgs);
 }
 
 export const planfixSearchManagerTool = getToolWithHandler({

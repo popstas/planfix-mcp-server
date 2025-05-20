@@ -1,10 +1,10 @@
 import path from 'path';
-import { fileURLToPath } from 'url';
+import {fileURLToPath} from 'url';
 import fs from 'fs';
-import { PLANFIX_ACCOUNT, PLANFIX_BASE_URL, PLANFIX_HEADERS } from './config.js';
-import { ToolWithHandler } from './types.js';
-import { zodToJsonSchema } from 'zod-to-json-schema';
-import { ToolInput, ToolOutput } from './types.js';
+import {PLANFIX_ACCOUNT, PLANFIX_BASE_URL, PLANFIX_HEADERS} from './config.js';
+import {ToolInput, ToolOutput, ToolWithHandler} from './types.js';
+import {zodToJsonSchema} from 'zod-to-json-schema';
+import {z} from 'zod';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,18 +16,18 @@ export function log(message: string) {
   fs.appendFileSync(logPath, logMessage);
 }
 
-export function getToolWithHandler({
-  name,
-  description,
-  inputSchema,
-  outputSchema,
-  handler,
-}: {
+export function getToolWithHandler<Input extends z.ZodType, Output extends z.ZodType>({
+                                                                                        name,
+                                                                                        description,
+                                                                                        inputSchema,
+                                                                                        outputSchema,
+                                                                                        handler,
+                                                                                      }: {
   name: string;
   description: string;
-  inputSchema: any;
-  outputSchema: any;
-  handler: any;
+  inputSchema: Input;
+  outputSchema: Output;
+  handler: (args: z.infer<Input>) => Promise<z.infer<Output>>;
 }): ToolWithHandler {
   return {
     name,
@@ -38,7 +38,7 @@ export function getToolWithHandler({
   };
 }
 
-export async function planfixRequest(url: string, body?: any, method?: 'GET' | 'POST') {
+export async function planfixRequest<T = unknown>(url: string, body?: Record<string, unknown>, method: 'GET' | 'POST' = 'POST'): Promise<T> {
   const response = await fetch(`${PLANFIX_BASE_URL}${url}`, {
     method: method || 'POST',
     headers: PLANFIX_HEADERS,
@@ -58,9 +58,11 @@ export async function planfixRequest(url: string, body?: any, method?: 'GET' | '
 export function getTaskUrl(taskId?: number): string {
   return taskId ? `https://${PLANFIX_ACCOUNT}.planfix.com/task/${taskId}` : '';
 }
+
 export function getContactUrl(contactId?: number): string {
   return contactId ? `https://${PLANFIX_ACCOUNT}.planfix.com/contact/${contactId}` : '';
 }
+
 export function getUserUrl(userId?: number): string {
   return userId ? `https://${PLANFIX_ACCOUNT}.planfix.com/user/${userId}` : '';
 }

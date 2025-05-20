@@ -1,8 +1,10 @@
 # Planfix MCP Server
 
-This MCP server provides integration with the Planfix API, allowing Model Context Protocol (MCP) clients to interact with Planfix CRM and task management system.
+This MCP server provides integration with the Planfix API, allowing Model Context Protocol (MCP) clients to interact
+with Planfix CRM and task management system.
 
 ## Features
+
 - Lead management (create, search, convert to tasks)
 - Contact and company management
 - Task management (create, search, comment)
@@ -11,7 +13,9 @@ This MCP server provides integration with the Planfix API, allowing Model Contex
 - Authentication via Bearer token
 
 ## Configuration
+
 The server requires the following environment variables for Planfix API access:
+
 - `PLANFIX_ACCOUNT` – Your Planfix account name (e.g., `yourcompany`)
 - `PLANFIX_TOKEN` – Planfix API token with necessary permissions
 - `PLANFIX_FIELD_ID_EMAIL` – Custom field ID for email
@@ -22,11 +26,13 @@ The server requires the following environment variables for Planfix API access:
 - `PLANFIX_FIELD_ID_AGENCY` – Custom field ID for agency
 
 ## Debug
+
 ```
 npx @modelcontextprotocol/inspector node d:/projects/expertizeme/planfix-mcp-server/dist/index.js
 ```
 
 ## Example MCP Config (NPX)
+
 ```json
 {
   "mcpServers": {
@@ -52,7 +58,9 @@ npx @modelcontextprotocol/inspector node d:/projects/expertizeme/planfix-mcp-ser
 ```
 
 ## Usage
+
 Run the server with the required environment variables set. Example (with npx):
+
 ```sh
 PLANFIX_ACCOUNT=yourcompany \
 PLANFIX_TOKEN=your-api-token \
@@ -68,15 +76,18 @@ npx @popstas/planfix-mcp-server
 ## Available Tools
 
 ### Lead Management
+
 - `leadToTask`: Convert a lead to a task by creating/updating contact and task
 - `searchLeadTask`: Search for lead tasks by contact information
 
 ### Contact Management
+
 - `searchPlanfixContact`: Search contacts by name, phone, email, or Telegram
 - `createPlanfixContact`: Create a new contact in Planfix
 - `searchPlanfixCompany`: Search for companies by name
 
 ### Task Management
+
 - `searchPlanfixTask`: Search for tasks by name and client ID
 - `createSellTask`: Create a new sell task with template
 - `createLeadTask`: Create a new lead task
@@ -84,17 +95,21 @@ npx @popstas/planfix-mcp-server
 - `getChildTasks`: Retrieve all child tasks of a parent task
 
 ### User Management
+
 - `searchManager`: Find a manager by email
 
 ### Reporting
+
 - `listReports`: List all available reports
 - `runReport`: Generate and retrieve a specific report
 
 ## References
+
 - [Planfix API Documentation](https://help.planfix.com/restapidocs/swagger.json)
 - [Model Context Protocol](https://modelcontextprotocol.io)
 
 ## TODO:
+
 - Add tool `getTask` to retrieve task details
 - Add tool `getContact` to retrieve contact details
 - Add tool `getManager` to retrieve manager details

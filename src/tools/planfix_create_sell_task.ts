@@ -1,6 +1,22 @@
-import { z } from 'zod';
-import { PLANFIX_FIELD_IDS } from '../config.js';
-import { log, planfixRequest, getTaskUrl, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {PLANFIX_FIELD_IDS} from '../config.js';
+import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
+import type {CustomFieldDataType} from '../types.js';
+
+interface TaskRequestBody {
+  template: {
+    id: number;
+  };
+  name: string;
+  description: string;
+  parent: {
+    id: number;
+  };
+  customFieldData: CustomFieldDataType[];
+  assignees?: {
+    users: Array<{ id: string }>;
+  };
+}
 
 export const CreateSellTaskInputSchema = z.object({
   clientId: z.number(),
@@ -22,21 +38,21 @@ export const CreateSellTaskOutputSchema = z.object({
  * @param leadTaskId - The Planfix lead task ID (parent)
  * @returns {Promise<typeof CreateSellTaskOutputSchema>} The created task ID and URL
  */
-export async function createSellTask({ 
-  clientId, 
-  leadTaskId, 
-  agencyId, 
-  assignees, 
-  name, 
-  description 
-}: z.infer<typeof CreateSellTaskInputSchema>): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
+export async function createSellTask({
+                                       clientId,
+                                       leadTaskId,
+                                       agencyId,
+                                       assignees,
+                                       name,
+                                       description
+                                     }: z.infer<typeof CreateSellTaskInputSchema>): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
   try {
     const TEMPLATE_ID = Number(process.env.PLANFIX_SELL_TEMPLATE_ID);
     if (!name) name = 'Продажа из бота';
     if (!description) description = 'Задача продажи для клиента';
     description = description.replace(/\n/g, '<br>');
 
-    const postBody: any = {
+    const postBody: TaskRequestBody = {
       template: {
         id: TEMPLATE_ID,
       },
@@ -88,7 +104,7 @@ export async function createSellTask({
       });
     }
 
-    const serviceMatrixValue = Number(process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX_VALUE)
+    const serviceMatrixValue = Number(process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX_VALUE);
     if (serviceMatrixValue) {
       postBody.customFieldData.push({
         field: {
@@ -100,17 +116,20 @@ export async function createSellTask({
       });
     }
 
-    const result = await planfixRequest(`task/`, postBody, 'POST');
+    const result = await planfixRequest<{ id: number }>(`task/`, postBody as unknown as Record<string, unknown>);
     const taskId = result.id;
     const url = getTaskUrl(taskId);
-    return { taskId, url };
-  } catch (error: any) {
-    log(`[createSellTask] Error: ${error.message}`);
+    return {taskId, url};
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[createSellTask] Error: ${errorMessage}`);
     throw error;
   }
 }
 
-function handler(args?: Record<string, unknown>) {
+async function handler(
+  args?: Record<string, unknown>
+): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
   const parsedArgs = CreateSellTaskInputSchema.parse(args);
   return createSellTask(parsedArgs);
 }

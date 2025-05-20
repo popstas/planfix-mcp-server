@@ -1,7 +1,21 @@
-import { z } from 'zod';
-import { PLANFIX_FIELD_IDS } from '../config.js';
-import { log, planfixRequest, getContactUrl, getToolWithHandler } from '../helpers.js';
-import { CustomFieldDataType } from '../types.js';
+import {z} from 'zod';
+import {PLANFIX_FIELD_IDS} from '../config.js';
+import {getContactUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
+import type {CustomFieldDataType} from '../types.js';
+
+interface ContactRequestBody {
+  template: {
+    id: number;
+  };
+  name: string;
+  lastname: string;
+  email?: string;
+  phones: Array<{
+    type: number;
+    number: string;
+  }>;
+  customFieldData: CustomFieldDataType[];
+}
 
 export const CreatePlanfixContactInputSchema = z.object({
   name: z.string().optional(),
@@ -17,14 +31,14 @@ export const CreatePlanfixContactOutputSchema = z.object({
 
 // Helper function to split full name into first and last name
 function splitName(fullName: string): { firstName: string; lastName: string } {
-  if (!fullName) return { firstName: '', lastName: '' };
-  
+  if (!fullName) return {firstName: '', lastName: ''};
+
   const parts = fullName.trim().split(/\s+/);
-  if (parts.length === 1) return { firstName: parts[0], lastName: '' };
-  
+  if (parts.length === 1) return {firstName: parts[0], lastName: ''};
+
   const firstName = parts[0];
   const lastName = parts.slice(1).join(' ');
-  return { firstName, lastName };
+  return {firstName, lastName};
 }
 
 /**
@@ -36,16 +50,16 @@ export async function createPlanfixContact(
   userData: z.infer<typeof CreatePlanfixContactInputSchema>
 ): Promise<z.infer<typeof CreatePlanfixContactOutputSchema>> {
   try {
-    const { firstName, lastName } = splitName(userData.name || '');
-    const postBody: any = {
+    const {firstName, lastName} = splitName(userData.name || '');
+    const postBody: ContactRequestBody = {
       template: {
-        id: Number(process.env.PLANFIX_CONTACT_TEMPLATE_ID),
+        id: Number(process.env.PLANFIX_CONTACT_TEMPLATE_ID || 0),
       },
       name: firstName,
       lastname: lastName,
       email: userData.email,
       phones: [],
-      customFieldData: [] as CustomFieldDataType[],
+      customFieldData: [],
     };
 
     // Add phone if available
@@ -66,18 +80,21 @@ export async function createPlanfixContact(
       });
     }
 
-    const result = await planfixRequest(`contact/`, postBody);
+    const result = await planfixRequest<{ id: number }>(`contact/`, postBody as unknown as Record<string, unknown>);
     const contactId = result.id;
     const url = getContactUrl(contactId);
-    
-    return { contactId, url };
-  } catch (error: any) {
-    log(`[createPlanfixContact] Error: ${error.message}`);
-    return { contactId: 0, url: undefined };
+
+    return {contactId, url};
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[createPlanfixContact] Error: ${errorMessage}`);
+    return {contactId: 0, url: undefined};
   }
 }
 
-export function handler(args?: Record<string, unknown>) {
+export async function handler(
+  args?: Record<string, unknown>
+): Promise<z.infer<typeof CreatePlanfixContactOutputSchema>> {
   const parsedArgs = CreatePlanfixContactInputSchema.parse(args);
   return createPlanfixContact(parsedArgs);
 }

@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { planfixRequest, getTaskUrl, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
 
 export const GetChildTasksInputSchema = z.object({
   parentTaskId: z.number(),
@@ -24,10 +24,10 @@ export const GetChildTasksOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export async function getChildTasks({ parentTaskId }: z.infer<typeof GetChildTasksInputSchema>): Promise<z.infer<typeof GetChildTasksOutputSchema>> {
+export async function getChildTasks({parentTaskId}: z.infer<typeof GetChildTasksInputSchema>): Promise<z.infer<typeof GetChildTasksOutputSchema>> {
   try {
     const result = await planfixRequest(`task/list`, {
-      parent: { id: parentTaskId },
+      parent: {id: parentTaskId},
       pageSize: 100,
       offset: 0,
       fields: [
@@ -68,7 +68,7 @@ export async function getChildTasks({ parentTaskId }: z.infer<typeof GetChildTas
         pageSize: number;
       };
     };
-    
+
     const tasks = data.tasks?.map(task => ({
       id: task.id,
       name: task.name,
@@ -83,7 +83,7 @@ export async function getChildTasks({ parentTaskId }: z.infer<typeof GetChildTas
       totalCount: data.pagination?.count || 0,
     };
   } catch (error) {
-    console.error('Exception when getting child tasks:', error);
+    log('Exception when getting child tasks: ' + (error instanceof Error ? error.message : 'Unknown error'));
     return {
       tasks: [],
       totalCount: 0,
@@ -92,9 +92,11 @@ export async function getChildTasks({ parentTaskId }: z.infer<typeof GetChildTas
   }
 }
 
-function handler(args?: Record<string, unknown>): Promise<z.infer<typeof GetChildTasksOutputSchema>> {
+async function handler(
+  args?: Record<string, unknown>
+): Promise<z.infer<typeof GetChildTasksOutputSchema>> {
   const parsedArgs = GetChildTasksInputSchema.parse(args);
-  return getChildTasks(parsedArgs);
+  return await getChildTasks(parsedArgs);
 }
 
 const planfixGetChildTasksTool = getToolWithHandler({

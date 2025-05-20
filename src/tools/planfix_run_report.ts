@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { log, planfixRequest, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {getToolWithHandler, log, planfixRequest} from '../helpers.js';
 
 export const RunReportInputSchema = z.object({
   reportId: z.number(),
@@ -26,8 +26,14 @@ type ReportStatusResponse = {
   };
 };
 
-type ReportRows = {[key: string]: string}[];
-type PlanfixReportData = { type: string; items: { text: string }[] }[];
+type ReportRows = Array<Record<string, string>>;
+
+interface PlanfixReportItem {
+  type: string;
+  items: Array<{ text: string }>;
+}
+
+type PlanfixReportData = PlanfixReportItem[];
 
 const CACHE_TIME = 300; // 5 minutes in seconds
 
@@ -49,7 +55,7 @@ function reportDataToRows(data: PlanfixReportData): ReportRows {
     .filter(Boolean) as ReportRows;
 }
 
-async function generateReport({ reportId }: { reportId: number }): Promise<PlanfixReportData | { error: string }> {
+async function generateReport({reportId}: { reportId: number }): Promise<PlanfixReportData | { error: string }> {
   try {
     const generateResult = await planfixRequest(`report/${reportId}/run`, {}) as GenerateReportResponse;
 
@@ -87,15 +93,18 @@ async function generateReport({ reportId }: { reportId: number }): Promise<Planf
     }
 
     return reportData;
-  } catch (error: any) {
-    log(`[generateReport] Error: ${error.message}`);
-    return { error: error.message };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[generateReport] Error: ${errorMessage}`);
+    return {error: errorMessage};
   }
 }
 
-async function checkSavedReport({ reportId }: { reportId: number }): Promise<PlanfixReportData | undefined> {
+async function checkSavedReport({reportId}: { reportId: number }): Promise<PlanfixReportData | undefined> {
   try {
-    const data = await planfixRequest(`report/${reportId}/saves`, {}) as { saves: Array<{ id: number; dateTime: string }> };
+    const data = await planfixRequest(`report/${reportId}/saves`, {}) as {
+      saves: Array<{ id: number; dateTime: string }>
+    };
     if (!data.saves || data.saves.length === 0) {
       return undefined;
     }
@@ -104,7 +113,7 @@ async function checkSavedReport({ reportId }: { reportId: number }): Promise<Pla
     const lastSavedTime = lastSaved.dateTime;
     const lastSavedTimeDate = new Date(lastSavedTime);
     const now = new Date();
-    
+
     // Convert both times to UTC for accurate comparison
     const lastSavedUTCTime = Date.UTC(
       lastSavedTimeDate.getFullYear(),
@@ -114,7 +123,7 @@ async function checkSavedReport({ reportId }: { reportId: number }): Promise<Pla
       lastSavedTimeDate.getMinutes(),
       lastSavedTimeDate.getSeconds()
     );
-    
+
     const nowUTCTime = Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth(),
@@ -123,9 +132,9 @@ async function checkSavedReport({ reportId }: { reportId: number }): Promise<Pla
       now.getUTCMinutes(),
       now.getUTCSeconds()
     );
-    
+
     const diff = nowUTCTime - lastSavedUTCTime;
-    
+
     if (diff < CACHE_TIME * 1000) {
       const dataResponse = await planfixRequest(`report/${reportId}/save/${lastSaved.id}/data`, {
         chunks: 0,
@@ -133,42 +142,45 @@ async function checkSavedReport({ reportId }: { reportId: number }): Promise<Pla
 
       return dataResponse.data.rows;
     }
-    
+
     return undefined;
   } catch (error) {
-    console.error('Exception when checking saved report:', error);
+    log('Exception when checking saved report: ' + (error instanceof Error ? error.message : 'Unknown error'));
     return undefined;
   }
 }
 
-export async function runReport({ reportId }: z.infer<typeof RunReportInputSchema>): Promise<z.infer<typeof RunReportOutputSchema>> {
+export async function runReport({reportId}: z.infer<typeof RunReportInputSchema>): Promise<z.infer<typeof RunReportOutputSchema>> {
   try {
     let reportData: PlanfixReportData | undefined;
-    
+
     // First, try to use a cached version if available
-    const savedReportData = await checkSavedReport({ reportId });
+    const savedReportData = await checkSavedReport({reportId});
     if (savedReportData) {
       reportData = savedReportData;
     } else {
       // If no cached version, generate a new report
-      const reportDataOrError = await generateReport({ reportId });
+      const reportDataOrError = await generateReport({reportId});
       if ('error' in reportDataOrError) {
-        return { success: false, error: reportDataOrError.error };
+        return {success: false, error: reportDataOrError.error};
       }
       reportData = reportDataOrError;
     }
-    
+
     const rows = reportDataToRows(reportData);
-    return { success: true, rows };
-  } catch (error: any) {
-    log(`[runReport] Error: ${error.message}`);
-    return { success: false, error: error.message || 'Unknown error occurred' };
+    return {success: true, rows};
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[runReport] Error: ${errorMessage}`);
+    return {success: false, error: errorMessage};
   }
 }
 
-export function handler(args?: Record<string, unknown>) {
+export async function handler(
+  args?: Record<string, unknown>
+): Promise<z.infer<typeof RunReportOutputSchema>> {
   const parsedArgs = RunReportInputSchema.parse(args);
-  return runReport(parsedArgs);
+  return await runReport(parsedArgs);
 }
 
 export const planfixRunReportTool = getToolWithHandler({

@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { log, planfixRequest, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {getToolWithHandler, log, planfixRequest} from '../helpers.js';
 
 export const ListReportsInputSchema = z.object({});
 
@@ -8,6 +8,7 @@ export const ListReportsOutputSchema = z.object({
     id: z.number(),
     name: z.string(),
   })),
+  error: z.string().optional(),
 });
 
 // Interface for the Planfix API response
@@ -31,17 +32,18 @@ export async function listReports(): Promise<z.infer<typeof ListReportsOutputSch
     return {
       reports: result.reports || []
     };
-  } catch (error: any) {
-    log(`[listReports] Error: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[listReports] Error: ${errorMessage}`);
     return {
       reports: [],
-      error: `Error listing reports: ${error.message}`
-    } as any;
+      error: `Error listing reports: ${errorMessage}`
+    };
   }
 }
 
-export function handler() {
-  return listReports();
+export async function handler(): Promise<z.infer<typeof ListReportsOutputSchema>> {
+  return await listReports();
 }
 
 export const planfixReportsListTool = getToolWithHandler({

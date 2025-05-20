@@ -1,11 +1,20 @@
-import { z } from 'zod';
-import { log, planfixRequest, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {getToolWithHandler, log, planfixRequest} from '../helpers.js';
 
 // Input schema for creating a comment
 export const CreateCommentInputSchema = z.object({
   taskId: z.number(),
   description: z.string(),
-  recipients: z.array(z.number()).optional(),
+  recipients: z.object({
+    users: z.array(z.object({
+      id: z.string(),
+      name: z.string().optional(),
+    })).optional(),
+    groups: z.array(z.object({
+      id: z.string(),
+      name: z.string().optional(),
+    })).optional(),
+  }).optional(),
 });
 
 // Output schema for the created comment
@@ -22,34 +31,35 @@ export const CreateCommentOutputSchema = z.object({
  * @param recipients - Optional array of user IDs to mention in the comment
  * @returns Promise with the created comment ID and URL
  */
-export async function createComment({ 
-  taskId, 
-  description, 
-  recipients 
-}: z.infer<typeof CreateCommentInputSchema>): Promise<{ 
-  commentId: number | null; 
-  error?: string 
+export async function createComment({
+                                      taskId,
+                                      description,
+                                      recipients
+                                    }: z.infer<typeof CreateCommentInputSchema>): Promise<{
+  commentId: number;
+  error?: string
 }> {
   try {
-    const postBody: any = {
+    const postBody = {
       description: description.replace(/\n/g, '<br>'),
       recipients,
-    };
+    } as const;
 
-    const result = await planfixRequest(`task/${taskId}/comments/`, postBody);
-    return { commentId: result.id };
-  } catch (error: any) {
-    log(`[createComment] Error: ${error.message}`);
-    return { 
-      commentId: null, 
-      error: `Error creating comment: ${error.message}` 
+    const result = await planfixRequest<{ id: number }>(`task/${taskId}/comments/`, postBody);
+    return {commentId: result.id};
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[createComment] Error: ${errorMessage}`);
+    return {
+      commentId: 0,
+      error: `Error creating comment: ${errorMessage}`
     };
   }
 }
 
-export function handler(args?: Record<string, unknown>) {
+export async function handler(args?: Record<string, unknown>): Promise<z.infer<typeof CreateCommentOutputSchema>> {
   const parsedArgs = CreateCommentInputSchema.parse(args);
-  return createComment(parsedArgs);
+  return await createComment(parsedArgs);
 }
 
 export const planfixCreateCommentTool = getToolWithHandler({

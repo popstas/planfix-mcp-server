@@ -1,9 +1,9 @@
-import { z } from 'zod';
-import { planfixSearchContact } from './planfix_search_contact.js';
-import { searchPlanfixTask } from './planfix_search_task.js';
-import { planfixSearchCompany } from './planfix_search_company.js';
-import { UserDataInputSchema } from '../types.js';
-import { getTaskUrl, getContactUrl, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {planfixSearchContact} from './planfix_search_contact.js';
+import {searchPlanfixTask} from './planfix_search_task.js';
+import {planfixSearchCompany} from './planfix_search_company.js';
+import {UserDataInputSchema, UsersListType} from '../types.js';
+import {getContactUrl, getTaskUrl, getToolWithHandler, log} from '../helpers.js';
 
 export const SearchLeadTaskInputSchema = UserDataInputSchema;
 
@@ -12,7 +12,12 @@ export const SearchLeadTaskOutputSchema = z.object({
   url: z.string().optional(),
   clientId: z.number(),
   clientUrl: z.string().optional(),
-  assignees: z.any().optional(),
+  assignees: z.object({
+    users: z.array(z.object({
+      id: z.string(),
+      name: z.string().optional(),
+    })),
+  }).optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   agencyId: z.number().optional(),
@@ -27,57 +32,59 @@ export async function searchLeadTask(
   userData: z.infer<typeof SearchLeadTaskInputSchema>
 ): Promise<z.infer<typeof SearchLeadTaskOutputSchema>> {
   console.log(`[searchLeadTask] Searching for lead task by userData: ${JSON.stringify(userData)}`);
-  
+
   try {
     // 1. Search for contact
     const contactResult = await planfixSearchContact(userData);
-    const clientId = contactResult.contactId;
-    console.log(`[searchLeadTask] Contact found: ${clientId}`);
-    
+    const clientId = contactResult.contactId || 0;
+    log(`[searchLeadTask] Contact found: ${clientId}`);
+
     let taskId = 0;
-    let assignees: any[] = [];
-    
+    let assignees: UsersListType = {users: []};
+
     // 2. If contact found, search for task by clientId
-    if (clientId) {
-      const result = await searchPlanfixTask({ clientId });
-      assignees = result.assignees || [];
+    if (clientId > 0) {
+      const result = await searchPlanfixTask({clientId});
+      if (result.assignees && Array.isArray(result.assignees.users)) {
+        assignees = result.assignees;
+      }
       taskId = result.taskId || 0;
-      console.log(`[searchLeadTask] Task found: ${taskId}`);
+      log(`[searchLeadTask] Task found: ${taskId}`);
     }
 
     // 3. If company provided, search for company
     let agencyId: number | undefined;
     if (userData.company) {
-      const companyResult = await planfixSearchCompany({ name: userData.company });
-      if ('contactId' in companyResult) {
+      const companyResult = await planfixSearchCompany({name: userData.company});
+      if ('contactId' in companyResult && companyResult.contactId) {
         agencyId = companyResult.contactId;
       }
     }
 
     // 4. Prepare response
-    const firstName = contactResult.firstName;
-    const lastName = contactResult.lastName;
+    const {firstName, lastName} = contactResult;
     const url = getTaskUrl(taskId);
     const clientUrl = getContactUrl(clientId);
-    
-    return { 
-      taskId, 
-      clientId, 
-      url, 
-      clientUrl, 
-      assignees, 
-      firstName, 
-      lastName, 
-      agencyId 
+
+    return {
+      taskId,
+      clientId,
+      url,
+      clientUrl,
+      assignees,
+      firstName,
+      lastName,
+      agencyId
     };
-  } catch (error: any) {
-    console.error('[searchLeadTask] Error:', error.message);
-    return { 
-      taskId: 0, 
-      clientId: 0, 
-      url: '', 
-      clientUrl: '', 
-      assignees: [], 
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[searchLeadTask] Error: ${errorMessage}`);
+    return {
+      taskId: 0,
+      clientId: 0,
+      url: '',
+      clientUrl: '',
+      assignees: undefined,
       agencyId: undefined,
       firstName: undefined,
       lastName: undefined
@@ -85,9 +92,11 @@ export async function searchLeadTask(
   }
 }
 
-function handler(args?: Record<string, unknown>): Promise<z.infer<typeof SearchLeadTaskOutputSchema>> {
-  args = SearchLeadTaskInputSchema.parse(args);
-  return searchLeadTask(args);
+async function handler(
+  args?: Record<string, unknown>
+): Promise<z.infer<typeof SearchLeadTaskOutputSchema>> {
+  const parsedArgs = SearchLeadTaskInputSchema.parse(args);
+  return await searchLeadTask(parsedArgs);
 }
 
 export const planfixSearchLeadTaskTool = getToolWithHandler({

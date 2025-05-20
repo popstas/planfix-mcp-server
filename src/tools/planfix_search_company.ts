@@ -1,5 +1,11 @@
-import { z } from 'zod';
-import { planfixRequest, getContactUrl, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {getContactUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
+
+interface SearchFilter {
+  type: number;
+  operator: string;
+  value: unknown;
+}
 
 export const PlanfixSearchCompanyInputSchema = z.object({
   name: z.string().optional(),
@@ -12,20 +18,22 @@ export const PlanfixSearchCompanyOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export async function planfixSearchCompany({ name }: { name?: string }): Promise<z.infer<typeof PlanfixSearchCompanyOutputSchema> | { error: string }> {
+export async function planfixSearchCompany({name}: {
+  name?: string
+}): Promise<z.infer<typeof PlanfixSearchCompanyOutputSchema> | { error: string }> {
   let contactId: number | null = null;
   let companyName: string | undefined = undefined;
-  const postBody: any = {
+  const postBody = {
     offset: 0,
     pageSize: 100,
     isCompany: true,
     filters: [
-      { type: 4006, operator: 'equal', value: true } // isCompany: true
+      {type: 4006, operator: 'equal', value: true} // isCompany: true
     ],
     fields: 'id,name',
   };
 
-  const filters = {
+  const filters: Record<string, SearchFilter> = {
     byName: {
       type: 4001,
       operator: 'equal',
@@ -33,10 +41,10 @@ export async function planfixSearchCompany({ name }: { name?: string }): Promise
     },
   };
 
-  async function searchWithFilter(filter: any, label: string): Promise<{ contactId: number; name?: string; error?: string }> {
+  async function searchWithFilter(filter: SearchFilter): Promise<{ contactId: number; name?: string; error?: string }> {
     const currentFilters = [...postBody.filters, filter];
     try {
-      const result = await planfixRequest(`contact/list`, {
+      const result = await planfixRequest<{ contacts: Array<{ id: number; name: string }> }>(`contact/list`, {
         ...postBody,
         filters: currentFilters
       });
@@ -45,35 +53,41 @@ export async function planfixSearchCompany({ name }: { name?: string }): Promise
         contactId = result.contacts[0].id;
         companyName = result.contacts[0].name;
       }
-      return { contactId: contactId || 0, name: companyName };
-    } catch (error: any) {
-      return { contactId: 0, error: error.message };
+      return {contactId: contactId || 0, name: companyName};
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      log(`[planfixSearchCompany] Error: ${errorMessage}`);
+      return {contactId: 0, error: errorMessage};
     }
   }
 
   try {
-    let result;
+    let searchResult: { contactId: number; name?: string; error?: string } | undefined;
     if (!contactId && name) {
-      result = await searchWithFilter(filters.byName, 'name');
-      contactId = result.contactId;
+      searchResult = await searchWithFilter(filters.byName);
+      contactId = searchResult.contactId;
+      companyName = searchResult.name;
     }
     contactId = contactId || 0;
     const url = getContactUrl(contactId);
-    return { 
-      contactId, 
-      url, 
-      name: companyName || result?.name,
-      error: result?.error
+    return {
+      contactId,
+      url,
+      name: companyName,
+      error: searchResult?.error
     };
-  } catch (error: any) {
-    console.error('Error searching for company:', error.message);
-    return { contactId: 0, url: undefined, error: error.message };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[planfixSearchCompany] Error: ${errorMessage}`);
+    return {contactId: 0, error: errorMessage};
   }
 }
 
-function handler(args?: Record<string, unknown>): Promise<z.infer<typeof PlanfixSearchCompanyOutputSchema>> {
-  args = PlanfixSearchCompanyInputSchema.parse(args);
-  return planfixSearchCompany(args);
+async function handler(
+  args?: Record<string, unknown>
+): Promise<z.infer<typeof PlanfixSearchCompanyOutputSchema>> {
+  const parsedArgs = PlanfixSearchCompanyInputSchema.parse(args);
+  return await planfixSearchCompany(parsedArgs);
 }
 
 const planfixSearchCompanyTool = getToolWithHandler({

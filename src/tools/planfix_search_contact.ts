@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { PLANFIX_FIELD_IDS } from '../config.js';
-import { planfixRequest, getContactUrl, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {PLANFIX_FIELD_IDS} from '../config.js';
+import {getContactUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
 
 export const PlanfixSearchContactInputSchema = z.object({
   name: z.string().optional(),
@@ -14,6 +14,7 @@ export const PlanfixSearchContactOutputSchema = z.object({
   url: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
+  error: z.string().optional(),
 });
 
 /**
@@ -21,23 +22,28 @@ export const PlanfixSearchContactOutputSchema = z.object({
  * This is a placeholder implementation that should be replaced with actual Planfix API calls.
  */
 export async function planfixSearchContact({
-    name,
-    phone,
-    email,
-    telegram
-  }: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
+                                             name,
+                                             phone,
+                                             email,
+                                             telegram
+                                           }: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
   // console.log('Searching Planfix contact...');
   let contactId: number | null = null;
-  let firstName: string | undefined = undefined;
-  let lastName: string | undefined = undefined;
-  const postBody: any = {
+  const postBody = {
     offset: 0,
     pageSize: 100,
     filters: [],
     fields: `id,name,midname,lastname,email,phone,description,group,${PLANFIX_FIELD_IDS.telegram}`,
   };
 
-  const filters = {
+  type FilterType = {
+    type: number;
+    operator: string;
+    value?: string | number | boolean;
+    field?: number;
+  };
+
+  const filters: Record<string, FilterType> = {
     byName: {
       type: 4001,
       operator: 'equal',
@@ -61,57 +67,71 @@ export async function planfixSearchContact({
     },
   };
 
-  async function searchWithFilter(filter: any, label: string): Promise<{ contactId: number; firstName?: string; lastName?: string; error?: string }> {
-    postBody.filters = [filter];
+  async function searchWithFilter(filter: FilterType): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
     try {
-      const result = await planfixRequest(`contact/list`, {
-        ...postBody,
-        filters: postBody.filters
-      });
-      if (result.contacts && result.contacts.length > 0) {
-        contactId = result.contacts[0].id;
-        firstName = result.contacts[0].name;
-        lastName = result.contacts[0].lastname;
+      const result = await planfixRequest(
+        'contact/list',
+        {
+          ...postBody,
+          filters: [filter]
+        }
+      ) as { contacts?: Array<{ id: number; name?: string; lastname?: string }> };
+
+      if (result.contacts?.[0]) {
+        const contact = result.contacts[0];
+        return {
+          contactId: contact.id,
+          firstName: contact.name,
+          lastName: contact.lastname
+        };
       }
-      contactId = contactId || 0;
-      return { contactId, firstName, lastName };
-    } catch (error: any) {
-      // console.error('Error searching for contacts:', error.message);
-      return { contactId: 0, error: error.message };
+
+      return {contactId: 0};
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      log(`[planfixSearchContact] Error searching with filter: ${errorMessage}`);
+      return {contactId: 0, error: errorMessage};
     }
   }
+
   try {
-    let result;
+    let result: z.infer<typeof PlanfixSearchContactOutputSchema> | undefined;
     if (!contactId && email) {
-      result = await searchWithFilter(filters.byEmail, 'email');
+      result = await searchWithFilter(filters.byEmail);
       contactId = result.contactId;
     }
     if (!contactId && phone) {
-      result = await searchWithFilter(filters.byPhone, 'phone');
+      result = await searchWithFilter(filters.byPhone);
       contactId = result.contactId;
     }
     if (!contactId && name && name.includes(' ')) {
-      result = await searchWithFilter(filters.byName, 'name');
+      result = await searchWithFilter(filters.byName);
       contactId = result.contactId;
     }
     if (!contactId && telegram) {
-      result = await searchWithFilter(filters.byTelegram, 'telegram');
+      result = await searchWithFilter(filters.byTelegram);
       contactId = result.contactId;
     }
     contactId = contactId || 0;
     const url = getContactUrl(contactId);
     const firstName = result?.firstName;
     const lastName = result?.lastName;
-    return { contactId, url, firstName, lastName };
-  } catch (error: any) {
-    console.error('Error searching for contacts:', error.message);
-    return { contactId: 0, url: undefined };
+    return {
+      contactId,
+      url,
+      firstName,
+      lastName,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[planfixSearchContact] Error: ${errorMessage}`);
+    return {contactId: 0, error: errorMessage};
   }
 }
 
-function handler(args?: Record<string, unknown>): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
+async function handler(args?: Record<string, unknown>): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
   args = PlanfixSearchContactInputSchema.parse(args);
-  return planfixSearchContact(args);
+  return await planfixSearchContact(args);
 }
 
 export default getToolWithHandler({

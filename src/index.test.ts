@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import {describe, expect, it} from 'vitest';
 import * as dotenv from 'dotenv';
+
 dotenv.config();
 
 describe('Planfix MCP Server', () => {

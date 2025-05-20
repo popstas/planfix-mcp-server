@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import { log } from './helpers.js';
-import { ToolWithHandler } from './types.js';
+import {Server} from "@modelcontextprotocol/sdk/server/index.js";
+import {StdioServerTransport} from "@modelcontextprotocol/sdk/server/stdio.js";
+import {CallToolRequestSchema, ListToolsRequestSchema} from "@modelcontextprotocol/sdk/types.js";
+import {log} from './helpers.js';
+import {ToolWithHandler} from './types.js';
 
 import planfix_add_to_lead_task from './tools/planfix_add_to_lead_task.js';
 import planfix_create_comment from './tools/planfix_create_comment.js';
@@ -50,15 +50,26 @@ const server = new Server(
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools: TOOLS };
+  return {tools: TOOLS};
 });
 
-function getAnswerJson(data: any): { content: { type: string; text: string }[]; structuredContent: any } {
-  return { structuredContent: data, content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+interface AnswerContent {
+  type: string;
+  text: string;
 }
 
+interface AnswerJson<T = unknown> {
+  content: AnswerContent[];
+  structuredContent: T;
+}
+
+function getAnswerJson<T = unknown>(data: T): AnswerJson<T> {
+  return {structuredContent: data, content: [{type: "text", text: JSON.stringify(data, null, 2)}]};
+}
+
+// @ts-expect-error - The SDK's type definitions are too strict for our use case
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  const {name, arguments: args} = request.params;
   log(`Received tool call: ${name}`);
   try {
     const tool = TOOLS.find((tool) => tool.name === name);
@@ -68,7 +79,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return getAnswerJson(await tool.handler(args));
   } catch (error) {
     console.error(`Error calling tool ${name}:`, error);
-    return getAnswerJson({ error: error instanceof Error ? error.message : 'Unknown error' });
+    return getAnswerJson({error: error instanceof Error ? error.message : 'Unknown error'});
   }
 });
 

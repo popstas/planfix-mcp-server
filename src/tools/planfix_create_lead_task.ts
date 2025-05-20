@@ -1,6 +1,16 @@
-import { z } from 'zod';
-import { PLANFIX_FIELD_IDS } from '../config.js';
-import { log, planfixRequest, getTaskUrl, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {PLANFIX_FIELD_IDS} from '../config.js';
+import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
+import type {CustomFieldDataType} from '../types.js';
+
+interface TaskRequestBody {
+  template: {
+    id: number;
+  };
+  name: string;
+  description: string;
+  customFieldData: CustomFieldDataType[];
+}
 
 export const CreateLeadTaskInputSchema = z.object({
   name: z.string(),
@@ -25,22 +35,22 @@ export const CreateLeadTaskOutputSchema = z.object({
  * @param agencyId - Optional ID of the agency
  * @returns Promise with the created task ID and URL
  */
-export async function createLeadTask({ 
-  name, 
-  description, 
-  clientId, 
-  managerId, 
-  agencyId 
-}: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{ 
-  taskId: number | null; 
-  url?: string; 
-  error?: string 
+export async function createLeadTask({
+                                       name,
+                                       description,
+                                       clientId,
+                                       managerId,
+                                       agencyId
+                                     }: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{
+  taskId: number;
+  url?: string;
+  error?: string
 }> {
   try {
     const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
     description = description.replace(/\n/g, '<br>');
-    
-    const postBody: any = {
+
+    const postBody: TaskRequestBody = {
       template: {
         id: TEMPLATE_ID,
       },
@@ -80,24 +90,26 @@ export async function createLeadTask({
       });
     }
 
-    const result = await planfixRequest(`task/`, postBody);
+    const result = await planfixRequest<{ id: number }>(`task/`, postBody as unknown as Record<string, unknown>);
     const taskId = result.id;
     const url = getTaskUrl(taskId);
-    
-    return { taskId, url };
-  } catch (error: any) {
-    log(`[createLeadTask] Error: ${error.message}`);
-    return { 
-      taskId: null, 
-      url: undefined, 
-      error: `Error creating task: ${error.message}` 
+
+    return {taskId, url};
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    log(`[createLeadTask] Error: ${errorMessage}`);
+    return {
+      taskId: 0,
+      error: `Error creating task: ${errorMessage}`
     };
   }
 }
 
-export function handler(args?: Record<string, unknown>) {
+export async function handler(
+  args?: Record<string, unknown>
+): Promise<z.infer<typeof CreateLeadTaskOutputSchema>> {
   const parsedArgs = CreateLeadTaskInputSchema.parse(args);
-  return createLeadTask(parsedArgs);
+  return await createLeadTask(parsedArgs);
 }
 
 export const planfixCreateLeadTaskTool = getToolWithHandler({

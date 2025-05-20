@@ -1,5 +1,5 @@
-import { execa } from 'execa';
-import { describe, it, expect } from 'vitest';
+import {execa} from 'execa';
+import {describe, expect, it} from 'vitest';
 
 // CLI script and base arguments for all tests
 const CLI_SCRIPT = 'npm';
@@ -11,7 +11,7 @@ const CLI_ARGS = ['-s', 'run', 'mcp-cli', '--'];
  */
 async function runCli(args: string[]) {
   try {
-    const { stdout } = await execa(CLI_SCRIPT, args, { stdin: 'inherit' });
+    const {stdout} = await execa(CLI_SCRIPT, args, {stdin: 'inherit'});
     return JSON.parse(stdout);
   } catch (error: any) {
     // Print error and CLI output for easier debugging
@@ -42,10 +42,10 @@ describe('MCP Inspector CLI', () => {
       '--tool-arg', 'email=smirnov@expertizeme.org',
     ];
     const parsed = await runCli(args);
-    expect(parsed).toHaveProperty ('content');
+    expect(parsed).toHaveProperty('content');
     expect(Array.isArray(parsed.content)).toBe(true);
     expect(parsed.content.length).toBeGreaterThan(0);
-    const { managerId } = JSON.parse(parsed.content[0].text);
+    const {managerId} = JSON.parse(parsed.content[0].text);
     expect(typeof managerId).toBe('number');
     expect(managerId).toBeGreaterThan(0);
   }, 10000);
@@ -61,7 +61,7 @@ describe('MCP Inspector CLI', () => {
     expect(parsed).toHaveProperty('content');
     expect(Array.isArray(parsed.content)).toBe(true);
     expect(parsed.content.length).toBeGreaterThan(0);
-    const { contactId } = JSON.parse(parsed.content[0].text);
+    const {contactId} = JSON.parse(parsed.content[0].text);
     expect(typeof contactId).toBe('number');
     expect(contactId).toBeGreaterThan(0);
   }, 10000);
@@ -77,7 +77,7 @@ describe('MCP Inspector CLI', () => {
     expect(parsed).toHaveProperty('content');
     expect(Array.isArray(parsed.content)).toBe(true);
     expect(parsed.content.length).toBeGreaterThan(0);
-    const { taskId } = JSON.parse(parsed.content[0].text);
+    const {taskId} = JSON.parse(parsed.content[0].text);
     expect(typeof taskId).toBe('number');
     expect(taskId).toBeGreaterThan(0);
   });
@@ -120,20 +120,20 @@ describe('MCP Inspector CLI', () => {
         '--tool-arg', `name='${taskData.name}'`,
         '--tool-arg', `description='${taskData.description}'`,
       ];
-      
+
       const parsed = await runCli(args);
-      
+
       // If we get here, the MCP server responded, but we should still check for errors
       if (parsed.error) {
         console.error('MCP server error:', parsed.error);
         console.error('CLI STDERR:', parsed.stderr);
         // throw new Error(`MCP server error: ${parsed.error}`);
       }
-      
+
       expect(parsed).toHaveProperty('content');
       expect(Array.isArray(parsed.content)).toBe(true);
       expect(parsed.content.length).toBeGreaterThan(0);
-      
+
       const response = JSON.parse(parsed.content[0].text);
       expect(response).toHaveProperty('taskId');
       expect(typeof response.taskId).toBe('number');

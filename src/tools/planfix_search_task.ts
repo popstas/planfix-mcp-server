@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { PLANFIX_FIELD_IDS } from '../config.js';
-import { planfixRequest, getTaskUrl, getToolWithHandler } from '../helpers.js';
+import {z} from 'zod';
+import {PLANFIX_FIELD_IDS} from '../config.js';
+import {getTaskUrl, getToolWithHandler, planfixRequest} from '../helpers.js';
 
 export const SearchPlanfixTaskInputSchema = z.object({
   taskName: z.string().optional(),
@@ -9,21 +9,36 @@ export const SearchPlanfixTaskInputSchema = z.object({
 
 export const SearchPlanfixTaskOutputSchema = z.object({
   taskId: z.number().optional(),
-  assignees: z.array(z.any()).optional(),
+  assignees: z.object({
+    users: z.array(z.object({
+      id: z.string(),
+      name: z.string().optional(),
+    })),
+  }).optional(),
+  description: z.string().optional(),
   url: z.string().optional(),
   error: z.string().optional(),
 });
 
-export async function searchPlanfixTask({ taskName, clientId }: { taskName?: string; clientId?: number }): Promise<{ taskId?: number; assignees?: any; url?: string; error?: string }> {
-  // console.log('Searching Planfix task...');
+interface Assignee {
+  id: string;
+  name?: string;
+}
+
+export async function searchPlanfixTask({
+                                          taskName,
+                                          clientId
+                                        }: {
+  taskName?: string;
+  clientId?: number
+}): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
   let taskId: number | undefined = undefined;
-  let assignees: any = undefined;
-  let description: string | undefined = undefined;
-  
+  let assignees: { users: Assignee[] } | undefined;
+
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
   const DAYS_TO_SEARCH = Number(process.env.PLANFIX_DAYS_TO_SEARCH) || 3;
 
-  const postBody: any = {
+  const postBody = {
     offset: 0,
     pageSize: 100,
     filters: [],
@@ -57,45 +72,67 @@ export async function searchPlanfixTask({ taskName, clientId }: { taskName?: str
     },
   };
 
-  async function searchWithFilter(filtersArr: any[], label: string) {
-    // console.log(`search task with filter: ${label}`);
-    postBody.filters = [...filtersDefault, ...filtersArr];
+  async function searchWithFilter(
+    filtersArr: Array<Record<string, unknown>>
+  ): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
     try {
-      const result = await planfixRequest(`task/list`, postBody);
-      if (result.tasks && result.tasks.length > 0) {
-        taskId = result.tasks[0].id;
-        assignees = result.tasks[0].assignees;
-        description = result.tasks[0].description;
-        // console.log(`Task found by ${label}: ${taskId}`);
+      const result = await planfixRequest(`task/list`, {
+        ...postBody,
+        filters: [...filtersDefault, ...filtersArr]
+      }) as {
+        tasks?: Array<{
+          id: number;
+          assignees?: { users: Assignee[] };
+          description?: string;
+        }>;
+      };
+      if (result.tasks?.[0]) {
+        const task = result.tasks[0];
+        return {
+          taskId: task.id,
+          assignees: task.assignees,
+          description: task.description
+        };
       }
-      return { taskId, assignees, description };
-    } catch (error: any) {
-      return { taskId: 0, error: `Error searching for tasks: ${error.message}` };
+      return {taskId: 0};
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        taskId: 0,
+        error: `Error searching for tasks: ${errorMessage}`
+      };
     }
   }
+
   try {
     if (clientId) {
-      const result = await searchWithFilter([filters.byClient], 'client');
+      const result = await searchWithFilter([filters.byClient]);
       taskId = result.taskId;
       assignees = result.assignees;
-      description = result.description;
     }
     if (!taskId && taskName) {
-      const result = await searchWithFilter([filters.byName, filters.byLastDays], 'name');
+      const result = await searchWithFilter([filters.byName, filters.byLastDays]);
       taskId = result.taskId;
       assignees = result.assignees;
-      description = result.description;
     }
     const url = getTaskUrl(taskId);
-    return { taskId, assignees, url };
-  } catch (error: any) {
-    return { taskId: 0, assignees: undefined, url: undefined, error: `Error searching for tasks: ${error.message}` };
+    return {taskId, assignees, url};
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return {
+      taskId: 0,
+      assignees: undefined,
+      url: undefined,
+      error: `Error searching for tasks: ${errorMessage}`
+    };
   }
 }
 
-function handler(args?: Record<string, unknown>): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
-  args = SearchPlanfixTaskInputSchema.parse(args);
-  return searchPlanfixTask(args);
+async function handler(
+  args?: Record<string, unknown>
+): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
+  const parsedArgs = SearchPlanfixTaskInputSchema.parse(args);
+  return await searchPlanfixTask(parsedArgs);
 }
 
 export const planfixSearchTaskTool = getToolWithHandler({
