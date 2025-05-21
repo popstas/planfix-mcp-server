@@ -7,6 +7,9 @@ lint file: `npm run lint [filePath]`
 
 Forbidden to use z.union for schema.
 
+При изменении кода tools меняй также тесты, если у tool есть файл тестов.
+Tool test location: [toolName].test.ts
+
 tool test example:
 ```
 import { describe, expect, it } from 'vitest';
@@ -26,3 +29,5 @@ describe('planfix_search_manager tool', () => {
   });
 });
 ```
+
+Если просят ответить голосом, то после завершения многошаговой задачи, расскажи сводку голосом через smarthome_tts_voice.

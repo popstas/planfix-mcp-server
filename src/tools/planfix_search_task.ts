@@ -18,6 +18,7 @@ export const SearchPlanfixTaskOutputSchema = z.object({
   description: z.string().optional(),
   url: z.string().optional(),
   error: z.string().optional(),
+  found: z.boolean(),
 });
 
 interface Assignee {
@@ -94,15 +95,20 @@ export async function searchPlanfixTask(
         return {
           taskId: task.id,
           assignees: task.assignees,
-          description: task.description
+          description: task.description,
+          found: true
         };
       }
-      return {taskId: 0};
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         taskId: 0,
-        error: `Error searching for tasks: ${errorMessage}`
+        found: false
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+return {
+        taskId: 0,
+        error: `Error searching for tasks: ${errorMessage}`,
+        found: false
       };
     }
   }
@@ -119,14 +125,20 @@ export async function searchPlanfixTask(
       assignees = result.assignees;
     }
     const url = getTaskUrl(taskId);
-    return {taskId, assignees, url};
+    return {
+      taskId,
+      assignees,
+      url,
+      found: !!taskId
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return {
       taskId: 0,
       assignees: undefined,
       url: undefined,
-      error: `Error searching for tasks: ${errorMessage}`
+      error: `Error searching for tasks: ${errorMessage}`,
+      found: false
     };
   }
 }

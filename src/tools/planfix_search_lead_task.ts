@@ -21,6 +21,7 @@ export const SearchLeadTaskOutputSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   agencyId: z.number().optional(),
+  found: z.boolean(),
 });
 
 /**
@@ -74,7 +75,8 @@ export async function searchLeadTask(
       assignees,
       firstName,
       lastName,
-      agencyId
+      agencyId,
+      found: taskId > 0
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -87,7 +89,8 @@ export async function searchLeadTask(
       assignees: undefined,
       agencyId: undefined,
       firstName: undefined,
-      lastName: undefined
+      lastName: undefined,
+      found: false
     };
   }
 }

@@ -11,6 +11,7 @@ export const SearchManagerOutputSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   error: z.string().optional(),
+  found: z.boolean(),
 });
 
 /**
@@ -18,9 +19,10 @@ export const SearchManagerOutputSchema = z.object({
  * @param email - The email address to search for
  * @returns Promise with the manager's ID, URL, and name if found
  */
-export async function searchManager({
-                                      email
-                                    }: z.infer<typeof SearchManagerInputSchema>): Promise<z.infer<typeof SearchManagerOutputSchema>> {
+export async function searchManager(
+  {
+    email
+  }: z.infer<typeof SearchManagerInputSchema>): Promise<z.infer<typeof SearchManagerOutputSchema>> {
   try {
     const postBody = {
       offset: 0,
@@ -50,20 +52,23 @@ export async function searchManager({
         managerId,
         url,
         firstName: manager.name,
-        lastName: manager.lastname
+        lastName: manager.lastname,
+        found: true
       };
     }
 
     return {
       managerId: 0,
-      error: `No manager found with email: ${email}`
+      error: `No manager found with email: ${email}`,
+      found: false
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     log(`[searchManager] Error: ${errorMessage}`);
     return {
       managerId: 0,
-      error: `An error occurred while searching for the manager: ${errorMessage}`
+      error: `An error occurred while searching for the manager: ${errorMessage}`,
+      found: false
     };
   }
 }

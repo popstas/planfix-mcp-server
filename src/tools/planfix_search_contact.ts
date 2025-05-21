@@ -15,18 +15,20 @@ export const PlanfixSearchContactOutputSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   error: z.string().optional(),
+  found: z.boolean(),
 });
 
 /**
  * Search for a contact in Planfix by name, phone, email, or telegram.
  * This is a placeholder implementation that should be replaced with actual Planfix API calls.
  */
-export async function planfixSearchContact({
-                                             name,
-                                             phone,
-                                             email,
-                                             telegram
-                                           }: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
+export async function planfixSearchContact(
+  {
+    name,
+    phone,
+    email,
+    telegram
+  }: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>>{
   // console.log('Searching Planfix contact...');
   let contactId: number | null = null;
   const postBody = {
@@ -82,15 +84,23 @@ export async function planfixSearchContact({
         return {
           contactId: contact.id,
           firstName: contact.name,
-          lastName: contact.lastname
+          lastName: contact.lastname,
+          found: true
         };
       }
 
-      return {contactId: 0};
+return {
+        contactId: 0,
+        found: false
+      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       log(`[planfixSearchContact] Error searching with filter: ${errorMessage}`);
-      return {contactId: 0, error: errorMessage};
+      return {
+        contactId: 0,
+        error: errorMessage,
+        found: false
+      };
     }
   }
 
@@ -121,11 +131,16 @@ export async function planfixSearchContact({
       url,
       firstName,
       lastName,
+      found: contactId > 0
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     log(`[planfixSearchContact] Error: ${errorMessage}`);
-    return {contactId: 0, error: errorMessage};
+    return {
+      contactId: 0,
+      error: errorMessage,
+      found: false
+    };
   }
 }
 
