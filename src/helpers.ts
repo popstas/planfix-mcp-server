@@ -50,10 +50,27 @@ export async function planfixRequest<T = unknown>(url: string, body?: Record<str
   if (!PLANFIX_ACCOUNT) {
     throw new Error('PLANFIX_ACCOUNT is not defined');
   }
-  const response = await fetch(`${PLANFIX_BASE_URL}${url}`, {
-    method: method || 'POST',
+  
+  let requestUrl = url;
+  let requestBody: string | undefined;
+  
+  if (method === 'GET' && body) {
+    const params = new URLSearchParams();
+    Object.entries(body).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value));
+      }
+    });
+    const queryString = params.toString();
+    requestUrl = queryString ? `${url}${url.includes('?') ? '&' : '?'}${queryString}` : url;
+  } else if (body) {
+    requestBody = JSON.stringify(body);
+  }
+  
+  const response = await fetch(`${PLANFIX_BASE_URL}${requestUrl}`, {
+    method,
     headers: PLANFIX_HEADERS,
-    body: body ? JSON.stringify(body) : undefined,
+    body: requestBody,
   });
 
   const result = await response.json();
