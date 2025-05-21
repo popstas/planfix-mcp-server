@@ -1,5 +1,8 @@
 import {z} from 'zod';
-import {getToolWithHandler, log, planfixRequest} from '../helpers.js';
+import {getToolWithHandler, log, planfixRequest, withCache} from '../helpers.js';
+
+const CACHE_TIME = Number(process.env.PLANFIX_REPORTS_CACHE_TIME || 600);
+const CACHE_PREFIX = 'planfix_report_';
 
 export const RunReportInputSchema = z.object({
   reportId: z.number(),
@@ -35,8 +38,6 @@ interface PlanfixReportItem {
 
 type PlanfixReportData = PlanfixReportItem[];
 
-const CACHE_TIME = 300; // 5 minutes in seconds
-
 function reportDataToRows(data: PlanfixReportData): ReportRows {
   if (!data) return [];
   const header = data.find(row => row.type === 'Header');
@@ -55,7 +56,7 @@ function reportDataToRows(data: PlanfixReportData): ReportRows {
     .filter(Boolean) as ReportRows;
 }
 
-async function generateReport({reportId}: { reportId: number }): Promise<PlanfixReportData | { error: string }> {
+async function generateReportUncached({reportId}: { reportId: number }): Promise<PlanfixReportData | { error: string }> {
   try {
     const generateResult = await planfixRequest(`report/${reportId}/run`, {}) as GenerateReportResponse;
 
@@ -100,9 +101,28 @@ async function generateReport({reportId}: { reportId: number }): Promise<Planfix
   }
 }
 
+async function generateReport({reportId}: { reportId: number }): Promise<PlanfixReportData | { error: string }> {
+  const cacheKey = `${CACHE_PREFIX}${reportId}`;
+  
+  return withCache(cacheKey, async () => {
+    // First, try to use a saved report if available
+    const savedReport = await checkSavedReport({reportId});
+    if (savedReport) {
+      return savedReport;
+    }
+    
+    // If no cached version, generate a new report
+    return generateReportUncached({reportId});
+  }, CACHE_TIME);
+}
+
 async function checkSavedReport({reportId}: { reportId: number }): Promise<PlanfixReportData | undefined> {
   try {
-    const data = await planfixRequest(`report/${reportId}/saves`, {}) as {
+    const data = await planfixRequest(`report/${reportId}/save/list`, {
+      offset: 0,
+      pageSize: 100,
+      fields: 'id,reportId,dateTime,name,chunks,chunksCount',
+  }) as {
       saves: Array<{ id: number; dateTime: string }>
     };
     if (!data.saves || data.saves.length === 0) {
@@ -152,22 +172,13 @@ async function checkSavedReport({reportId}: { reportId: number }): Promise<Planf
 
 export async function runReport({reportId}: z.infer<typeof RunReportInputSchema>): Promise<z.infer<typeof RunReportOutputSchema>> {
   try {
-    let reportData: PlanfixReportData | undefined;
-
-    // First, try to use a cached version if available
-    const savedReportData = await checkSavedReport({reportId});
-    if (savedReportData) {
-      reportData = savedReportData;
-    } else {
-      // If no cached version, generate a new report
-      const reportDataOrError = await generateReport({reportId});
-      if ('error' in reportDataOrError) {
-        return {success: false, error: reportDataOrError.error};
-      }
-      reportData = reportDataOrError;
+    const reportDataOrError = await generateReport({reportId});
+    
+    if ('error' in reportDataOrError) {
+      return {success: false, error: reportDataOrError.error};
     }
 
-    const rows = reportDataToRows(reportData);
+    const rows = reportDataToRows(reportDataOrError);
     return {success: true, rows};
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

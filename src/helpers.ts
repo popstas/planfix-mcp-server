@@ -1,6 +1,7 @@
 import path from 'path';
 import {fileURLToPath} from 'url';
 import fs from 'fs';
+import fsp from 'fs/promises';
 import {PLANFIX_ACCOUNT, PLANFIX_BASE_URL, PLANFIX_HEADERS} from './config.js';
 import {ToolInput, ToolOutput, ToolWithHandler} from './types.js';
 import {zodToJsonSchema} from 'zod-to-json-schema';
@@ -143,4 +144,54 @@ export function isValidToolResponse(parsed: unknown): parsed is ToolResponse {
     parsed.content.length > 0 &&
     'structuredContent' in parsed
   );
+}
+
+export interface CacheData<T = unknown> {
+  data: T;
+  expiresAt: number;
+}
+
+export async function withCache<T>(
+  name: string,
+  dataFn: () => Promise<T>,
+  maxAge: number = 600
+): Promise<T> {
+  const cacheDir = path.join(__dirname, '..', 'data', 'cache');
+  const cachePath = path.join(cacheDir, `${name}.json`);
+  
+  try {
+    // Ensure cache directory exists with recursive: true
+    try {
+      await fsp.mkdir(cacheDir, { recursive: true });
+    } catch (error) {
+      log(`Failed to create cache directory: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    // Try to read from cache
+    try {
+      const fileContent = await fsp.readFile(cachePath, 'utf-8');
+      const cacheData: CacheData<T> = JSON.parse(fileContent);
+      
+      // Check if cache is still valid
+      if (cacheData.expiresAt > Date.now()) {
+        return cacheData.data;
+      }
+    } catch (error: unknown) {
+      // Cache file doesn't exist or is invalid, continue to generate new data
+      log(`Cache miss for ${name}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    
+    // Generate and cache new data
+    const data = await dataFn();
+    const cacheData: CacheData<T> = {
+      data,
+      expiresAt: Date.now() + maxAge * 1000,
+    };
+    
+    await fsp.writeFile(cachePath, JSON.stringify(cacheData, null, 2), 'utf-8');
+    return data;
+  } catch (error) {
+    log(`[withCache] Error with cache for ${name}: ${error instanceof Error ? error.message : String(error)}`);
+    // If there's any error with caching, just generate fresh data
+    return dataFn();
+  }
 }
