@@ -7,6 +7,8 @@ import {ToolInput, ToolOutput, ToolWithHandler} from './types.js';
 import {zodToJsonSchema} from 'zod-to-json-schema';
 import {z} from 'zod';
 import {execa} from 'execa';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,14 +111,39 @@ export async function runCli(args: string[]) {
   }
 }
 
+let clientTest: Client;
+export async function runCliTool(toolName: string, args: Record<string, unknown>): Promise<ToolResponse> {
+  if (!clientTest) {
+    clientTest = new Client({ name: 'test', version: '1.0.0' });
+    const transport = new StdioClientTransport({ command: 'npm', args: ['run', 'dev'], env: {
+      ...process.env,
+      NODE_OPTIONS: `--unhandled-rejections=warn ${process.env.NODE_OPTIONS || ''}`.trim(),
+    }});
+    await clientTest.connect(transport);
+  }
+  const result = await clientTest.callTool({ name: toolName, arguments: args });
+  return result as ToolResponse;
+}
+
 interface ToolResponse {
   content: Array<{ text: string }>;
-  structuredContent?: {
-    content: unknown;
-  };
+  structuredContent?: unknown;
 }
 
 export async function runTool<T = unknown>(
+  toolName: string, 
+  params: Record<string, unknown>
+): Promise<{ parsed: ToolResponse; valid: boolean; content: T }> {
+  
+  // return runToolInspector(toolName, params);
+  const parsed = await runCliTool(toolName, params);
+  const valid = isValidToolResponse(parsed);
+  const content = JSON.parse(parsed.content[0].text);
+
+  return {parsed, valid, content};
+}
+
+export async function runToolInspector<T = unknown>(
   toolName: string, 
   params: Record<string, unknown>
 ): Promise<{ parsed: ToolResponse; valid: boolean; content: T }> {
