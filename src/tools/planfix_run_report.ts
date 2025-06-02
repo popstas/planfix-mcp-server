@@ -4,8 +4,92 @@ import {getToolWithHandler, log, planfixRequest, withCache} from '../helpers.js'
 const CACHE_TIME = Number(process.env.PLANFIX_REPORTS_CACHE_TIME || 600);
 const CACHE_PREFIX = 'planfix_report_';
 
+// helper to compute ISO week number
+function getISOWeek(date: Date): { year: number; week: number } {
+  const tmp = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return { year: tmp.getUTCFullYear(), week: weekNo };
+}
+
+// process grouping and sorting of rows
+export function processRows(
+  rows: ReportRows,
+  groupFields?: string[],
+  groupPeriod?: 'day' | 'week' | 'month',
+  sortFields?: string[]
+): ReportRows {
+  const result = rows.map(r => ({ ...r }));
+
+  // test values, TODO: remove
+  if (!groupFields && !groupPeriod && !sortFields) {
+    groupFields = ['Дата публикации'];
+    groupPeriod = 'day';
+    sortFields = ['Задача'];
+  }
+
+  if (groupFields?.length && groupPeriod) {
+    result.forEach(row => {
+      groupFields.forEach(field => {
+        const val = row[field];
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          if (groupPeriod === 'day') {
+            row[field] = d.toISOString().slice(0, 10);
+          } else if (groupPeriod === 'month') {
+            row[field] = d.toISOString().slice(0, 7);
+          } else if (groupPeriod === 'week') {
+            const { year, week } = getISOWeek(d);
+            row[field] = `${year}-W${week.toString().padStart(2, '0')}`;
+          }
+        }
+      });
+    });
+  }
+
+  // apply sorting, global or within groups with stable group order
+  if (!sortFields?.length) {
+    return result;
+  }
+  if (groupFields?.length && groupPeriod) {
+    const keys = Array.from(
+      new Set(result.map(row => groupFields.map(f => row[f]).join('|')))
+    );
+    const finalRows: ReportRows = [];
+    for (const key of keys) {
+      const groupRows = result.filter(row => groupFields.map(f => row[f]).join('|') === key);
+      const sortedGroup = [...groupRows].sort((a, b) => {
+        for (const field of sortFields) {
+          const va = a[field] || '';
+          const vb = b[field] || '';
+          if (va < vb) return -1;
+          if (va > vb) return 1;
+        }
+        return 0;
+      });
+      finalRows.push(...sortedGroup);
+    }
+    return finalRows;
+  }
+  // simple global sort
+  return [...result].sort((a, b) => {
+    for (const field of sortFields) {
+      const va = a[field] || '';
+      const vb = b[field] || '';
+      if (va < vb) return -1;
+      if (va > vb) return 1;
+    }
+    return 0;
+  });
+}
+
 export const RunReportInputSchema = z.object({
   reportId: z.number(),
+  group: z.array(z.string()).optional(),
+  groupPeriod: z.enum(['day', 'week', 'month']).optional(),
+  sort: z.array(z.string()).optional(),
 });
 
 export const RunReportOutputSchema = z.object({
@@ -170,7 +254,7 @@ async function checkSavedReport({reportId}: { reportId: number }): Promise<Planf
   }
 }
 
-export async function runReport({reportId}: z.infer<typeof RunReportInputSchema>): Promise<z.infer<typeof RunReportOutputSchema>> {
+export async function runReport({reportId, group, groupPeriod, sort}: z.infer<typeof RunReportInputSchema>): Promise<z.infer<typeof RunReportOutputSchema>> {
   try {
     const reportDataOrError = await generateReport({reportId});
     
@@ -179,7 +263,8 @@ export async function runReport({reportId}: z.infer<typeof RunReportInputSchema>
     }
 
     const rows = reportDataToRows(reportDataOrError);
-    return {success: true, rows};
+    const processedRows = processRows(rows, group, groupPeriod, sort);
+    return {success: true, rows: processedRows};
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     log(`[runReport] Error: ${errorMessage}`);

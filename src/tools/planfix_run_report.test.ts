@@ -137,3 +137,45 @@ describe('planfix_run_report tool', () => {
     expect(mockPlanfixRequest).not.toHaveBeenCalled();
   });
 });
+
+import { processRows } from './planfix_run_report.js';
+
+describe('processRows grouping and sorting', () => {
+  const sampleRows = [
+    { date: '2024-04-12T20:10:00Z', value: 'b' },
+    { date: '2024-04-13T01:15:00Z', value: 'a' }
+  ];
+
+  it('groups by day', () => {
+    const res = processRows(sampleRows, ['date'], 'day');
+    expect(res[0].date).toBe('2024-04-12');
+    expect(res[1].date).toBe('2024-04-13');
+  });
+
+  it('groups by month', () => {
+    const res = processRows(sampleRows, ['date'], 'month');
+    expect(res.every(r => r.date === '2024-04')).toBe(true);
+  });
+
+  it('groups by week', () => {
+    const res = processRows(sampleRows, ['date'], 'week');
+    // 2024-04-12 is in week 15 of 2024
+    expect(res[0].date).toMatch(/^2024-W15$/);
+  });
+
+  it('sorts by value', () => {
+    const unsorted = [{ value: 'b' }, { value: 'a' }];
+    const res = processRows(unsorted, [], undefined, ['value']);
+    expect(res.map(r => r.value)).toEqual(['a', 'b']);
+  });
+
+  it('applies grouping then sorting', () => {
+    const rows = [
+      { date: '2024-04-12T20:10:00Z', value: 'c' },
+      { date: '2024-04-12T08:00:00Z', value: 'a' },
+      { date: '2024-04-13T00:00:00Z', value: 'b' }
+    ];
+    const res = processRows(rows, ['date'], 'day', ['value']);
+    expect(res.map(r => r.value)).toEqual(['a', 'c', 'b']);
+  });
+});
