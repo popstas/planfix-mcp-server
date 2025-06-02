@@ -4,6 +4,7 @@ import {getContactUrl, getToolWithHandler, log, planfixRequest} from '../helpers
 
 export const PlanfixSearchContactInputSchema = z.object({
   name: z.string().optional(),
+  nameTranslated: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
   telegram: z.string().optional(),
@@ -25,12 +26,18 @@ export const PlanfixSearchContactOutputSchema = z.object({
 export async function planfixSearchContact(
   {
     name,
+    nameTranslated,
     phone,
     email,
     telegram
   }: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>>{
   // console.log('Searching Planfix contact...');
   let contactId: number | null = null;
+  // If phone looks like a Telegram username (starts with @) or doesn't look like a phone number, set it to empty string
+  if (phone && (phone.startsWith('@') || !/^[+\d\s\-()]{5,}$/.test(phone))) {
+    phone = '';
+  }
+
   const postBody = {
     offset: 0,
     pageSize: 100,
@@ -41,15 +48,20 @@ export async function planfixSearchContact(
   type FilterType = {
     type: number;
     operator: string;
-    value?: string | number | boolean;
+    value?: string | number | boolean | string[];
     field?: number;
   };
 
-  const filters: Record<string, FilterType> = {
+  const filters: Record<string, FilterType | undefined> = {
     byName: {
       type: 4001,
       operator: 'equal',
       value: name,
+    },
+    byNameTranslated: {
+      type: 4001,
+      operator: 'equal',
+      value: nameTranslated,
     },
     byPhone: {
       type: 4003,
@@ -61,12 +73,18 @@ export async function planfixSearchContact(
       operator: 'equal',
       value: email,
     },
-    byTelegram: {
+    byTelegram: telegram ? {
       type: 4101,
       field: PLANFIX_FIELD_IDS.telegram,
-      operator: 'have',
-      value: telegram?.replace(/^@/, ''),
-    },
+      operator: 'equal',
+      value: telegram.replace(/^@/, '').toLowerCase(),
+    } : undefined,
+    byTelegramWithAt: telegram ? {
+      type: 4101,
+      field: PLANFIX_FIELD_IDS.telegram,
+      operator: 'equal',
+      value: `@${telegram.replace(/^@/, '').toLowerCase()}`,
+    } : undefined,
   };
 
   async function searchWithFilter(filter: FilterType): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
@@ -89,7 +107,7 @@ export async function planfixSearchContact(
         };
       }
 
-return {
+      return {
         contactId: 0,
         found: false
       };
@@ -106,21 +124,34 @@ return {
 
   try {
     let result: z.infer<typeof PlanfixSearchContactOutputSchema> | undefined;
-    if (!contactId && email) {
+    if (!contactId && email && filters.byEmail) {
       result = await searchWithFilter(filters.byEmail);
       contactId = result.contactId;
     }
-    if (!contactId && phone) {
+    if (!contactId && phone && filters.byPhone) {
       result = await searchWithFilter(filters.byPhone);
       contactId = result.contactId;
     }
-    if (!contactId && name && name.includes(' ')) {
+    // Only search by name if both first and last names are provided (contains a space)
+    if (!contactId && name && name.trim().includes(' ') && filters.byName) {
       result = await searchWithFilter(filters.byName);
       contactId = result.contactId;
     }
-    if (!contactId && telegram) {
-      result = await searchWithFilter(filters.byTelegram);
+    if (!contactId && nameTranslated && nameTranslated.trim().includes(' ') && filters.byNameTranslated) {
+      result = await searchWithFilter(filters.byNameTranslated);
       contactId = result.contactId;
+    }
+    if (!contactId && telegram) {
+      // First try without @
+      if (filters.byTelegram) {
+        result = await searchWithFilter(filters.byTelegram);
+        contactId = result.contactId;
+      }
+      // If not found, try with @
+      if (!contactId && filters.byTelegramWithAt) {
+        result = await searchWithFilter(filters.byTelegramWithAt);
+        contactId = result.contactId;
+      }
     }
     contactId = contactId || 0;
     const url = getContactUrl(contactId);
@@ -151,7 +182,7 @@ async function handler(args?: Record<string, unknown>): Promise<z.infer<typeof P
 
 export default getToolWithHandler({
   name: 'planfix_search_contact',
-  description: 'Search for a contact in Planfix by name, phone, email, or telegram',
+  description: 'Search for a contact in Planfix by name, phone, email, or telegram. Use name in 2 languages: Russian and English.',
   inputSchema: PlanfixSearchContactInputSchema,
   outputSchema: PlanfixSearchContactOutputSchema,
   handler,

@@ -104,7 +104,7 @@ async function handler(
 
 export const planfixSearchLeadTaskTool = getToolWithHandler({
   name: "planfix_search_lead_task",
-  description: "Search Planfix task by name and clientId.",
+  description: "Search Planfix task by user data. Use name in 2 languages: Russian and English.",
   inputSchema: SearchLeadTaskInputSchema,
   outputSchema: SearchLeadTaskOutputSchema,
   handler,

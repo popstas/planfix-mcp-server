@@ -76,6 +76,7 @@ function generateDescription(userData: z.infer<typeof UserDataInputSchema>, even
 export async function addToLeadTask(
   {
     name,
+    nameTranslated,
     phone,
     email,
     telegram,
@@ -93,7 +94,7 @@ export async function addToLeadTask(
     return result;
   }
 
-  const userData = {name, phone, email, telegram, company};
+  const userData = {name, nameTranslated, phone, email, telegram, company};
   const eventData = {header, message};
   // Main logic
 

@@ -7,6 +7,7 @@ export type ToolOutput = CallToolResult;
 // Input and Output Schemas
 export const UserDataInputSchema = z.object({
   name: z.string().optional(),
+  nameTranslated: z.string().optional().describe('Translate name and place here'),
   phone: z.string().optional(),
   email: z.string().optional(),
   telegram: z.string().optional(),
