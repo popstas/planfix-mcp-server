@@ -146,6 +146,9 @@ export async function addToLeadTask(
         managerId: managerId ?? undefined,
         agencyId,
       });
+      if (createLeadTaskResult.error) {
+        return {taskId: 0, clientId: 0, error: createLeadTaskResult.error};
+      }
       taskId = createLeadTaskResult.taskId || 0;
       if (managerId) {
         assignees.users = [{id: `user:${managerId}`}];

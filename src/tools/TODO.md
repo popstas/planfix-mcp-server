@@ -1,0 +1,1 @@
+- [ ] Move task name template to env vars

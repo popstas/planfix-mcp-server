@@ -12,12 +12,7 @@ export const SearchLeadTaskOutputSchema = z.object({
   url: z.string().optional(),
   clientId: z.number(),
   clientUrl: z.string().optional(),
-  assignees: z.object({
-    users: z.array(z.object({
-      id: z.string(),
-      name: z.string().optional(),
-    })),
-  }).optional(),
+  assignees: z.any().optional(), // Made more flexible to handle Planfix response
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   agencyId: z.number().optional(),

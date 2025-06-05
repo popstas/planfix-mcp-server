@@ -46,50 +46,62 @@ export async function createLeadTask({
   url?: string;
   error?: string
 }> {
-  try {
-    const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
-    description = description.replace(/\n/g, '<br>');
+  const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
+  description = description.replace(/\n/g, '<br>');
 
-    const postBody: TaskRequestBody = {
-      template: {
-        id: TEMPLATE_ID,
+  const postBody = {
+    template: {
+      id: TEMPLATE_ID,
+    },
+    name,
+    description,
+    customFieldData: [
+      {
+        field: {
+          id: PLANFIX_FIELD_IDS.client,
+        },
+        value: {
+          id: clientId,
+        },
       },
-      name,
-      description,
-      customFieldData: [
-        {
-          field: {
-            id: PLANFIX_FIELD_IDS.client,
-          },
-          value: {
-            id: clientId,
-          },
-        },
-      ],
-    };
+    ],
+  };
 
-    if (managerId) {
-      postBody.customFieldData.push({
-        field: {
-          id: PLANFIX_FIELD_IDS.manager,
-        },
-        value: {
-          id: managerId,
-        },
-      });
-    }
+  if (managerId) {
+    postBody.customFieldData.push({
+      field: {
+        id: PLANFIX_FIELD_IDS.manager,
+      },
+      value: {
+        id: managerId,
+      },
+    });
+  }
 
-    if (agencyId) {
-      postBody.customFieldData.push({
-        field: {
-          id: PLANFIX_FIELD_IDS.agency,
-        },
-        value: {
-          id: agencyId,
-        },
-      });
-    }
+  const saleSourceValue = Number(process.env.PLANFIX_FIELD_ID_SALE_VALUE)
+  if (saleSourceValue) {
+    postBody.customFieldData.push({
+      field: {
+        id: PLANFIX_FIELD_IDS.saleSource,
+      },
+      value: {
+        id: saleSourceValue,
+      },
+    });
+  }
 
+  if (agencyId) {
+    postBody.customFieldData.push({
+      field: {
+        id: PLANFIX_FIELD_IDS.agency,
+      },
+      value: {
+        id: agencyId,
+      },
+    });
+  }
+
+  try {
     const result = await planfixRequest<{ id: number }>(`task/`, postBody as unknown as Record<string, unknown>);
     const taskId = result.id;
     const url = getTaskUrl(taskId);
@@ -98,9 +110,10 @@ export async function createLeadTask({
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     log(`[createLeadTask] Error: ${errorMessage}`);
+    const requestStr = JSON.stringify(postBody);
     return {
       taskId: 0,
-      error: `Error creating task: ${errorMessage}`
+      error: `Error creating task: ${errorMessage}, request: ${requestStr}`
     };
   }
 }

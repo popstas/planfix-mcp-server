@@ -9,12 +9,7 @@ export const SearchPlanfixTaskInputSchema = z.object({
 
 export const SearchPlanfixTaskOutputSchema = z.object({
   taskId: z.number().optional(),
-  assignees: z.object({
-    users: z.array(z.object({
-      id: z.string(),
-      name: z.string().optional(),
-    })),
-  }).optional(),
+  assignees: z.any().optional(), // Made more flexible to handle Planfix response
   description: z.string().optional(),
   url: z.string().optional(),
   error: z.string().optional(),

@@ -54,6 +54,7 @@ Thumbs.db
 
 # VSCode settings
 .vscode/
+!.vscode/launch.json
 
 # IDEs and editors
 .idea/
