@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {PLANFIX_FIELD_IDS} from '../config.js';
+import {PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS} from '../config.js';
 import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
 import type {CustomFieldDataType} from '../types.js';
 
@@ -102,6 +102,12 @@ export async function createLeadTask({
   }
 
   try {
+    if (PLANFIX_DRY_RUN) {
+      const mockId = 55500000 + Math.floor(Math.random() * 10000);
+      log(`[DRY RUN] Would create lead task: ${name}`);
+      return { taskId: mockId, url: `https://example.com/task/${mockId}` };
+    }
+
     const result = await planfixRequest<{ id: number }>(`task/`, postBody as unknown as Record<string, unknown>);
     const taskId = result.id;
     const url = getTaskUrl(taskId);

@@ -1,5 +1,6 @@
 import {z} from 'zod';
 import {getToolWithHandler, log, planfixRequest} from '../helpers.js';
+import {PLANFIX_DRY_RUN} from '../config.js';
 
 // Input schema for creating a comment
 export const CreateCommentInputSchema = z.object({
@@ -40,6 +41,12 @@ export async function createComment({
   error?: string
 }> {
   try {
+    if (PLANFIX_DRY_RUN) {
+      const mockId = 55500000 + Math.floor(Math.random() * 10000);
+      log(`[DRY RUN] Would create comment for task ${taskId} with description: ${description}`);
+      return { commentId: mockId };
+    }
+
     const postBody = {
       description: description.replace(/\n/g, '<br>'),
       recipients,

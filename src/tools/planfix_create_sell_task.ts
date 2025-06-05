@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {PLANFIX_FIELD_IDS} from '../config.js';
+import {PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS} from '../config.js';
 import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
 import type {CustomFieldDataType} from '../types.js';
 
@@ -47,6 +47,12 @@ export async function createSellTask({
                                        description
                                      }: z.infer<typeof CreateSellTaskInputSchema>): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
   try {
+    if (PLANFIX_DRY_RUN) {
+      const mockId = 55500000 + Math.floor(Math.random() * 10000);
+      log(`[DRY RUN] Would create sell task for client ${clientId} under lead task ${leadTaskId}`);
+      return { taskId: mockId, url: `https://example.com/task/${mockId}` };
+    }
+
     const TEMPLATE_ID = Number(process.env.PLANFIX_SELL_TEMPLATE_ID);
     if (!name) name = 'Продажа из бота';
     if (!description) description = 'Задача продажи для клиента';

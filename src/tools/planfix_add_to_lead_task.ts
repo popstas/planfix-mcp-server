@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {PLANFIX_ACCOUNT} from '../config.js';
+import {PLANFIX_ACCOUNT, PLANFIX_DRY_RUN} from '../config.js';
 import {getToolWithHandler, log} from '../helpers.js';
 import {UserDataInputSchema} from '../types.js';
 import {searchLeadTask} from './planfix_search_lead_task.js';
@@ -99,6 +99,19 @@ export async function addToLeadTask(
   // Main logic
 
   try {
+    if (PLANFIX_DRY_RUN) {
+      const mockTaskId = 55500000 + Math.floor(Math.random() * 10000);
+      const mockClientId = 55500000 + Math.floor(Math.random() * 10000);
+      log(`[DRY RUN] Would process lead task for ${name || 'unnamed client'}`);
+      return {
+        taskId: mockTaskId,
+        clientId: mockClientId,
+        url: `https://${PLANFIX_ACCOUNT}.planfix.com/task/${mockTaskId}`,
+        clientUrl: `https://${PLANFIX_ACCOUNT}.planfix.com/contact/${mockClientId}`,
+        assignees: { users: [] },
+      };
+    }
+
     // 1. Try to get taskId and clientId
     const searchResult = await searchLeadTask(userData);
     // Variables that might be reassigned later

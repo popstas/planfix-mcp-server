@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {PLANFIX_FIELD_IDS} from '../config.js';
+import {PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS} from '../config.js';
 import {getContactUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
 import type {CustomFieldDataType} from '../types.js';
 
@@ -50,6 +50,11 @@ export async function createPlanfixContact(
   userData: z.infer<typeof CreatePlanfixContactInputSchema>
 ): Promise<z.infer<typeof CreatePlanfixContactOutputSchema>> {
   try {
+    if (PLANFIX_DRY_RUN) {
+      const mockId = 55500000 + Math.floor(Math.random() * 10000);
+      log(`[DRY RUN] Would create contact with name: ${userData.name || 'N/A'}, email: ${userData.email || 'N/A'}`);
+      return { contactId: mockId, url: `https://example.com/contact/${mockId}` };
+    }
     const {firstName, lastName} = splitName(userData.name || '');
     const postBody: ContactRequestBody = {
       template: {
