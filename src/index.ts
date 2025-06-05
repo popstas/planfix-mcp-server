@@ -13,6 +13,7 @@ import planfix_create_sell_task from './tools/planfix_create_sell_task.js';
 import planfix_get_child_tasks from './tools/planfix_get_child_tasks.js';
 import planfix_get_report_fields from './tools/planfix_get_report_fields.js';
 import planfix_reports_list from './tools/planfix_reports_list.js';
+import planfix_request from './tools/planfix_request.js';
 import planfix_run_report from './tools/planfix_run_report.js';
 import planfix_search_company from './tools/planfix_search_company.js';
 import planfix_search_contact from './tools/planfix_search_contact.js';
@@ -31,6 +32,7 @@ const TOOLS: ToolWithHandler[] = [
   planfix_get_child_tasks,
   planfix_get_report_fields,
   planfix_reports_list,
+  planfix_request,
   planfix_run_report,
   planfix_search_company,
   planfix_search_contact,

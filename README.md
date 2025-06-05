@@ -59,6 +59,8 @@ npx @modelcontextprotocol/inspector node d:/projects/expertizeme/planfix-mcp-ser
 
 ## Usage
 
+### Running the Server
+
 Run the server with the required environment variables set. Example (with npx):
 
 ```sh
@@ -71,6 +73,78 @@ PLANFIX_FIELD_ID_CLIENT=126 \
 PLANFIX_FIELD_ID_MANAGER=127 \
 PLANFIX_FIELD_ID_AGENCY=128 \
 npx @popstas/planfix-mcp-server
+```
+
+### Using the Planfix Client
+
+The Planfix client provides a convenient way to interact with the Planfix API directly from the command line.
+
+#### Prerequisites
+
+Make sure you have the following environment variables set in your `.env` file:
+
+```
+PLANFIX_ACCOUNT=your-account
+PLANFIX_TOKEN=your-api-token
+```
+
+#### Basic Commands
+
+1. **Test the connection**
+   ```bash
+   npm run planfix test
+   ```
+
+2. **Make a GET request**
+   ```bash
+   npm run planfix get user/current
+   ```
+
+3. **Make a POST request with data**
+   ```bash
+   npm run planfix post task/ --data '{"name":"Test Task","description":"Test Description"}'
+   ```
+
+4. **Search for objects**
+   ```bash
+   npm run planfix post object/list --data '{"filters":[{"type":1,"operator":"equal","value":"Продажа"}]}'
+   ```
+
+5. **Update an object (PUT request)**
+   ```bash
+   npm run planfix put task/123 --data '{"name":"Updated Task Name"}'
+   ```
+
+6. **Delete an object**
+   ```bash
+   npm run planfix delete task/123
+   ```
+
+#### Using in Code
+
+```typescript
+import { planfixClient } from './lib/planfix-client';
+
+// Get current user
+const user = await planfixClient.get('user/current');
+
+// Create a new task
+const newTask = await planfixClient.post('task/', {
+  name: 'New Task',
+  description: 'Task description',
+  // ... other task properties
+});
+
+// Search for objects
+const objects = await planfixClient.post('object/list', {
+  filters: [
+    {
+      type: 1,
+      operator: 'equal',
+      value: 'Продажа'
+    }
+  ]
+});
 ```
 
 ## Available Tools
