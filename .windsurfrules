@@ -1,6 +1,6 @@
 - planfix api swagger - https://help.planfix.com/restapidocs/swagger.json
 - complex task filters - https://planfix.com/ru/help/REST_API:_Сложные_фильтры_задач
-- complext contact filters - https://help.planfix.com/ru/REST_API:_Сложные_фильтры_контактов
+- complex contact filters - https://help.planfix.com/ru/REST_API:_Сложные_фильтры_контактов
 
 lint all: `npm run lint src`
 lint file: `npm run lint [filePath]`

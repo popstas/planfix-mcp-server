@@ -4,20 +4,23 @@ description: Planfix API client
 
 # Planfix API Workflow
 
-This workflow helps you explore and interact with the Planfix API using the Planfix client.
-
-Always use tool planfix_request for answer.
+First read the Planfix API documentation: https://help.planfix.com/restapidocs/swagger.json
+Then always use tool planfix_request for answer.
 Don't change project files without permission.
 
-### 2. Explore Available Endpoints
+Complex filters:
+- complex task filters - https://planfix.com/ru/help/REST_API:_Сложные_фильтры_задач
+- complex contact filters - https://help.planfix.com/ru/REST_API:_Сложные_фильтры_контактов
 
-1. **View the API Documentation**
-   Open the Planfix API documentation in your browser:
-   [Planfix API Documentation](https://help.planfix.com/restapidocs/swagger.json)
-
-2. **List Available Endpoints**
-   The Swagger UI provides a comprehensive list of all available endpoints and their parameters.
-
-- [Planfix API Documentation](https://help.planfix.com/restapidocs/swagger.json)
-- [Planfix Client Source](./src/lib/planfix-client.ts)
-- [Planfix CLI](./src/scripts/planfix-cli.ts)
+Словарь:
+- Аналитика - datatag
+- Задача - task
+- Контакт - contact
+- Комментарий - comment
+- Файл, документ - file
+- Проект - project
+- Сотрудник, пользователь - user
+- Сценарий, процесс - process
+- Отчёт - report
+- Объект - object
+- Кастомное поле, пользовательские поля, поля задачи, поля контакта - customfield

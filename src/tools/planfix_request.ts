@@ -32,7 +32,7 @@ export async function planfixRequestHandler(
 
 export default getToolWithHandler({
   name: 'planfix_request',
-  description: 'Make a generic request to the Planfix API with the specified method, path, and body.',
+  description: 'Make a generic request to the Planfix API with the specified method, path, and body. Use when swagger.json was read.',
   inputSchema: PlanfixRequestInputSchema,
   outputSchema: PlanfixRequestOutputSchema,
   handler: planfixRequestHandler,
