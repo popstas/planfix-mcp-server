@@ -2,6 +2,7 @@ import {z} from 'zod';
 import {PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS} from '../config.js';
 import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
 import type {CustomFieldDataType} from '../types.js';
+import { searchProject } from './planfix_search_project.js';
 
 interface TaskRequestBody {
   template: {
@@ -16,6 +17,9 @@ interface TaskRequestBody {
   assignees?: {
     users: Array<{ id: string }>;
   };
+  project?: {
+    id: number;
+  };
 }
 
 export const CreateSellTaskInputSchema = z.object({
@@ -25,6 +29,8 @@ export const CreateSellTaskInputSchema = z.object({
   assignees: z.array(z.number()).optional(),
   name: z.string(),
   description: z.string(),
+  project: z.string().optional(),
+  projectId: z.number().optional(),
 });
 
 export const CreateSellTaskOutputSchema = z.object({
@@ -44,7 +50,9 @@ export async function createSellTask({
                                        agencyId,
                                        assignees,
                                        name,
-                                       description
+                                       description,
+                                       project,
+                                       projectId
                                      }: z.infer<typeof CreateSellTaskInputSchema>): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
   try {
     if (PLANFIX_DRY_RUN) {
@@ -56,14 +64,27 @@ export async function createSellTask({
     const TEMPLATE_ID = Number(process.env.PLANFIX_SELL_TEMPLATE_ID);
     if (!name) name = 'Продажа из бота';
     if (!description) description = 'Задача продажи для клиента';
-    description = description.replace(/\n/g, '<br>');
+
+    let finalDescription = description;
+    let finalProjectId = projectId;
+
+    if (!finalProjectId && project) {
+      const projectResult = await searchProject({ name: project });
+      if (projectResult.found) {
+        finalProjectId = projectResult.projectId;
+      } else {
+        finalDescription = `${finalDescription}\nПроект: ${project}`;
+      }
+    }
+
+    finalDescription = finalDescription.replace(/\n/g, '<br>');
 
     const postBody: TaskRequestBody = {
       template: {
         id: TEMPLATE_ID,
       },
       name,
-      description,
+      description: finalDescription,
       parent: {
         id: leadTaskId,
       },
@@ -78,6 +99,10 @@ export async function createSellTask({
         },
       ],
     };
+
+    if (finalProjectId) {
+      postBody.project = { id: finalProjectId };
+    }
 
     if (assignees) {
       postBody.assignees = {

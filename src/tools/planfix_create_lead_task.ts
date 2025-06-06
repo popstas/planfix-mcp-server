@@ -2,6 +2,7 @@ import {z} from 'zod';
 import {PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS} from '../config.js';
 import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
 import type {CustomFieldDataType} from '../types.js';
+import { searchProject } from './planfix_search_project.js';
 
 interface TaskRequestBody {
   template: {
@@ -10,6 +11,9 @@ interface TaskRequestBody {
   name: string;
   description: string;
   customFieldData: CustomFieldDataType[];
+  project?: {
+    id: number;
+  };
 }
 
 export const CreateLeadTaskInputSchema = z.object({
@@ -18,6 +22,8 @@ export const CreateLeadTaskInputSchema = z.object({
   clientId: z.number(),
   managerId: z.number().optional(),
   agencyId: z.number().optional(),
+  project: z.string().optional(),
+  projectId: z.number().optional(),
 });
 
 export const CreateLeadTaskOutputSchema = z.object({
@@ -40,21 +46,35 @@ export async function createLeadTask({
                                        description,
                                        clientId,
                                        managerId,
-                                       agencyId
+                                       agencyId,
+                                       project,
+                                       projectId
                                      }: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{
   taskId: number;
   url?: string;
   error?: string
 }> {
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
-  description = description.replace(/\n/g, '<br>');
+  let finalDescription = description;
+  let finalProjectId = projectId;
 
-  const postBody = {
+  if (!finalProjectId && project) {
+    const projectResult = await searchProject({ name: project });
+    if (projectResult.found) {
+      finalProjectId = projectResult.projectId;
+    } else {
+      finalDescription = `${finalDescription}\nПроект: ${project}`;
+    }
+  }
+
+  finalDescription = finalDescription.replace(/\n/g, '<br>');
+
+  const postBody: TaskRequestBody = {
     template: {
       id: TEMPLATE_ID,
     },
     name,
-    description,
+    description: finalDescription,
     customFieldData: [
       {
         field: {
@@ -66,6 +86,10 @@ export async function createLeadTask({
       },
     ],
   };
+
+  if (finalProjectId) {
+    postBody.project = { id: finalProjectId };
+  }
 
   if (managerId) {
     postBody.customFieldData.push({

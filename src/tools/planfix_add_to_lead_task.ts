@@ -8,11 +8,13 @@ import {createLeadTask} from './planfix_create_lead_task.js';
 import {createComment} from './planfix_create_comment.js';
 import {searchManager} from './planfix_search_manager.js';
 import {searchPlanfixTask} from './planfix_search_task.js';
+import { searchProject } from './planfix_search_project.js';
 
 export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
   header: z.string(),
   message: z.string(),
   managerEmail: z.string().optional(),
+  project: z.string().optional(),
 });
 
 
@@ -83,7 +85,8 @@ export async function addToLeadTask(
     company,
     header,
     message,
-    managerEmail
+    managerEmail,
+    project
   }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<z.infer<typeof AddToLeadTaskOutputSchema>> {
   // Helper: template string replacement
   function replaceTemplateVars(template: string, vars: Record<string, string | undefined>): string {
@@ -96,6 +99,7 @@ export async function addToLeadTask(
 
   const userData = {name, nameTranslated, phone, email, telegram, company};
   const eventData = {header, message};
+  let projectId: number | undefined;
   // Main logic
 
   try {
@@ -110,6 +114,17 @@ export async function addToLeadTask(
         clientUrl: `https://${PLANFIX_ACCOUNT}.planfix.com/contact/${mockClientId}`,
         assignees: { users: [] },
       };
+    }
+
+    if (project) {
+      const projectResult = await searchProject({ name: project });
+      if (projectResult.found) {
+        projectId = projectResult.projectId;
+      } else {
+        eventData.message = [eventData.message, `Проект: ${project}`]
+          .filter(Boolean)
+          .join('\n');
+      }
     }
 
     // 1. Try to get taskId and clientId
@@ -158,6 +173,7 @@ export async function addToLeadTask(
         clientId,
         managerId: managerId ?? undefined,
         agencyId,
+        projectId,
       });
       if (createLeadTaskResult.error) {
         return {taskId: 0, clientId: 0, error: createLeadTaskResult.error};
