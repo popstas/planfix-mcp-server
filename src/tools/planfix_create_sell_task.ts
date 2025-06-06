@@ -30,7 +30,6 @@ export const CreateSellTaskInputSchema = z.object({
   name: z.string(),
   description: z.string(),
   project: z.string().optional(),
-  projectId: z.number().optional(),
 });
 
 export const CreateSellTaskOutputSchema = z.object({
@@ -42,18 +41,23 @@ export const CreateSellTaskOutputSchema = z.object({
  * Create a sell task in Planfix using the SELL template, with parent task set to the lead task
  * @param clientId - The Planfix client/contact ID
  * @param leadTaskId - The Planfix lead task ID (parent)
+ * @param agencyId - The Planfix agency ID (optional)
+ * @param assignees - The Planfix assignees IDs (optional)
+ * @param name - The name of the task
+ * @param description - The description of the task
+ * @param project - The name of the project (optional)
  * @returns {Promise<typeof CreateSellTaskOutputSchema>} The created task ID and URL
  */
-export async function createSellTask({
-                                       clientId,
-                                       leadTaskId,
-                                       agencyId,
-                                       assignees,
-                                       name,
-                                       description,
-                                       project,
-                                       projectId
-                                     }: z.infer<typeof CreateSellTaskInputSchema>): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
+export async function createSellTask(
+  {
+    clientId,
+    leadTaskId,
+    agencyId,
+    assignees,
+    name,
+    description,
+    project,
+  }: z.infer<typeof CreateSellTaskInputSchema>): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
   try {
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
@@ -66,9 +70,9 @@ export async function createSellTask({
     if (!description) description = 'Задача продажи для клиента';
 
     let finalDescription = description;
-    let finalProjectId = projectId;
+    let finalProjectId = 0;
 
-    if (!finalProjectId && project) {
+    if (project) {
       const projectResult = await searchProject({ name: project });
       if (projectResult.found) {
         finalProjectId = projectResult.projectId;

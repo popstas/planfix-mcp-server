@@ -23,7 +23,6 @@ export const CreateLeadTaskInputSchema = z.object({
   managerId: z.number().optional(),
   agencyId: z.number().optional(),
   project: z.string().optional(),
-  projectId: z.number().optional(),
 });
 
 export const CreateLeadTaskOutputSchema = z.object({
@@ -39,26 +38,27 @@ export const CreateLeadTaskOutputSchema = z.object({
  * @param clientId - The ID of the client
  * @param managerId - Optional ID of the manager
  * @param agencyId - Optional ID of the agency
+ * @param project - Optional name of the project
  * @returns Promise with the created task ID and URL
  */
-export async function createLeadTask({
-                                       name,
-                                       description,
-                                       clientId,
-                                       managerId,
-                                       agencyId,
-                                       project,
-                                       projectId
-                                     }: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{
+export async function createLeadTask(
+  {
+    name,
+    description,
+    clientId,
+    managerId,
+    agencyId,
+    project,
+  }: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{
   taskId: number;
   url?: string;
   error?: string
 }> {
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
   let finalDescription = description;
-  let finalProjectId = projectId;
+  let finalProjectId = 0;
 
-  if (!finalProjectId && project) {
+  if (project) {
     const projectResult = await searchProject({ name: project });
     if (projectResult.found) {
       finalProjectId = projectResult.projectId;

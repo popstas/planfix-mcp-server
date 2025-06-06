@@ -19,8 +19,8 @@ import planfix_search_company from './tools/planfix_search_company.js';
 import planfix_search_contact from './tools/planfix_search_contact.js';
 import planfix_search_lead_task from './tools/planfix_search_lead_task.js';
 import planfix_search_manager from './tools/planfix_search_manager.js';
-import planfix_search_task from './tools/planfix_search_task.js';
 import planfix_search_project from './tools/planfix_search_project.js';
+import planfix_search_task from './tools/planfix_search_task.js';
 
 log('Starting Planfix MCP Server')
 
@@ -39,8 +39,8 @@ const TOOLS: ToolWithHandler[] = [
   planfix_search_contact,
   planfix_search_lead_task,
   planfix_search_manager,
-  planfix_search_task,
   planfix_search_project,
+  planfix_search_task,
 ];
 
 const server = new Server(
@@ -80,7 +80,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     const tool = TOOLS.find((tool) => tool.name === name);
     if (!tool?.handler) {
-      throw new Error(`Handler not found for tool: ${name}`);
+      return getAnswerJson({ error: `Handler not found for tool: ${name}` });
     }
     return getAnswerJson(await tool.handler(args));
   } catch (error) {
