@@ -2,6 +2,7 @@ import {z} from 'zod';
 import {PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS} from '../config.js';
 import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
 import type {CustomFieldDataType} from '../types.js';
+import { searchProject } from './planfix_search_project.js';
 
 interface TaskRequestBody {
   template: {
@@ -16,6 +17,9 @@ interface TaskRequestBody {
   assignees?: {
     users: Array<{ id: string }>;
   };
+  project?: {
+    id: number;
+  };
 }
 
 export const CreateSellTaskInputSchema = z.object({
@@ -25,6 +29,7 @@ export const CreateSellTaskInputSchema = z.object({
   assignees: z.array(z.number()).optional(),
   name: z.string(),
   description: z.string(),
+  project: z.string().optional(),
 });
 
 export const CreateSellTaskOutputSchema = z.object({
@@ -36,16 +41,23 @@ export const CreateSellTaskOutputSchema = z.object({
  * Create a sell task in Planfix using the SELL template, with parent task set to the lead task
  * @param clientId - The Planfix client/contact ID
  * @param leadTaskId - The Planfix lead task ID (parent)
+ * @param agencyId - The Planfix agency ID (optional)
+ * @param assignees - The Planfix assignees IDs (optional)
+ * @param name - The name of the task
+ * @param description - The description of the task
+ * @param project - The name of the project (optional)
  * @returns {Promise<typeof CreateSellTaskOutputSchema>} The created task ID and URL
  */
-export async function createSellTask({
-                                       clientId,
-                                       leadTaskId,
-                                       agencyId,
-                                       assignees,
-                                       name,
-                                       description
-                                     }: z.infer<typeof CreateSellTaskInputSchema>): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
+export async function createSellTask(
+  {
+    clientId,
+    leadTaskId,
+    agencyId,
+    assignees,
+    name,
+    description,
+    project,
+  }: z.infer<typeof CreateSellTaskInputSchema>): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
   try {
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
@@ -56,14 +68,27 @@ export async function createSellTask({
     const TEMPLATE_ID = Number(process.env.PLANFIX_SELL_TEMPLATE_ID);
     if (!name) name = 'Продажа из бота';
     if (!description) description = 'Задача продажи для клиента';
-    description = description.replace(/\n/g, '<br>');
+
+    let finalDescription = description;
+    let finalProjectId = 0;
+
+    if (project) {
+      const projectResult = await searchProject({ name: project });
+      if (projectResult.found) {
+        finalProjectId = projectResult.projectId;
+      } else {
+        finalDescription = `${finalDescription}\nПроект: ${project}`;
+      }
+    }
+
+    finalDescription = finalDescription.replace(/\n/g, '<br>');
 
     const postBody: TaskRequestBody = {
       template: {
         id: TEMPLATE_ID,
       },
       name,
-      description,
+      description: finalDescription,
       parent: {
         id: leadTaskId,
       },
@@ -78,6 +103,10 @@ export async function createSellTask({
         },
       ],
     };
+
+    if (finalProjectId) {
+      postBody.project = { id: finalProjectId };
+    }
 
     if (assignees) {
       postBody.assignees = {

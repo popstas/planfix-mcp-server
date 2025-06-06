@@ -13,6 +13,7 @@ export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
   header: z.string(),
   message: z.string(),
   managerEmail: z.string().optional(),
+  project: z.string().optional(),
 });
 
 
@@ -83,7 +84,8 @@ export async function addToLeadTask(
     company,
     header,
     message,
-    managerEmail
+    managerEmail,
+    project
   }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<z.infer<typeof AddToLeadTaskOutputSchema>> {
   // Helper: template string replacement
   function replaceTemplateVars(template: string, vars: Record<string, string | undefined>): string {
@@ -158,6 +160,7 @@ export async function addToLeadTask(
         clientId,
         managerId: managerId ?? undefined,
         agencyId,
+        project,
       });
       if (createLeadTaskResult.error) {
         return {taskId: 0, clientId: 0, error: createLeadTaskResult.error};

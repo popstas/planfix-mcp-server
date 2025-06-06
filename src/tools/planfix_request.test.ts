@@ -12,7 +12,7 @@ describe('planfix_request tool', () => {
       }
     };
     
-    const { valid, content } = await runTool('planfix_request', args);
+    const { valid, content } = await runTool<Record<string, any>>('planfix_request', args);
     
     expect(valid).toBe(true);
     expect(content).toHaveProperty('projects');
@@ -29,7 +29,7 @@ describe('planfix_request tool', () => {
       }
     };
     
-    const { valid, content } = await runTool('planfix_request', args);
+    const { valid, content } = await runTool<Record<string, any>>('planfix_request', args);
     
     expect(valid).toBe(true);
     expect(content).toHaveProperty('contacts');
@@ -42,7 +42,7 @@ describe('planfix_request tool', () => {
       path: 'nonexistent/endpoint',
     };
     
-    const { valid, content } = await runTool('planfix_request', args);
+    const { valid, content } = await runTool<Record<string, any>>('planfix_request', args);
     
     expect(valid).toBe(true);
     expect(content).toHaveProperty('success', false);
