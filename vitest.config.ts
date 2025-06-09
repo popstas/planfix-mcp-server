@@ -6,6 +6,12 @@ export default defineConfig({
     hookTimeout: 30000, // Also increase hook timeout
     maxConcurrency: 4, // Limit concurrency to prevent API rate limiting
     globals: true, // Enable global test APIs
-    exclude: ['**/*_integration.test.*'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.git/**',
+      '**/src/tools/*_integration.test.ts',
+      '**/*.integration.test.ts'
+    ],
   },
 });
