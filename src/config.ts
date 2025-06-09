@@ -34,6 +34,6 @@ export const PLANFIX_FIELD_IDS = {
   client: Number(process.env.PLANFIX_FIELD_ID_CLIENT),
   manager: Number(process.env.PLANFIX_FIELD_ID_MANAGER),
   agency: Number(process.env.PLANFIX_FIELD_ID_AGENCY),
-  saleSource: Number(process.env.PLANFIX_FIELD_ID_SALE_SOURCE),
+  leadSource: Number(process.env.PLANFIX_FIELD_ID_LEAD_SOURCE),
   serviceMatrix: Number(process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX),
 };

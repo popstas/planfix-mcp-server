@@ -13,6 +13,7 @@ import planfix_create_comment from "./tools/planfix_create_comment.js";
 import planfix_create_contact from "./tools/planfix_create_contact.js";
 import planfix_create_lead_task from "./tools/planfix_create_lead_task.js";
 import planfix_create_sell_task from "./tools/planfix_create_sell_task.js";
+import planfix_create_task from "./tools/planfix_create_task.js";
 import planfix_get_child_tasks from "./tools/planfix_get_child_tasks.js";
 import planfix_get_report_fields from "./tools/planfix_get_report_fields.js";
 import planfix_reports_list from "./tools/planfix_reports_list.js";
@@ -34,6 +35,7 @@ const TOOLS: ToolWithHandler[] = [
   planfix_create_contact,
   planfix_create_lead_task,
   planfix_create_sell_task,
+  planfix_create_task,
   planfix_get_child_tasks,
   planfix_get_report_fields,
   planfix_reports_list,
