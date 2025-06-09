@@ -1,21 +1,31 @@
-import {z} from 'zod';
-import {getToolWithHandler, log, planfixRequest} from '../helpers.js';
-import {PLANFIX_DRY_RUN} from '../config.js';
+import { z } from "zod";
+import { getToolWithHandler, log, planfixRequest } from "../helpers.js";
+import { PLANFIX_DRY_RUN } from "../config.js";
 
 // Input schema for creating a comment
 export const CreateCommentInputSchema = z.object({
   taskId: z.number(),
   description: z.string(),
-  recipients: z.object({
-    users: z.array(z.object({
-      id: z.string(),
-      name: z.string().optional(),
-    })).optional(),
-    groups: z.array(z.object({
-      id: z.string(),
-      name: z.string().optional(),
-    })).optional(),
-  }).optional(),
+  recipients: z
+    .object({
+      users: z
+        .array(
+          z.object({
+            id: z.string(),
+            name: z.string().optional(),
+          }),
+        )
+        .optional(),
+      groups: z
+        .array(
+          z.object({
+            id: z.string(),
+            name: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
 });
 
 // Output schema for the created comment
@@ -33,45 +43,53 @@ export const CreateCommentOutputSchema = z.object({
  * @returns Promise with the created comment ID and URL
  */
 export async function createComment({
-                                      taskId,
-                                      description,
-                                      recipients
-                                    }: z.infer<typeof CreateCommentInputSchema>): Promise<{
+  taskId,
+  description,
+  recipients,
+}: z.infer<typeof CreateCommentInputSchema>): Promise<{
   commentId: number;
-  error?: string
+  error?: string;
 }> {
   try {
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
-      log(`[DRY RUN] Would create comment for task ${taskId} with description: ${description}`);
+      log(
+        `[DRY RUN] Would create comment for task ${taskId} with description: ${description}`,
+      );
       return { commentId: mockId };
     }
 
     const postBody = {
-      description: description.replace(/\n/g, '<br>'),
+      description: description.replace(/\n/g, "<br>"),
       recipients,
     } as const;
 
-    const result = await planfixRequest<{ id: number }>(`task/${taskId}/comments/`, postBody);
-    return {commentId: result.id};
+    const result = await planfixRequest<{ id: number }>(
+      `task/${taskId}/comments/`,
+      postBody,
+    );
+    return { commentId: result.id };
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     log(`[createComment] Error: ${errorMessage}`);
     return {
       commentId: 0,
-      error: `Error creating comment: ${errorMessage}`
+      error: `Error creating comment: ${errorMessage}`,
     };
   }
 }
 
-export async function handler(args?: Record<string, unknown>): Promise<z.infer<typeof CreateCommentOutputSchema>> {
+export async function handler(
+  args?: Record<string, unknown>,
+): Promise<z.infer<typeof CreateCommentOutputSchema>> {
   const parsedArgs = CreateCommentInputSchema.parse(args);
   return await createComment(parsedArgs);
 }
 
 export const planfixCreateCommentTool = getToolWithHandler({
-  name: 'planfix_create_comment',
-  description: 'Create a comment for a task in Planfix',
+  name: "planfix_create_comment",
+  description: "Create a comment for a task in Planfix",
   inputSchema: CreateCommentInputSchema,
   outputSchema: CreateCommentOutputSchema,
   handler,

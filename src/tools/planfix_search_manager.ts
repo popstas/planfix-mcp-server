@@ -1,5 +1,10 @@
-import {z} from 'zod';
-import {getToolWithHandler, getUserUrl, log, planfixRequest} from '../helpers.js';
+import { z } from "zod";
+import {
+  getToolWithHandler,
+  getUserUrl,
+  log,
+  planfixRequest,
+} from "../helpers.js";
 
 export const SearchManagerInputSchema = z.object({
   email: z.string(),
@@ -19,10 +24,11 @@ export const SearchManagerOutputSchema = z.object({
  * @param email - The email address to search for
  * @returns Promise with the manager's ID, URL, and name if found
  */
-export async function searchManager(
-  {
-    email
-  }: z.infer<typeof SearchManagerInputSchema>): Promise<z.infer<typeof SearchManagerOutputSchema>> {
+export async function searchManager({
+  email,
+}: z.infer<typeof SearchManagerInputSchema>): Promise<
+  z.infer<typeof SearchManagerOutputSchema>
+> {
   try {
     const postBody = {
       offset: 0,
@@ -37,7 +43,7 @@ export async function searchManager(
       ],
     };
 
-    const result = await planfixRequest('user/list', postBody) as {
+    const result = (await planfixRequest("user/list", postBody)) as {
       users?: Array<{
         id: number;
         name?: string;
@@ -53,36 +59,37 @@ export async function searchManager(
         url,
         firstName: manager.name,
         lastName: manager.lastname,
-        found: true
+        found: true,
       };
     }
 
     return {
       managerId: 0,
       error: `No manager found with email: ${email}`,
-      found: false
+      found: false,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
     log(`[searchManager] Error: ${errorMessage}`);
     return {
       managerId: 0,
       error: `An error occurred while searching for the manager: ${errorMessage}`,
-      found: false
+      found: false,
     };
   }
 }
 
 export async function handler(
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ): Promise<z.infer<typeof SearchManagerOutputSchema>> {
   const parsedArgs = SearchManagerInputSchema.parse(args);
   return await searchManager(parsedArgs);
 }
 
 export const planfixSearchManagerTool = getToolWithHandler({
-  name: 'planfix_search_manager',
-  description: 'Search for a manager in Planfix by email',
+  name: "planfix_search_manager",
+  description: "Search for a manager in Planfix by email",
   inputSchema: SearchManagerInputSchema,
   outputSchema: SearchManagerOutputSchema,
   handler,

@@ -1,29 +1,32 @@
 #!/usr/bin/env node
-import {Server} from "@modelcontextprotocol/sdk/server/index.js";
-import {StdioServerTransport} from "@modelcontextprotocol/sdk/server/stdio.js";
-import {CallToolRequestSchema, ListToolsRequestSchema} from "@modelcontextprotocol/sdk/types.js";
-import {log} from './helpers.js';
-import {ToolWithHandler} from './types.js';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import { log } from "./helpers.js";
+import { ToolWithHandler } from "./types.js";
 
-import planfix_add_to_lead_task from './tools/planfix_add_to_lead_task.js';
-import planfix_create_comment from './tools/planfix_create_comment.js';
-import planfix_create_contact from './tools/planfix_create_contact.js';
-import planfix_create_lead_task from './tools/planfix_create_lead_task.js';
-import planfix_create_sell_task from './tools/planfix_create_sell_task.js';
-import planfix_get_child_tasks from './tools/planfix_get_child_tasks.js';
-import planfix_get_report_fields from './tools/planfix_get_report_fields.js';
-import planfix_reports_list from './tools/planfix_reports_list.js';
-import planfix_request from './tools/planfix_request.js';
-import planfix_run_report from './tools/planfix_run_report.js';
-import planfix_search_company from './tools/planfix_search_company.js';
-import planfix_search_contact from './tools/planfix_search_contact.js';
-import planfix_search_lead_task from './tools/planfix_search_lead_task.js';
-import planfix_search_manager from './tools/planfix_search_manager.js';
-import planfix_search_project from './tools/planfix_search_project.js';
-import planfix_search_task from './tools/planfix_search_task.js';
-import planfix_update_contact from './tools/planfix_update_contact.js';
+import planfix_add_to_lead_task from "./tools/planfix_add_to_lead_task.js";
+import planfix_create_comment from "./tools/planfix_create_comment.js";
+import planfix_create_contact from "./tools/planfix_create_contact.js";
+import planfix_create_lead_task from "./tools/planfix_create_lead_task.js";
+import planfix_create_sell_task from "./tools/planfix_create_sell_task.js";
+import planfix_get_child_tasks from "./tools/planfix_get_child_tasks.js";
+import planfix_get_report_fields from "./tools/planfix_get_report_fields.js";
+import planfix_reports_list from "./tools/planfix_reports_list.js";
+import planfix_request from "./tools/planfix_request.js";
+import planfix_run_report from "./tools/planfix_run_report.js";
+import planfix_search_company from "./tools/planfix_search_company.js";
+import planfix_search_contact from "./tools/planfix_search_contact.js";
+import planfix_search_lead_task from "./tools/planfix_search_lead_task.js";
+import planfix_search_manager from "./tools/planfix_search_manager.js";
+import planfix_search_project from "./tools/planfix_search_project.js";
+import planfix_search_task from "./tools/planfix_search_task.js";
+import planfix_update_contact from "./tools/planfix_update_contact.js";
 
-log('Starting Planfix MCP Server')
+log("Starting Planfix MCP Server");
 
 const TOOLS: ToolWithHandler[] = [
   planfix_add_to_lead_task,
@@ -54,11 +57,11 @@ const server = new Server(
     capabilities: {
       tools: {},
     },
-  }
+  },
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {tools: TOOLS};
+  return { tools: TOOLS };
 });
 
 interface AnswerContent {
@@ -72,12 +75,15 @@ interface AnswerJson<T = unknown> {
 }
 
 function getAnswerJson<T = unknown>(data: T): AnswerJson<T> {
-  return {structuredContent: data, content: [{type: "text", text: JSON.stringify(data, null, 2)}]};
+  return {
+    structuredContent: data,
+    content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+  };
 }
 
 // @ts-expect-error - The SDK's type definitions are too strict for our use case
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const {name, arguments: args} = request.params;
+  const { name, arguments: args } = request.params;
   log(`Received tool call: ${name}`);
   try {
     const tool = TOOLS.find((tool) => tool.name === name);
@@ -87,7 +93,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     return getAnswerJson(await tool.handler(args));
   } catch (error) {
     console.error(`Error calling tool ${name}:`, error);
-    return getAnswerJson({error: error instanceof Error ? error.message : 'Unknown error'});
+    return getAnswerJson({
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 });
 

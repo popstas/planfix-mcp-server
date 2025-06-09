@@ -1,8 +1,13 @@
-import {z} from 'zod';
-import {PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS} from '../config.js';
-import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
-import type {CustomFieldDataType} from '../types.js';
-import { searchProject } from './planfix_search_project.js';
+import { z } from "zod";
+import { PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS } from "../config.js";
+import {
+  getTaskUrl,
+  getToolWithHandler,
+  log,
+  planfixRequest,
+} from "../helpers.js";
+import type { CustomFieldDataType } from "../types.js";
+import { searchProject } from "./planfix_search_project.js";
 
 interface TaskRequestBody {
   template: {
@@ -48,26 +53,29 @@ export const CreateSellTaskOutputSchema = z.object({
  * @param project - The name of the project (optional)
  * @returns {Promise<typeof CreateSellTaskOutputSchema>} The created task ID and URL
  */
-export async function createSellTask(
-  {
-    clientId,
-    leadTaskId,
-    agencyId,
-    assignees,
-    name,
-    description,
-    project,
-  }: z.infer<typeof CreateSellTaskInputSchema>): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
+export async function createSellTask({
+  clientId,
+  leadTaskId,
+  agencyId,
+  assignees,
+  name,
+  description,
+  project,
+}: z.infer<typeof CreateSellTaskInputSchema>): Promise<
+  z.infer<typeof CreateSellTaskOutputSchema>
+> {
   try {
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
-      log(`[DRY RUN] Would create sell task for client ${clientId} under lead task ${leadTaskId}`);
+      log(
+        `[DRY RUN] Would create sell task for client ${clientId} under lead task ${leadTaskId}`,
+      );
       return { taskId: mockId, url: `https://example.com/task/${mockId}` };
     }
 
     const TEMPLATE_ID = Number(process.env.PLANFIX_SELL_TEMPLATE_ID);
-    if (!name) name = 'Продажа из бота';
-    if (!description) description = 'Задача продажи для клиента';
+    if (!name) name = "Продажа из бота";
+    if (!description) description = "Задача продажи для клиента";
 
     let finalDescription = description;
     let finalProjectId = 0;
@@ -81,7 +89,7 @@ export async function createSellTask(
       }
     }
 
-    finalDescription = finalDescription.replace(/\n/g, '<br>');
+    finalDescription = finalDescription.replace(/\n/g, "<br>");
 
     const postBody: TaskRequestBody = {
       template: {
@@ -111,8 +119,8 @@ export async function createSellTask(
     if (assignees) {
       postBody.assignees = {
         users: assignees.map((assignee) => ({
-          id: `user:${assignee}`
-        }))
+          id: `user:${assignee}`,
+        })),
       };
     }
 
@@ -127,7 +135,7 @@ export async function createSellTask(
       });
     }
 
-    const saleSourceValue = Number(process.env.PLANFIX_FIELD_ID_SALE_VALUE)
+    const saleSourceValue = Number(process.env.PLANFIX_FIELD_ID_SALE_VALUE);
     if (saleSourceValue) {
       postBody.customFieldData.push({
         field: {
@@ -139,7 +147,9 @@ export async function createSellTask(
       });
     }
 
-    const serviceMatrixValue = Number(process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX_VALUE);
+    const serviceMatrixValue = Number(
+      process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX_VALUE,
+    );
     if (serviceMatrixValue) {
       postBody.customFieldData.push({
         field: {
@@ -151,27 +161,31 @@ export async function createSellTask(
       });
     }
 
-    const result = await planfixRequest<{ id: number }>(`task/`, postBody as unknown as Record<string, unknown>);
+    const result = await planfixRequest<{ id: number }>(
+      `task/`,
+      postBody as unknown as Record<string, unknown>,
+    );
     const taskId = result.id;
     const url = getTaskUrl(taskId);
-    return {taskId, url};
+    return { taskId, url };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     log(`[createSellTask] Error: ${errorMessage}`);
     throw error;
   }
 }
 
 async function handler(
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
   const parsedArgs = CreateSellTaskInputSchema.parse(args);
   return createSellTask(parsedArgs);
 }
 
 export const planfixCreateSellTaskTool = getToolWithHandler({
-  name: 'planfix_create_sell_task',
-  description: 'Create a sell task in Planfix',
+  name: "planfix_create_sell_task",
+  description: "Create a sell task in Planfix",
   inputSchema: CreateSellTaskInputSchema,
   outputSchema: CreateSellTaskOutputSchema,
   handler,

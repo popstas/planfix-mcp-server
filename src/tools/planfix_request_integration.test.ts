@@ -1,52 +1,61 @@
-import { describe, expect, it } from 'vitest';
-import { runTool } from '../helpers.js';
+import { describe, expect, it } from "vitest";
+import { runTool } from "../helpers.js";
 
-describe('planfix_request tool', () => {
-  it('makes a GET request to the Planfix API', async () => {
+describe("planfix_request tool", () => {
+  it("makes a GET request to the Planfix API", async () => {
     const args = {
-      method: 'GET',
-      path: 'project/current',
+      method: "GET",
+      path: "project/current",
       body: {
         offset: 0,
-        pageSize: 1
-      }
+        pageSize: 1,
+      },
     };
-    
-    const { valid, content } = await runTool<Record<string, any>>('planfix_request', args);
-    
+
+    const { valid, content } = await runTool<Record<string, any>>(
+      "planfix_request",
+      args,
+    );
+
     expect(valid).toBe(true);
-    expect(content).toHaveProperty('projects');
+    expect(content).toHaveProperty("projects");
     expect(Array.isArray(content.projects)).toBe(true);
   });
 
-  it('makes a POST request to the Planfix API', async () => {
+  it("makes a POST request to the Planfix API", async () => {
     const args = {
-      method: 'POST',
-      path: 'contact/list',
+      method: "POST",
+      path: "contact/list",
       body: {
         offset: 0,
-        pageSize: 1
-      }
+        pageSize: 1,
+      },
     };
-    
-    const { valid, content } = await runTool<Record<string, any>>('planfix_request', args);
-    
+
+    const { valid, content } = await runTool<Record<string, any>>(
+      "planfix_request",
+      args,
+    );
+
     expect(valid).toBe(true);
-    expect(content).toHaveProperty('contacts');
+    expect(content).toHaveProperty("contacts");
     expect(Array.isArray(content.contacts)).toBe(true);
   });
 
-  it('returns error for invalid endpoint', async () => {
+  it("returns error for invalid endpoint", async () => {
     const args = {
-      method: 'GET',
-      path: 'nonexistent/endpoint',
+      method: "GET",
+      path: "nonexistent/endpoint",
     };
-    
-    const { valid, content } = await runTool<Record<string, any>>('planfix_request', args);
-    
+
+    const { valid, content } = await runTool<Record<string, any>>(
+      "planfix_request",
+      args,
+    );
+
     expect(valid).toBe(true);
-    expect(content).toHaveProperty('success', false);
-    expect(content).toHaveProperty('error');
-    expect(content).toHaveProperty('path', 'nonexistent/endpoint');
+    expect(content).toHaveProperty("success", false);
+    expect(content).toHaveProperty("error");
+    expect(content).toHaveProperty("path", "nonexistent/endpoint");
   });
 });

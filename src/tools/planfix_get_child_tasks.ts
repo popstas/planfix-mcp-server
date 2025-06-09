@@ -1,5 +1,10 @@
-import {z} from 'zod';
-import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
+import { z } from "zod";
+import {
+  getTaskUrl,
+  getToolWithHandler,
+  log,
+  planfixRequest,
+} from "../helpers.js";
 
 export const GetChildTasksInputSchema = z.object({
   parentTaskId: z.number(),
@@ -10,11 +15,15 @@ export const ChildTaskSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   status: z.string().optional(),
-  assignees: z.array(z.object({
-    id: z.number(),
-    name: z.string(),
-    isActive: z.boolean(),
-  })).optional(),
+  assignees: z
+    .array(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+        isActive: z.boolean(),
+      }),
+    )
+    .optional(),
   url: z.string().optional(),
 });
 
@@ -24,25 +33,23 @@ export const GetChildTasksOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export async function getChildTasks({parentTaskId}: z.infer<typeof GetChildTasksInputSchema>): Promise<z.infer<typeof GetChildTasksOutputSchema>> {
+export async function getChildTasks({
+  parentTaskId,
+}: z.infer<typeof GetChildTasksInputSchema>): Promise<
+  z.infer<typeof GetChildTasksOutputSchema>
+> {
   try {
     const result = await planfixRequest(`task/list`, {
-      parent: {id: parentTaskId},
+      parent: { id: parentTaskId },
       pageSize: 100,
       offset: 0,
-      fields: [
-        'id',
-        'name',
-        'description',
-        'assignees',
-        'status',
-      ].join(','),
+      fields: ["id", "name", "description", "assignees", "status"].join(","),
       filters: [
         {
           type: 73,
           operator: "eq",
-          value: parentTaskId
-        }
+          value: parentTaskId,
+        },
       ],
     });
 
@@ -69,39 +76,43 @@ export async function getChildTasks({parentTaskId}: z.infer<typeof GetChildTasks
       };
     };
 
-    const tasks = data.tasks?.map(task => ({
-      id: task.id,
-      name: task.name,
-      url: getTaskUrl(task.id),
-      description: task.description,
-      assignees: task.assignees,
-      status: task.status.name,
-    })) || [];
+    const tasks =
+      data.tasks?.map((task) => ({
+        id: task.id,
+        name: task.name,
+        url: getTaskUrl(task.id),
+        description: task.description,
+        assignees: task.assignees,
+        status: task.status.name,
+      })) || [];
 
     return {
       tasks,
       totalCount: data.pagination?.count || 0,
     };
   } catch (error) {
-    log('Exception when getting child tasks: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    log(
+      "Exception when getting child tasks: " +
+        (error instanceof Error ? error.message : "Unknown error"),
+    );
     return {
       tasks: [],
       totalCount: 0,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }
 
 async function handler(
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ): Promise<z.infer<typeof GetChildTasksOutputSchema>> {
   const parsedArgs = GetChildTasksInputSchema.parse(args);
   return await getChildTasks(parsedArgs);
 }
 
 const planfixGetChildTasksTool = getToolWithHandler({
-  name: 'planfix_get_child_tasks',
-  description: 'Get all child tasks of a specific parent task in Planfix',
+  name: "planfix_get_child_tasks",
+  description: "Get all child tasks of a specific parent task in Planfix",
   inputSchema: GetChildTasksInputSchema,
   outputSchema: GetChildTasksOutputSchema,
   handler,

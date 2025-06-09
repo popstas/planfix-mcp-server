@@ -1,8 +1,13 @@
-import {z} from 'zod';
-import {PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS} from '../config.js';
-import {getTaskUrl, getToolWithHandler, log, planfixRequest} from '../helpers.js';
-import type {CustomFieldDataType} from '../types.js';
-import { searchProject } from './planfix_search_project.js';
+import { z } from "zod";
+import { PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS } from "../config.js";
+import {
+  getTaskUrl,
+  getToolWithHandler,
+  log,
+  planfixRequest,
+} from "../helpers.js";
+import type { CustomFieldDataType } from "../types.js";
+import { searchProject } from "./planfix_search_project.js";
 
 interface TaskRequestBody {
   template: {
@@ -41,18 +46,17 @@ export const CreateLeadTaskOutputSchema = z.object({
  * @param project - Optional name of the project
  * @returns Promise with the created task ID and URL
  */
-export async function createLeadTask(
-  {
-    name,
-    description,
-    clientId,
-    managerId,
-    agencyId,
-    project,
-  }: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{
+export async function createLeadTask({
+  name,
+  description,
+  clientId,
+  managerId,
+  agencyId,
+  project,
+}: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{
   taskId: number;
   url?: string;
-  error?: string
+  error?: string;
 }> {
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
   let finalDescription = description;
@@ -67,7 +71,7 @@ export async function createLeadTask(
     }
   }
 
-  finalDescription = finalDescription.replace(/\n/g, '<br>');
+  finalDescription = finalDescription.replace(/\n/g, "<br>");
 
   const postBody: TaskRequestBody = {
     template: {
@@ -102,7 +106,7 @@ export async function createLeadTask(
     });
   }
 
-  const saleSourceValue = Number(process.env.PLANFIX_FIELD_ID_SALE_VALUE)
+  const saleSourceValue = Number(process.env.PLANFIX_FIELD_ID_SALE_VALUE);
   if (saleSourceValue) {
     postBody.customFieldData.push({
       field: {
@@ -132,32 +136,36 @@ export async function createLeadTask(
       return { taskId: mockId, url: `https://example.com/task/${mockId}` };
     }
 
-    const result = await planfixRequest<{ id: number }>(`task/`, postBody as unknown as Record<string, unknown>);
+    const result = await planfixRequest<{ id: number }>(
+      `task/`,
+      postBody as unknown as Record<string, unknown>,
+    );
     const taskId = result.id;
     const url = getTaskUrl(taskId);
 
-    return {taskId, url};
+    return { taskId, url };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     log(`[createLeadTask] Error: ${errorMessage}`);
     const requestStr = JSON.stringify(postBody);
     return {
       taskId: 0,
-      error: `Error creating task: ${errorMessage}, request: ${requestStr}`
+      error: `Error creating task: ${errorMessage}, request: ${requestStr}`,
     };
   }
 }
 
 export async function handler(
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ): Promise<z.infer<typeof CreateLeadTaskOutputSchema>> {
   const parsedArgs = CreateLeadTaskInputSchema.parse(args);
   return await createLeadTask(parsedArgs);
 }
 
 export const planfixCreateLeadTaskTool = getToolWithHandler({
-  name: 'planfix_create_lead_task',
-  description: 'Create a new lead task in Planfix',
+  name: "planfix_create_lead_task",
+  description: "Create a new lead task in Planfix",
   inputSchema: CreateLeadTaskInputSchema,
   outputSchema: CreateLeadTaskOutputSchema,
   handler,
