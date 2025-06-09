@@ -20,6 +20,7 @@
     "prepare-build": "npm run typecheck && npm run build && npm run test && npm run lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test-integration": "vitest run \"src/tools/*_integration.test.ts\"",
     "mcp-cli": "mcp-inspector --cli npm run dev",
     "planfix": "tsx src/scripts/planfix-cli.ts"
   },
