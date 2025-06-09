@@ -158,6 +158,7 @@ const objects = await planfixClient.post('object/list', {
 
 - `searchPlanfixContact`: Search contacts by name, phone, email, or Telegram
 - `createPlanfixContact`: Create a new contact in Planfix
+- `updatePlanfixContact`: Update existing contact information
 - `searchPlanfixCompany`: Search for companies by name
 
 ### Task Management

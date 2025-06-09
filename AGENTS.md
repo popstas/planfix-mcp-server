@@ -2,6 +2,10 @@
 
 This repository contains a Model Context Protocol (MCP) server written in TypeScript that integrates with the Planfix CRM REST API. The server exposes several tools located in `src/tools` which can be called by MCP clients.
 
+## Rules before commit
+- Run `npm run test-full` before commit.
+- Run `npm run format` before commit.
+
 ## Development commands
 
 - **Build**: `npm run build`
@@ -16,6 +20,7 @@ This repository contains a Model Context Protocol (MCP) server written in TypeSc
 
 - Do **not** use `z.union` when defining Zod schemas.
 - When modifying code in `src/tools`, update or create the corresponding test file named `[toolName].test.ts`.
+- Ensure tool imports in `src/index.ts` are sorted alphabetically.
 - Planfix API documentation: <https://help.planfix.com/restapidocs/swagger.json>
 - Examples of complex filters:
   - Tasks: <https://planfix.com/ru/help/REST_API:_Сложные_фильтры_задач>
