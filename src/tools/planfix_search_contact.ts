@@ -115,7 +115,7 @@ export async function planfixSearchContact({
           ? {
               type: 4226,
               operator: "equal",
-              value: `@${telegram.replace(/^@/, "").toLowerCase()}`,
+              value: telegram.replace(/^@/, "").toLowerCase(),
             }
           : undefined,
   };

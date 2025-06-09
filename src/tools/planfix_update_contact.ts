@@ -121,7 +121,7 @@ export async function updatePlanfixContact({
       } else if (PLANFIX_FIELD_ID_TELEGRAM) {
         current = contact.telegram?.replace(/^@/, "") || "";
         if ((forceUpdate || !current) && normalized !== current) {
-          postBody.telegram = "@" + normalized;
+          postBody.telegram = normalized;
         }
       }
     }
