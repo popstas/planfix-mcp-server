@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS } from "../config.js";
+import {
+  PLANFIX_DRY_RUN,
+  PLANFIX_FIELD_ID_TELEGRAM,
+  PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+} from "../config.js";
 import {
   getContactUrl,
   getToolWithHandler,
@@ -14,6 +18,7 @@ interface ContactResponse {
   lastname?: string;
   email?: string;
   phones?: Array<{ number: string; type?: number }>;
+  telegram?: string;
   customFieldData?: CustomFieldDataType[];
 }
 
@@ -57,7 +62,12 @@ export async function updatePlanfixContact({
       return { contactId, url: getContactUrl(contactId) };
     }
 
-    const fields = `id,name,lastname,email,phones,customFieldData`;
+    const fieldsBase = `id,name,lastname,email,phones`;
+    const fields = PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
+      ? `${fieldsBase},customFieldData`
+      : PLANFIX_FIELD_ID_TELEGRAM
+        ? `${fieldsBase},telegram`
+        : fieldsBase;
     const { contact } = await planfixRequest<{ contact: ContactResponse }>(
       `contact/${contactId}`,
       { fields },
@@ -93,19 +103,26 @@ export async function updatePlanfixContact({
     if (telegram !== undefined) {
       const normalized = telegram.replace(/^@/, "");
       let current = "";
-      const tgField = contact.customFieldData?.find(
-        (f) => f.field.id === PLANFIX_FIELD_IDS.telegram,
-      );
-      if (tgField && typeof tgField.value === "string") {
-        current = tgField.value.replace(/^@/, "");
-      }
-      if ((forceUpdate || !current) && normalized !== current) {
-        postBody.customFieldData = [
-          {
-            field: { id: PLANFIX_FIELD_IDS.telegram },
-            value: "@" + normalized,
-          },
-        ];
+      if (PLANFIX_FIELD_ID_TELEGRAM_CUSTOM) {
+        const tgField = contact.customFieldData?.find(
+          (f) => f.field.id === PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+        );
+        if (tgField && typeof tgField.value === "string") {
+          current = tgField.value.replace(/^@/, "");
+        }
+        if ((forceUpdate || !current) && normalized !== current) {
+          postBody.customFieldData = [
+            {
+              field: { id: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM },
+              value: "@" + normalized,
+            },
+          ];
+        }
+      } else if (PLANFIX_FIELD_ID_TELEGRAM) {
+        current = contact.telegram?.replace(/^@/, "") || "";
+        if ((forceUpdate || !current) && normalized !== current) {
+          postBody.telegram = normalized;
+        }
       }
     }
 
