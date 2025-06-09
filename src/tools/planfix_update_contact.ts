@@ -46,7 +46,7 @@ export async function updatePlanfixContact(
     }
 
     const fields = `id,name,lastname,email,phones,customFieldData`;
-    const contact = await planfixRequest<ContactResponse>(`contact/${contactId}`, { fields }, 'GET');
+    const { contact } = await planfixRequest<{contact: ContactResponse}>(`contact/${contactId}`, { fields }, 'GET');
 
     const postBody: Record<string, unknown> = {};
 
