@@ -20,10 +20,17 @@ export const PLANFIX_HEADERS = {
 
 export const PLANFIX_DRY_RUN = Boolean(process.env.PLANFIX_DRY_RUN);
 
+export const PLANFIX_FIELD_ID_TELEGRAM = Number(
+  process.env.PLANFIX_FIELD_ID_TELEGRAM,
+);
+export const PLANFIX_FIELD_ID_TELEGRAM_CUSTOM = Number(
+  process.env.PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+);
+
 export const PLANFIX_FIELD_IDS = {
   email: Number(process.env.PLANFIX_FIELD_ID_EMAIL),
   phone: Number(process.env.PLANFIX_FIELD_ID_PHONE),
-  telegram: Number(process.env.PLANFIX_FIELD_ID_TELEGRAM),
+  telegramCustom: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
   client: Number(process.env.PLANFIX_FIELD_ID_CLIENT),
   manager: Number(process.env.PLANFIX_FIELD_ID_MANAGER),
   agency: Number(process.env.PLANFIX_FIELD_ID_AGENCY),

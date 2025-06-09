@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { PLANFIX_FIELD_IDS } from "../config.js";
+import {
+  PLANFIX_FIELD_ID_TELEGRAM,
+  PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+} from "../config.js";
 import {
   getContactUrl,
   getToolWithHandler,
@@ -44,11 +47,16 @@ export async function planfixSearchContact({
     phone = "";
   }
 
+  const fieldsBase = "id,name,midname,lastname,email,phone,description,group";
   const postBody = {
     offset: 0,
     pageSize: 100,
     filters: [],
-    fields: `id,name,midname,lastname,email,phone,description,group,${PLANFIX_FIELD_IDS.telegram}`,
+    fields: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
+      ? `${fieldsBase},${PLANFIX_FIELD_ID_TELEGRAM_CUSTOM}`
+      : PLANFIX_FIELD_ID_TELEGRAM
+        ? `${fieldsBase},telegram`
+        : fieldsBase,
   };
 
   type FilterType = {
@@ -80,21 +88,36 @@ export async function planfixSearchContact({
       value: email,
     },
     byTelegram: telegram
-      ? {
-          type: 4101,
-          field: PLANFIX_FIELD_IDS.telegram,
-          operator: "equal",
-          value: telegram.replace(/^@/, "").toLowerCase(),
-        }
+      ? PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
+        ? {
+            type: 4101,
+            field: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+            operator: "equal",
+            value: telegram.replace(/^@/, "").toLowerCase(),
+          }
+        : PLANFIX_FIELD_ID_TELEGRAM
+          ? {
+              type: 4226,
+              operator: "equal",
+              value: telegram.replace(/^@/, "").toLowerCase(),
+            }
+          : undefined
       : undefined,
-    byTelegramWithAt: telegram
-      ? {
-          type: 4101,
-          field: PLANFIX_FIELD_IDS.telegram,
-          operator: "equal",
-          value: `@${telegram.replace(/^@/, "").toLowerCase()}`,
-        }
-      : undefined,
+    byTelegramWithAt:
+      telegram && PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
+        ? {
+            type: 4101,
+            field: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+            operator: "equal",
+            value: `@${telegram.replace(/^@/, "").toLowerCase()}`,
+          }
+        : telegram && PLANFIX_FIELD_ID_TELEGRAM
+          ? {
+              type: 4226,
+              operator: "equal",
+              value: `@${telegram.replace(/^@/, "").toLowerCase()}`,
+            }
+          : undefined,
   };
 
   async function searchWithFilter(

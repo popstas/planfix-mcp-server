@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS } from "../config.js";
+import {
+  PLANFIX_DRY_RUN,
+  PLANFIX_FIELD_ID_TELEGRAM,
+  PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+} from "../config.js";
 import {
   getContactUrl,
   getToolWithHandler,
@@ -19,6 +23,7 @@ interface ContactRequestBody {
     type: number;
     number: string;
   }>;
+  telegram?: string;
   customFieldData: CustomFieldDataType[];
 }
 
@@ -87,12 +92,17 @@ export async function createPlanfixContact(
 
     // Add telegram if available
     if (userData.telegram) {
-      postBody.customFieldData.push({
-        field: {
-          id: PLANFIX_FIELD_IDS.telegram,
-        },
-        value: "@" + userData.telegram.replace(/^@/, ""),
-      });
+      const normalized = "@" + userData.telegram.replace(/^@/, "");
+      if (PLANFIX_FIELD_ID_TELEGRAM_CUSTOM) {
+        postBody.customFieldData.push({
+          field: {
+            id: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+          },
+          value: normalized,
+        });
+      } else if (PLANFIX_FIELD_ID_TELEGRAM) {
+        postBody.telegram = normalized;
+      }
     }
 
     const result = await planfixRequest<{ id: number }>(

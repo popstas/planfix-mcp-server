@@ -20,7 +20,8 @@ The server requires the following environment variables for Planfix API access:
 - `PLANFIX_TOKEN` – Planfix API token with necessary permissions
 - `PLANFIX_FIELD_ID_EMAIL` – Custom field ID for email
 - `PLANFIX_FIELD_ID_PHONE` – Custom field ID for phone
-- `PLANFIX_FIELD_ID_TELEGRAM` – Custom field ID for Telegram
+- `PLANFIX_FIELD_ID_TELEGRAM` – Set any value to use the system Telegram field
+- `PLANFIX_FIELD_ID_TELEGRAM_CUSTOM` – Custom field ID for Telegram when using the custom field
 - `PLANFIX_FIELD_ID_CLIENT` – Custom field ID for client
 - `PLANFIX_FIELD_ID_MANAGER` – Custom field ID for manager
 - `PLANFIX_FIELD_ID_AGENCY` – Custom field ID for agency
@@ -47,7 +48,8 @@ npx @modelcontextprotocol/inspector node d:/projects/expertizeme/planfix-mcp-ser
         "PLANFIX_TOKEN": "your-api-token",
         "PLANFIX_FIELD_ID_EMAIL": "123",
         "PLANFIX_FIELD_ID_PHONE": "124",
-        "PLANFIX_FIELD_ID_TELEGRAM": "125",
+        "PLANFIX_FIELD_ID_TELEGRAM": "1",
+        "PLANFIX_FIELD_ID_TELEGRAM_CUSTOM": "125",
         "PLANFIX_FIELD_ID_CLIENT": "126",
         "PLANFIX_FIELD_ID_MANAGER": "127",
         "PLANFIX_FIELD_ID_AGENCY": "128"
@@ -68,7 +70,8 @@ PLANFIX_ACCOUNT=yourcompany \
 PLANFIX_TOKEN=your-api-token \
 PLANFIX_FIELD_ID_EMAIL=123 \
 PLANFIX_FIELD_ID_PHONE=124 \
-PLANFIX_FIELD_ID_TELEGRAM=125 \
+PLANFIX_FIELD_ID_TELEGRAM=1 \
+PLANFIX_FIELD_ID_TELEGRAM_CUSTOM=125 \
 PLANFIX_FIELD_ID_CLIENT=126 \
 PLANFIX_FIELD_ID_MANAGER=127 \
 PLANFIX_FIELD_ID_AGENCY=128 \
