@@ -40,7 +40,8 @@ describe("planfix_update_contact tool", () => {
 
   const setupMocks = (customContact?: Partial<typeof mockContact>) => {
     mockPlanfixRequest.mockReset();
-    mockPlanfixRequest.mockImplementation(async (endpoint: string) => {
+    mockPlanfixRequest.mockImplementation(async (args: any) => {
+      const endpoint = args.path;
       if (endpoint.startsWith("contact/") && endpoint !== "contact/1") {
         throw new Error("Contact not found");
       }
@@ -60,14 +61,14 @@ describe("planfix_update_contact tool", () => {
     });
 
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
-    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(
-      1,
-      "contact/1",
-      { fields: "id,name,lastname,email,phones,customFieldData" },
-      "GET",
-    );
-    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(2, "contact/1", {
-      email: "new@example.com",
+    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(1, {
+      path: "contact/1",
+      body: { fields: "id,name,lastname,email,phones,customFieldData" },
+      method: "GET",
+    });
+    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(2, {
+      path: "contact/1",
+      body: { email: "new@example.com" },
     });
     expect(result.contactId).toBe(1);
     expect(result.url).toBe("https://example.com/contact/1");
@@ -99,9 +100,9 @@ describe("planfix_update_contact tool", () => {
     });
 
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
-    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(2, "contact/1", {
-      name: "John",
-      lastname: "Smith",
+    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(2, {
+      path: "contact/1",
+      body: { name: "John", lastname: "Smith" },
     });
     expect(result.contactId).toBe(1);
   });
@@ -128,16 +129,18 @@ describe("planfix_update_contact tool", () => {
     });
 
     // Verify the GET call
-    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(
-      1,
-      "contact/1",
-      { fields: "id,name,lastname,email,phones,customFieldData" },
-      "GET",
-    );
+    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(1, {
+      path: "contact/1",
+      body: { fields: "id,name,lastname,email,phones,customFieldData" },
+      method: "GET",
+    });
 
     // Verify the UPDATE call
-    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(2, "contact/1", {
-      customFieldData: [{ field: { id: 1001 }, value: "@new_username" }],
+    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(2, {
+      path: "contact/1",
+      body: {
+        customFieldData: [{ field: { id: 1001 }, value: "@new_username" }],
+      },
     });
 
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
@@ -163,11 +166,11 @@ describe("planfix_update_contact tool", () => {
 
     // Verify only GET call was made
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
-    expect(mockPlanfixRequest).toHaveBeenCalledWith(
-      "contact/1",
-      { fields: "id,name,lastname,email,phones,customFieldData" },
-      "GET",
-    );
+    expect(mockPlanfixRequest).toHaveBeenCalledWith({
+      path: "contact/1",
+      body: { fields: "id,name,lastname,email,phones,customFieldData" },
+      method: "GET",
+    });
 
     expect(result.contactId).toBe(1);
   });
@@ -184,8 +187,9 @@ describe("planfix_update_contact tool", () => {
     });
 
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
-    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(2, "contact/1", {
-      phones: [...mockContact.phones, { number: newPhone, type: 1 }],
+    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(2, {
+      path: "contact/1",
+      body: { phones: [...mockContact.phones, { number: newPhone, type: 1 }] },
     });
     expect(result.contactId).toBe(1);
   });

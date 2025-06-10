@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getToolWithHandler } from "../helpers.js";
 import { getFieldDirectoryId } from "../lib/planfixObjects.js";
+import { searchDirectoryEntryById } from "../lib/planfixDirectory.js";
 import {
   addToLeadTask,
   AddToLeadTaskOutputSchema,
@@ -39,7 +40,10 @@ export async function planfixCreateTask(
         fieldId: PLANFIX_FIELD_IDS.leadSource,
       });
       if (directoryId) {
-        // TODO: search_directory_entry(directoryId, leadSource)
+        const entryId = await searchDirectoryEntryById(directoryId, leadSource);
+        if (entryId) {
+          messageParts.push(`ID источника: ${entryId}`);
+        }
       }
     }
   }

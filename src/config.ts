@@ -23,7 +23,9 @@ export const PLANFIX_DRY_RUN = Boolean(process.env.PLANFIX_DRY_RUN);
 export const PLANFIX_FIELD_IDS = {
   email: Number(process.env.PLANFIX_FIELD_ID_EMAIL || 108),
   phone: Number(process.env.PLANFIX_FIELD_ID_PHONE || 105),
-  telegram: process.env.PLANFIX_FIELD_ID_TELEGRAM_CUSTOM ? 0: Number(process.env.PLANFIX_FIELD_ID_TELEGRAM || 131),
+  telegram: process.env.PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
+    ? 0
+    : Number(process.env.PLANFIX_FIELD_ID_TELEGRAM || 131),
   telegramCustom: Number(process.env.PLANFIX_FIELD_ID_TELEGRAM_CUSTOM),
   client: Number(process.env.PLANFIX_FIELD_ID_CLIENT),
   manager: Number(process.env.PLANFIX_FIELD_ID_MANAGER),

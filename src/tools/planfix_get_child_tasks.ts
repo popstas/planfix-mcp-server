@@ -39,18 +39,21 @@ export async function getChildTasks({
   z.infer<typeof GetChildTasksOutputSchema>
 > {
   try {
-    const result = await planfixRequest(`task/list`, {
-      parent: { id: parentTaskId },
-      pageSize: 100,
-      offset: 0,
-      fields: ["id", "name", "description", "assignees", "status"].join(","),
-      filters: [
-        {
-          type: 73,
-          operator: "eq",
-          value: parentTaskId,
-        },
-      ],
+    const result = await planfixRequest({
+      path: `task/list`,
+      body: {
+        parent: { id: parentTaskId },
+        pageSize: 100,
+        offset: 0,
+        fields: ["id", "name", "description", "assignees", "status"].join(","),
+        filters: [
+          {
+            type: 73,
+            operator: "eq",
+            value: parentTaskId,
+          },
+        ],
+      },
     });
 
     const data = result as {

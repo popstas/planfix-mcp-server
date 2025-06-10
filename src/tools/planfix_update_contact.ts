@@ -64,11 +64,11 @@ export async function updatePlanfixContact({
       : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase;
-    const { contact } = await planfixRequest<{ contact: ContactResponse }>(
-      `contact/${contactId}`,
-      { fields },
-      "GET",
-    );
+    const { contact } = await planfixRequest<{ contact: ContactResponse }>({
+      path: `contact/${contactId}`,
+      body: { fields },
+      method: "GET",
+    });
 
     const postBody: Record<string, unknown> = {};
 
@@ -134,7 +134,7 @@ export async function updatePlanfixContact({
       return { contactId, url: getContactUrl(contactId) };
     }
 
-    await planfixRequest(`contact/${contactId}`, postBody);
+    await planfixRequest({ path: `contact/${contactId}`, body: postBody });
     return { contactId, url: getContactUrl(contactId) };
   } catch (error) {
     const errorMessage =

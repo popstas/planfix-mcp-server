@@ -121,9 +121,12 @@ export async function planfixSearchContact({
     filter: FilterType,
   ): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
     try {
-      const result = (await planfixRequest("contact/list", {
-        ...postBody,
-        filters: [filter],
+      const result = (await planfixRequest({
+        path: "contact/list",
+        body: {
+          ...postBody,
+          filters: [filter],
+        },
       })) as {
         contacts?: Array<{ id: number; name?: string; lastname?: string }>;
       };

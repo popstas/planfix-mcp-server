@@ -7,9 +7,9 @@ describe("planfix_update_contact tool prod", () => {
     const args = {
       contactId: 11,
       email: "pop..stas@gmail.com",
-      telegram: 'popstas',
-      phone: '+79222229531',
-      name: 'Stanislav Popov',
+      telegram: "popstas",
+      phone: "+79222229531",
+      name: "Stanislav Popov",
     };
     const { valid, content } = await runTool<{ contactId: number }>(
       "planfix_update_contact",

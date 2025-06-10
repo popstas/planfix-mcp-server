@@ -157,10 +157,10 @@ async function generateReportUncached({
   reportId: number;
 }): Promise<PlanfixReportData | { error: string }> {
   try {
-    const generateResult = (await planfixRequest(
-      `report/${reportId}/run`,
-      {},
-    )) as GenerateReportResponse;
+    const generateResult = (await planfixRequest({
+      path: `report/${reportId}/run`,
+      body: {},
+    })) as GenerateReportResponse;
 
     // Poll for report completion
     const maxAttempts = 10;
@@ -172,21 +172,24 @@ async function generateReportUncached({
       await new Promise((resolve) => setTimeout(resolve, delayMs));
       attempts++;
 
-      const statusResult = (await planfixRequest(`report/${reportId}/status`, {
-        requestId: generateResult.requestId,
+      const statusResult = (await planfixRequest({
+        path: `report/${reportId}/status`,
+        body: {
+          requestId: generateResult.requestId,
+        },
       })) as ReportStatusResponse;
 
       if (statusResult.status === "ready" && statusResult.save) {
         // Get the saved report data
-        const dataResult = (await planfixRequest(
-          `report/${reportId}/save/${statusResult.save.id}/data`,
-          {
+        const dataResult = (await planfixRequest({
+          path: `report/${reportId}/save/${statusResult.save.id}/data`,
+          body: {
             method: "POST",
             body: JSON.stringify({
               chunks: 0,
             }),
           },
-        )) as { data: { rows: PlanfixReportData } };
+        })) as { data: { rows: PlanfixReportData } };
         reportData = dataResult.data.rows;
         break;
       } else if (statusResult.status !== "in_progress") {
@@ -236,10 +239,13 @@ async function checkSavedReport({
   reportId: number;
 }): Promise<PlanfixReportData | undefined> {
   try {
-    const data = (await planfixRequest(`report/${reportId}/save/list`, {
-      offset: 0,
-      pageSize: 100,
-      fields: "id,reportId,dateTime,name,chunks,chunksCount",
+    const data = (await planfixRequest({
+      path: `report/${reportId}/save/list`,
+      body: {
+        offset: 0,
+        pageSize: 100,
+        fields: "id,reportId,dateTime,name,chunks,chunksCount",
+      },
     })) as {
       saves: Array<{ id: number; dateTime: string }>;
     };
@@ -274,12 +280,12 @@ async function checkSavedReport({
     const diff = nowUTCTime - lastSavedUTCTime;
 
     if (diff < CACHE_TIME * 1000) {
-      const dataResponse = (await planfixRequest(
-        `report/${reportId}/save/${lastSaved.id}/data`,
-        {
+      const dataResponse = (await planfixRequest({
+        path: `report/${reportId}/save/${lastSaved.id}/data`,
+        body: {
           chunks: 0,
         },
-      )) as { data: { rows: PlanfixReportData } };
+      })) as { data: { rows: PlanfixReportData } };
 
       return dataResponse.data.rows;
     }

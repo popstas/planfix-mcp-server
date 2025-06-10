@@ -33,11 +33,15 @@ export class PlanfixClient {
 
       // For GET requests, use data as query params
       if (method === "GET") {
-        return (await planfixRequest(path, data, "GET")) as T;
+        return (await planfixRequest({ path, body: data, method: "GET" })) as T;
       }
       // For POST/PUT/DELETE/PATCH, use data as request body
       else if (method === "POST") {
-        return (await planfixRequest(path, data, "POST")) as T;
+        return (await planfixRequest({
+          path,
+          body: data,
+          method: "POST",
+        })) as T;
       }
       // For other methods, convert to POST with _method parameter
       else {
@@ -45,7 +49,11 @@ export class PlanfixClient {
           ...data,
           _method: method,
         };
-        return (await planfixRequest(path, requestData, "POST")) as T;
+        return (await planfixRequest({
+          path,
+          body: requestData,
+          method: "POST",
+        })) as T;
       }
     } catch (error) {
       console.error(`[PlanfixClient] Request to ${path} failed:`, error);

@@ -33,7 +33,10 @@ export async function searchProject({
   try {
     const result = await planfixRequest<{
       projects?: Array<{ id: number; name: string }>;
-    }>("project/list", postBody);
+    }>({
+      path: "project/list",
+      body: postBody,
+    });
     if (result.projects?.[0]) {
       return {
         projectId: result.projects[0].id,
