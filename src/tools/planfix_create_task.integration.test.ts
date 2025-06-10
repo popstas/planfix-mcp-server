@@ -9,6 +9,7 @@ describe("planfix_create_task tool prod", () => {
       email: "pop.stas@gmail.com",
       phone: "+79222229531",
       agency: "Тестовое агентство",
+      object: "Задача",
       leadSource: "Zapier",
       title: "Test task title",
       telegram: "popstas",
