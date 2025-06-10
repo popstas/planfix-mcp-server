@@ -53,8 +53,11 @@ async function fetchObjects(): Promise<Record<string, PlanfixObject>> {
 }
 
 async function updateCache(cachePath: string) {
+  const started = Date.now();
   const data = await fetchObjects();
   await writeCache(data, cachePath);
+  const duration = Math.round((Date.now() - started) / 1000);
+  log(`[planfixObjects] Cache updated: ${cachePath} (${duration}s)`);
   return data;
 }
 

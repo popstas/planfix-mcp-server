@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { getToolWithHandler } from "../helpers.js";
+import { getFieldDirectoryId } from "../lib/planfixObjects.js";
 import {
   addToLeadTask,
   AddToLeadTaskOutputSchema,
 } from "./planfix_add_to_lead_task.js";
 
 export const PlanfixCreateTaskInputSchema = z.object({
+  object: z.string().optional(),
   title: z.string().describe("Task title"),
   name: z.string().optional(),
   nameTranslated: z.string().optional(),
@@ -28,8 +30,21 @@ export async function planfixCreateTask(
 
   const header = title;
   const messageParts = [];
-  if (leadSource) messageParts.push(`Источник: ${leadSource}`);
-  if (referral) messageParts.push(`Реферал: ${referral}`);
+  if (leadSource) {
+    messageParts.push(`Источник: ${leadSource}`);
+    if (args.object) {
+      const directoryId = await getFieldDirectoryId(
+        args.object,
+        "leadSource",
+      );
+      if (directoryId) {
+        messageParts.push(`Источник: ${directoryId}`);
+      }
+    }
+  }
+  if (referral) {
+    messageParts.push(`Реферал: ${referral}`);
+  }
   const message = messageParts.join("\n");
 
   return await addToLeadTask({
