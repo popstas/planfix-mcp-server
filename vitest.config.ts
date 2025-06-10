@@ -10,8 +10,6 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/.git/**',
-      '**/src/tools/*_integration.test.ts',
-      '**/*.integration.test.ts'
     ],
   },
 });

@@ -6,7 +6,6 @@ import {
 } from "./planfix_add_to_lead_task.js";
 
 export const PlanfixCreateTaskInputSchema = z.object({
-  object: z.string().optional().describe("Task template"),
   title: z.string().describe("Task title"),
   name: z.string().optional(),
   nameTranslated: z.string().optional(),
@@ -25,12 +24,10 @@ export const PlanfixCreateTaskOutputSchema = AddToLeadTaskOutputSchema;
 export async function planfixCreateTask(
   args: z.infer<typeof PlanfixCreateTaskInputSchema>,
 ): Promise<z.infer<typeof PlanfixCreateTaskOutputSchema>> {
-  const { agency, referral, leadSource, object, title, ...userData } = args;
-
-  const template = object || process.env.PLANFIX_LEAD_TEMPLATE_ID;
+  const { agency, referral, leadSource, title, ...userData } = args;
 
   const header = title;
-  const messageParts = [`Объект: ${template}`];
+  const messageParts = [];
   if (leadSource) messageParts.push(`Источник: ${leadSource}`);
   if (referral) messageParts.push(`Реферал: ${referral}`);
   const message = messageParts.join("\n");
