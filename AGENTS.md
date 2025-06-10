@@ -6,6 +6,7 @@ This repository contains a Model Context Protocol (MCP) server written in TypeSc
 - Run `npm run test-full` before commit.
 - Run `npm run format` before commit.
 - Update `README.md` when tools change.
+- In the setup script, append `export NPM_CONFIG_LOGLEVEL=silent npm_config_http_proxy= npm_config_https_proxy` to `~/.bashrc` to suppress npm proxy warnings.
 
 ## Development commands
 
