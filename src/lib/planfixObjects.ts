@@ -100,18 +100,32 @@ export async function getObjectsNames(
   return Object.values(objects).map((o) => o.name);
 }
 
-export async function getFieldDirectoryId(
-  objectName: string,
-  fieldName: string,
-  cachePath: string = getDefaultCachePath(),
-): Promise<number | undefined> {
+export async function getFieldDirectoryId({
+  objectName,
+  fieldName,
+  fieldId,
+  cachePath,
+}: {
+  objectName: string;
+  fieldName?: string;
+  fieldId?: number;
+  cachePath?: string;
+}): Promise<number | undefined> {
   const objects = await ensureCache(cachePath);
   const obj = objects[objectName];
   if (!obj) return undefined;
   interface CustomField {
-    field: { name: string; directoryId?: number };
+    field: { name: string; directoryId?: number; id?: number };
   }
-  const fields = (obj as { customFieldData?: CustomField[] }).customFieldData;
-  const field = fields?.find((f) => f.field.name === fieldName);
+  let field: CustomField | undefined;
+  if (fieldId) {
+    field = (obj as { customFieldData?: CustomField[] }).customFieldData?.find(
+      (f) => f.field.id === fieldId,
+    );
+  } else {
+    field = (obj as { customFieldData?: CustomField[] }).customFieldData?.find(
+      (f) => f.field.name === fieldName,
+    );
+  }
   return field?.field.directoryId;
 }

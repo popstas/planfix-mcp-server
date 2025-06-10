@@ -5,6 +5,7 @@ import {
   addToLeadTask,
   AddToLeadTaskOutputSchema,
 } from "./planfix_add_to_lead_task.js";
+import { PLANFIX_FIELD_IDS } from "../config.js";
 
 export const PlanfixCreateTaskInputSchema = z.object({
   object: z.string().optional(),
@@ -33,12 +34,12 @@ export async function planfixCreateTask(
   if (leadSource) {
     messageParts.push(`Источник: ${leadSource}`);
     if (args.object) {
-      const directoryId = await getFieldDirectoryId(
-        args.object,
-        "leadSource",
-      );
+      const directoryId = await getFieldDirectoryId({
+        objectName: args.object,
+        fieldId: PLANFIX_FIELD_IDS.leadSource,
+      });
       if (directoryId) {
-        messageParts.push(`Источник: ${directoryId}`);
+        // TODO: search_directory_entry(directoryId, leadSource)
       }
     }
   }
