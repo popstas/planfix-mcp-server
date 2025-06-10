@@ -1,0 +1,20 @@
+# Zapier Scripts
+
+This directory contains standalone scripts for use in Zapier.
+
+## zapier-amocrm-webhook-lead.js
+
+Fetches full lead information from amoCRM using data provided by an incoming
+webhook. The script requires an amoCRM access token and returns the enriched
+lead object together with the original webhook body.
+
+### Usage
+
+```js
+import execute from "./zapier-amocrm-webhook-lead.js";
+
+const result = await execute({ body, token: "your_access_token" }, fetch);
+```
+
+If `token` is omitted, the script will look for the `AMOCRM_ACCESS_TOKEN`
+environment variable.
