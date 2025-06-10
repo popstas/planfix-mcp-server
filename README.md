@@ -25,6 +25,8 @@ The server requires the following environment variables for Planfix API access:
 - `PLANFIX_FIELD_ID_CLIENT` – Custom field ID for client
 - `PLANFIX_FIELD_ID_MANAGER` – Custom field ID for manager
 - `PLANFIX_FIELD_ID_AGENCY` – Custom field ID for agency
+- `PLANFIX_FIELD_ID_LEAD_SOURCE` – Custom field ID for lead source
+- `PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE` – Value ID for default lead source
 
 ## Debug
 
@@ -75,6 +77,8 @@ PLANFIX_FIELD_ID_TELEGRAM_CUSTOM=125 \
 PLANFIX_FIELD_ID_CLIENT=126 \
 PLANFIX_FIELD_ID_MANAGER=127 \
 PLANFIX_FIELD_ID_AGENCY=128 \
+PLANFIX_FIELD_ID_LEAD_SOURCE=129 \
+PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE=130 \
 npx @popstas/planfix-mcp-server
 ```
 
@@ -169,6 +173,7 @@ const objects = await planfixClient.post('object/list', {
 - `searchPlanfixTask`: Search for tasks by name and client ID
 - `createSellTask`: Create a new sell task with template
 - `createLeadTask`: Create a new lead task
+- `createTask`: Create a task using text fields
 - `createComment`: Add a comment to a task
 - `getChildTasks`: Retrieve all child tasks of a parent task
 

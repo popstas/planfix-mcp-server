@@ -5,8 +5,11 @@ import { runTool } from "../helpers.js";
 describe("planfix_update_contact tool prod", () => {
   it("updates contact by id", async () => {
     const args = {
-      contactId: 30,
+      contactId: 11,
       email: "pop..stas@gmail.com",
+      telegram: 'popstas',
+      phone: '+79222229531',
+      name: 'Stanislav Popov',
     };
     const { valid, content } = await runTool<{ contactId: number }>(
       "planfix_update_contact",

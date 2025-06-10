@@ -90,8 +90,11 @@ export async function planfixRequest<T = unknown>(
 
   const result = await response.json();
 
+  log(`[planfixRequest] ${response.status} ${method} ${PLANFIX_BASE_URL}${requestUrl}`);
+
   if (!response.ok) {
-    log(`HTTP error! Status: ${response.status}, ${result.error}`);
+    log(`[planfixRequest] HTTP error! Status: ${response.status}, ${result.error}`);
+    log(`[planfixRequest] Body: ${requestBody}`);
     throw new Error(result.error || `Unknown error: ${response.status}`);
   }
 

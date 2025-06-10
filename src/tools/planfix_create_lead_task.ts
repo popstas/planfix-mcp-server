@@ -106,14 +106,16 @@ export async function createLeadTask({
     });
   }
 
-  const saleSourceValue = Number(process.env.PLANFIX_FIELD_ID_SALE_VALUE);
-  if (saleSourceValue) {
+  const leadSourceValue = Number(
+    process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE,
+  );
+  if (leadSourceValue) {
     postBody.customFieldData.push({
       field: {
-        id: PLANFIX_FIELD_IDS.saleSource,
+        id: PLANFIX_FIELD_IDS.leadSource,
       },
       value: {
-        id: saleSourceValue,
+        id: leadSourceValue,
       },
     });
   }

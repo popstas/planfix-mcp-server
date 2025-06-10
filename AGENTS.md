@@ -5,6 +5,7 @@ This repository contains a Model Context Protocol (MCP) server written in TypeSc
 ## Rules before commit
 - Run `npm run test-full` before commit.
 - Run `npm run format` before commit.
+- Update `README.md` when tools change.
 
 ## Development commands
 
