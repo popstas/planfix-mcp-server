@@ -32,7 +32,6 @@ export async function searchPlanfixTask({
   let assignees: { users: Assignee[] } | undefined;
 
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
-  // const DAYS_TO_SEARCH = Number(process.env.PLANFIX_DAYS_TO_SEARCH) || 1000;
 
   const postBody = {
     offset: 0,
@@ -61,13 +60,6 @@ export async function searchPlanfixTask({
       operator: "equal",
       value: taskName,
     },
-    /*byLastDays: {
-      type: 12, // created, by last days
-      operator: 'last',
-      value: {
-        dateValue: DAYS_TO_SEARCH,
-      },
-    },*/
   };
 
   async function searchWithFilter(

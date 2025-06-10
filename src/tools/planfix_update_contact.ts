@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  PLANFIX_DRY_RUN,
-  PLANFIX_FIELD_ID_TELEGRAM,
-  PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
-} from "../config.js";
+import { PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS } from "../config.js";
 import {
   getContactUrl,
   getToolWithHandler,
@@ -63,9 +59,9 @@ export async function updatePlanfixContact({
     }
 
     const fieldsBase = `id,name,lastname,email,phones`;
-    const fields = PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
+    const fields = PLANFIX_FIELD_IDS.telegramCustom
       ? `${fieldsBase},customFieldData`
-      : PLANFIX_FIELD_ID_TELEGRAM
+      : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase;
     const { contact } = await planfixRequest<{ contact: ContactResponse }>(
@@ -103,9 +99,9 @@ export async function updatePlanfixContact({
     if (telegram !== undefined) {
       const normalized = telegram.replace(/^@/, "");
       let current = "";
-      if (PLANFIX_FIELD_ID_TELEGRAM_CUSTOM) {
+      if (PLANFIX_FIELD_IDS.telegramCustom) {
         const tgField = contact.customFieldData?.find(
-          (f) => f.field.id === PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+          (f) => f.field.id === PLANFIX_FIELD_IDS.telegramCustom,
         );
         if (tgField && typeof tgField.value === "string") {
           current = tgField.value.replace(/^@/, "");
@@ -113,12 +109,12 @@ export async function updatePlanfixContact({
         if ((forceUpdate || !current) && normalized !== current) {
           postBody.customFieldData = [
             {
-              field: { id: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM },
+              field: { id: PLANFIX_FIELD_IDS.telegramCustom },
               value: "@" + normalized,
             },
           ];
         }
-      } else if (PLANFIX_FIELD_ID_TELEGRAM) {
+      } else if (PLANFIX_FIELD_IDS.telegram) {
         current = contact.telegram?.replace(/^@/, "") || "";
         if ((forceUpdate || !current) && normalized !== current) {
           postBody.telegram = normalized;

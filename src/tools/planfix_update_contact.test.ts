@@ -3,8 +3,10 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 // Mock the config module first
 vi.mock("../config.js", () => ({
   PLANFIX_DRY_RUN: false,
-  PLANFIX_FIELD_ID_TELEGRAM: 0,
-  PLANFIX_FIELD_ID_TELEGRAM_CUSTOM: 1001,
+  PLANFIX_FIELD_IDS: {
+    telegram: 0,
+    telegramCustom: 1001,
+  },
 }));
 
 // Mock the helpers module
@@ -197,8 +199,10 @@ describe("planfix_update_contact tool", () => {
       vi.doMock("../config.js", () => ({
         ...originalConfig,
         PLANFIX_DRY_RUN: true,
-        PLANFIX_FIELD_ID_TELEGRAM: 0,
-        PLANFIX_FIELD_ID_TELEGRAM_CUSTOM: 1001,
+        PLANFIX_FIELD_IDS: {
+          telegram: 0,
+          telegramCustom: 1001,
+        },
       }));
 
       // Mock the helpers

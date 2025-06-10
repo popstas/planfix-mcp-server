@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  PLANFIX_FIELD_ID_TELEGRAM,
-  PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
-} from "../config.js";
+import { PLANFIX_FIELD_IDS } from "../config.js";
 import {
   getContactUrl,
   getToolWithHandler,
@@ -52,9 +49,9 @@ export async function planfixSearchContact({
     offset: 0,
     pageSize: 100,
     filters: [],
-    fields: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
-      ? `${fieldsBase},${PLANFIX_FIELD_ID_TELEGRAM_CUSTOM}`
-      : PLANFIX_FIELD_ID_TELEGRAM
+    fields: PLANFIX_FIELD_IDS.telegramCustom
+      ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
+      : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase,
   };
@@ -88,14 +85,14 @@ export async function planfixSearchContact({
       value: email,
     },
     byTelegram: telegram
-      ? PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
+      ? PLANFIX_FIELD_IDS.telegramCustom
         ? {
             type: 4101,
-            field: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+            field: PLANFIX_FIELD_IDS.telegramCustom,
             operator: "equal",
             value: telegram.replace(/^@/, "").toLowerCase(),
           }
-        : PLANFIX_FIELD_ID_TELEGRAM
+        : PLANFIX_FIELD_IDS.telegram
           ? {
               type: 4226,
               operator: "equal",
@@ -104,14 +101,14 @@ export async function planfixSearchContact({
           : undefined
       : undefined,
     byTelegramWithAt:
-      telegram && PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
+      telegram && PLANFIX_FIELD_IDS.telegramCustom
         ? {
             type: 4101,
-            field: PLANFIX_FIELD_ID_TELEGRAM_CUSTOM,
+            field: PLANFIX_FIELD_IDS.telegramCustom,
             operator: "equal",
             value: `@${telegram.replace(/^@/, "").toLowerCase()}`,
           }
-        : telegram && PLANFIX_FIELD_ID_TELEGRAM
+        : telegram && PLANFIX_FIELD_IDS.telegram
           ? {
               type: 4226,
               operator: "equal",
