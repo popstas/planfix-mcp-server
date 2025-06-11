@@ -1,7 +1,7 @@
 /* global inputData */
 /* global fetch */
 const body = inputData.body || {};
-const token = inputData.token;
+const token = inputData.token || process.env.AMOCRM_ACCESS_TOKEN;
 if (!token) throw new Error("AMOCRM access token is required");
 
 const baseUrl = (body["account[_links][self]"] || "").replace(/\/$/, "");
@@ -38,4 +38,34 @@ for (const c of contacts) {
 
 lead.contactsDetailed = detailedContacts;
 
-return { body, lead };
+function extractTaskParams() {
+  const params = { title: lead.name };
+  const mainContactId = contacts.find((c) => c.is_main)?.id;
+  const mainContact =
+    detailedContacts.find((c) => c.id === mainContactId) || detailedContacts[0];
+  if (mainContact) {
+    if (mainContact.name) {
+      params.name = mainContact.name;
+    }
+    const fields = Array.isArray(mainContact.custom_fields_values)
+      ? mainContact.custom_fields_values
+      : [];
+    for (const f of fields) {
+      if (f.field_code === "PHONE" && Array.isArray(f.values) && f.values[0]) {
+        params.phone = f.values[0].value;
+      }
+      if (f.field_code === "EMAIL" && Array.isArray(f.values) && f.values[0]) {
+        params.email = f.values[0].value;
+      }
+      if (f.field_code === "IM" && Array.isArray(f.values)) {
+        const tg = f.values.find((v) => v.enum_code === "TELEGRAM");
+        if (tg) params.telegram = tg.value;
+      }
+    }
+  }
+  return params;
+}
+
+const taskParams = extractTaskParams();
+
+return { body, lead, taskParams };
