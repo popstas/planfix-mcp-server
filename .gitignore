@@ -79,4 +79,4 @@ pmlogs/
 .env.test.local
 .env.production.local
 .env
-zapier-planfix/
+*.debug.js

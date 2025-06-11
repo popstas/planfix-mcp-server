@@ -18,3 +18,7 @@ const result = await execute({ body, token: "your_access_token" }, fetch);
 
 If `token` is omitted, the script will look for the `AMOCRM_ACCESS_TOKEN`
 environment variable.
+
+### Test
+`node zapier-scripts/zapier-test-amocrm.js` - is for exec zapier-amocrm-webhook-lead.js with test environment variables.
+It uses ZAPIER_INPUT_AMOCRM environment variable.
