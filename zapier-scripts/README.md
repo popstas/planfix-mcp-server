@@ -28,3 +28,9 @@ environment variable.
 ### Test
 `node zapier-scripts/zapier-test-amocrm.js` - is for exec zapier-amocrm-webhook-lead.js with test environment variables.
 It uses ZAPIER_INPUT_AMOCRM environment variable.
+
+Vitest runs in watch mode when `npm test` is executed locally. Set the `CI` environment variable to run the suite once:
+
+```bash
+CI=1 npm test
+```
