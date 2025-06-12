@@ -14,40 +14,7 @@ async function amoGet(path) {
   const res = await fetch(`${baseUrl}${path}`, {
     method: "GET",
     headers: {
-  const params = { title: `${lead.name} (Сделка #${lead.id})` };
-
-  const tagNames = Array.isArray(lead._embedded?.tags)
-    ? lead._embedded.tags.map((t) => t.name).filter(Boolean)
-    : [];
-
-  const customFields = Array.isArray(lead.custom_fields_values)
-    ? lead.custom_fields_values
-    : [];
-  const customLines = [];
-  for (const f of customFields) {
-    const name = f.field_name || f.field_code;
-    if (!name) continue;
-    const values = Array.isArray(f.values)
-      ? f.values.map((v) => v.value).filter(Boolean)
-      : [];
-    if (values.length) {
-      customLines.push(`${name}: ${values.join(', ')}`);
-    }
-  }
-
-  const descriptionParts = [];
-  if (tagNames.length) {
-    descriptionParts.push(`Теги: ${tagNames.join(', ')}`);
-  }
-  if (customLines.length) {
-    descriptionParts.push('', 'Поля:', ...customLines);
-  }
-  descriptionParts.push(
-    '',
-    `URL: ${baseUrl}/leads/detail/${leadId}`,
-  );
-
-  params.description = descriptionParts.join('\n');
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
   });
@@ -73,7 +40,7 @@ for (const c of contacts) {
 lead.contactsDetailed = detailedContacts;
 
 function extractTaskParams() {
-  const params = { title: `${leadName} (${lead.name}` };
+  const params = { title: `${leadName} (${lead.name})` };
   const mainContactId = contacts.find((c) => c.is_main)?.id;
   const mainContact =
     detailedContacts.find((c) => c.id === mainContactId) || detailedContacts[0];
