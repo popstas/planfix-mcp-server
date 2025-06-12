@@ -31,7 +31,7 @@ describe("planfix_create_task", () => {
       expect.objectContaining({
         name: args.name,
         phone: args.phone,
-        header: args.title,
+        title: args.title,
       }),
     );
     expect(res.taskId).toBe(3);

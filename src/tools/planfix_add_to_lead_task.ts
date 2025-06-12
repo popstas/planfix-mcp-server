@@ -10,8 +10,8 @@ import { searchManager } from "./planfix_search_manager.js";
 import { searchPlanfixTask } from "./planfix_search_task.js";
 
 export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
-  header: z.string(),
-  message: z.string(),
+  title: z.string().optional(),
+  description: z.string(),
   managerEmail: z.string().optional(),
   project: z.string().optional(),
 });
@@ -51,9 +51,10 @@ export const AddToLeadTaskOutputSchema = z.object({
 function generateDescription(
   userData: z.infer<typeof UserDataInputSchema>,
   eventData: {
-    header?: string;
-    message?: string;
+    title?: string;
+    description?: string;
   },
+  taskTitle?: string,
 ): string {
   // Simple userData labels for Russian output
   const userDataLabels: Record<string, string> = {
@@ -61,25 +62,40 @@ function generateDescription(
     phone: "Телефон",
     email: "Email",
     telegram: "Telegram",
+    company: "Компания",
   };
-  if (eventData?.header) {
-    return [
-      eventData.header,
-      "",
-      eventData.message ? eventData.message : "",
-    ].join("\n");
+
+  const lines: string[] = [];
+  if (eventData?.title && eventData.title !== taskTitle) {
+    lines.push(eventData.title);
+    lines.push("");
   }
-  if (!userData) {
-    return `Заявка от ${new Date().toLocaleString()}`;
+
+  if (eventData?.description) {
+    lines.push(eventData.description);
+    lines.push("");
   }
-  const lines = [];
-  for (const key of Object.keys(userData)) {
-    if (userData[key as keyof typeof userData] && userDataLabels[key]) {
-      lines.push(
-        `${userDataLabels[key]}: ${userData[key as keyof typeof userData]}`,
-      );
+
+  const userLines = [] as string[];
+  if (userData) {
+    for (const key of Object.keys(userData)) {
+      if (userData[key as keyof typeof userData] && userDataLabels[key]) {
+        userLines.push(
+          `${userDataLabels[key]}: ${userData[key as keyof typeof userData]}`,
+        );
+      }
     }
   }
+
+  if (userLines.length) {
+    if (lines.length) lines.push("");
+    lines.push(...userLines);
+  }
+
+  if (!lines.length) {
+    return `Заявка от ${new Date().toLocaleString()}`;
+  }
+
   return lines.join("\n");
 }
 
@@ -95,8 +111,8 @@ export async function addToLeadTask({
   email,
   telegram,
   company,
-  header,
-  message,
+  title,
+  description,
   managerEmail,
   project,
 }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<
@@ -115,7 +131,7 @@ export async function addToLeadTask({
   }
 
   const userData = { name, nameTranslated, phone, email, telegram, company };
-  const eventData = { header, message };
+  const eventData = { title, description };
   // Main logic
 
   try {
@@ -138,10 +154,19 @@ export async function addToLeadTask({
     let { taskId, clientId, url, clientUrl, assignees } = searchResult;
     // Variables that won't be reassigned
     const { firstName, lastName, agencyId } = searchResult;
-    const taskNameTemplate = "{clientName} - работа с клиентом";
+    const taskTitleTemplate = "{clientName} - работа с клиентом";
+    const finalTaskTitle = title
+      ? title
+      : replaceTemplateVars(taskTitleTemplate, {
+          clientName: userData.name,
+        });
 
-    const description = generateDescription(userData, eventData);
-    if (!description) {
+    const descriptionText = generateDescription(
+      userData,
+      eventData,
+      finalTaskTitle,
+    );
+    if (!descriptionText) {
       // console.log('[leadToTask] No description to send, skip create client or task');
       return { taskId, clientId, url, clientUrl };
     }
@@ -162,9 +187,7 @@ export async function addToLeadTask({
     if (clientId && !taskId && userData.name && userData.name.includes(" ")) {
       // console.log('[leadToTask] Searching for task by name...');
       const result = await searchPlanfixTask({
-        taskName: replaceTemplateVars(taskNameTemplate, {
-          clientName: userData.name,
-        }),
+        taskTitle: finalTaskTitle,
       });
       taskId = result.taskId || 0;
       assignees = result.assignees;
@@ -179,10 +202,8 @@ export async function addToLeadTask({
         managerId = managerResult.managerId;
       }
       const createLeadTaskResult = await createLeadTask({
-        name: replaceTemplateVars(taskNameTemplate, {
-          clientName: userData.name,
-        }),
-        description,
+        name: finalTaskTitle,
+        description: descriptionText,
         clientId,
         managerId: managerId ?? undefined,
         agencyId,
@@ -200,7 +221,7 @@ export async function addToLeadTask({
       // console.log('[leadToTask] Creating comment in found task...');
       const commentResult = await createComment({
         taskId,
-        description,
+        description: descriptionText,
         recipients: assignees,
       });
       if (commentResult.commentId) {
