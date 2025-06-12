@@ -29,7 +29,6 @@ export async function planfixCreateTask(
 ): Promise<z.infer<typeof PlanfixCreateTaskOutputSchema>> {
   const { agency, referral, leadSource, title, ...userData } = args;
 
-  const header = title;
   const messageParts = [];
   if (leadSource) {
     messageParts.push(`Источник: ${leadSource}`);
@@ -46,13 +45,13 @@ export async function planfixCreateTask(
   if (referral) {
     messageParts.push(`Реферал: ${referral}`);
   }
-  const message = messageParts.join("\n");
+  const description = messageParts.join("\n");
 
   return await addToLeadTask({
     ...userData,
     company: agency,
-    header,
-    message,
+    title,
+    description,
     managerEmail: args.managerEmail,
     project: args.project,
   });

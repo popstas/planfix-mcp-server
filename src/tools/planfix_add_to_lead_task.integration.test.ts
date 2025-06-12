@@ -10,8 +10,8 @@ describe("planfix_add_to_lead_task tool", () => {
       phone: "+79222229531",
       telegram: "@popstas",
       email: "pop.stas@gmail.com",
-      header: "Test Lead via Automated Test",
-      message: "This is a test message for adding a lead task.",
+      title: "Test Lead via Automated Test",
+      description: "This is a test message for adding a lead task.",
       // managerEmail: 'optional_manager@example.com', // Optional: add if specific manager assignment needs testing
     };
 

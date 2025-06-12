@@ -170,9 +170,10 @@ const objects = await planfixClient.post('object/list', {
 
 ### Task Management
 
-- `searchPlanfixTask`: Search for tasks by name and client ID
+- `searchPlanfixTask`: Search for tasks by title and client ID
 - `createSellTask`: Create a new sell task with template
 - `createLeadTask`: Create a new lead task
+- `addToLeadTask`: Create or update a lead task with contact details
 - `createTask`: Create a task using text fields
 - `createComment`: Add a comment to a task
 - `getChildTasks`: Retrieve all child tasks of a parent task
