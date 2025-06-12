@@ -10,6 +10,7 @@ import { PLANFIX_FIELD_IDS } from "../config.js";
 export const PlanfixCreateTaskInputSchema = z.object({
   object: z.string().optional(),
   title: z.string().describe("Task title"),
+  description: z.string().optional(),
   name: z.string().optional(),
   nameTranslated: z.string().optional(),
   phone: z.string().optional(),
@@ -44,6 +45,9 @@ export async function planfixCreateTask(
   }
   if (referral) {
     messageParts.push(`Реферал: ${referral}`);
+  }
+  if (args.description) {
+    messageParts.push(args.description);
   }
   const description = messageParts.join("\n");
 

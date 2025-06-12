@@ -1,7 +1,7 @@
 /* global inputData */
 /* global fetch */
 const body = inputData.body || {};
-const token = inputData.token || process.env.AMOCRM_ACCESS_TOKEN;
+const token = inputData.amocrm_token || process.env.AMOCRM_ACCESS_TOKEN;
 if (!token) throw new Error("AMOCRM access token is required");
 
 const baseUrl = (body["account[_links][self]"] || "").replace(/\/$/, "");
