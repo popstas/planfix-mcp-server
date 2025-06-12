@@ -62,6 +62,7 @@ function generateDescription(
     phone: "Телефон",
     email: "Email",
     telegram: "Telegram",
+    company: "Компания",
   };
 
   const lines: string[] = [];
@@ -72,6 +73,7 @@ function generateDescription(
 
   if (eventData?.description) {
     lines.push(eventData.description);
+    lines.push("");
   }
 
   const userLines = [] as string[];
