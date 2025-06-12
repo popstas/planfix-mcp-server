@@ -7,7 +7,9 @@ This directory contains standalone scripts for use in Zapier.
 Fetches full lead information from amoCRM using data provided by an incoming
 webhook. The script requires an amoCRM access token and returns the enriched
 lead object together with the original webhook body. In addition it extracts
-`taskParams` that can be passed to the `planfix_create_task` tool.
+`taskParams` that can be passed to the `planfix_create_task` tool. The object now
+includes a `description` field composed from lead tags, custom fields and a link
+to the amoCRM lead.
 
 ### Usage
 
