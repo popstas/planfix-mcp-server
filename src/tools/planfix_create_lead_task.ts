@@ -138,10 +138,10 @@ export async function createLeadTask({
       return { taskId: mockId, url: `https://example.com/task/${mockId}` };
     }
 
-    const result = await planfixRequest<{ id: number }>(
-      `task/`,
-      postBody as unknown as Record<string, unknown>,
-    );
+    const result = await planfixRequest<{ id: number }>({
+      path: `task/`,
+      body: postBody as unknown as Record<string, unknown>,
+    });
     const taskId = result.id;
     const url = getTaskUrl(taskId);
 

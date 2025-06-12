@@ -47,11 +47,11 @@ export async function getReportFields({
   z.infer<typeof GetReportFieldsOutputSchema>
 > {
   try {
-    const result = await planfixRequest<ReportFieldsResponse>(
-      `report/${reportId}`,
-      { fields: "id,name,fields" },
-      "GET",
-    );
+    const result = await planfixRequest<ReportFieldsResponse>({
+      path: `report/${reportId}`,
+      body: { fields: "id,name,fields" },
+      method: "GET",
+    });
 
     if (result.result !== "success" || !result.repost) {
       throw new Error(result.message || "Failed to fetch report fields");

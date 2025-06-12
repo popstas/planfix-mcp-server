@@ -66,9 +66,12 @@ export async function searchPlanfixTask({
     filtersArr: Array<Record<string, unknown>>,
   ): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
     try {
-      const result = (await planfixRequest(`task/list`, {
-        ...postBody,
-        filters: [...filtersDefault, ...filtersArr],
+      const result = (await planfixRequest({
+        path: `task/list`,
+        body: {
+          ...postBody,
+          filters: [...filtersDefault, ...filtersArr],
+        },
       })) as {
         tasks?: Array<{
           id: number;

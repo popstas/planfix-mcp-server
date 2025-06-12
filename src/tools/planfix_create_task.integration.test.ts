@@ -34,20 +34,28 @@ describe("planfix_create_task tool prod", () => {
     expect(content).toMatchObject({
       taskId: expect.any(Number),
       clientId: expect.any(Number),
-      url: expect.stringMatching(new RegExp(`^https://${PLANFIX_ACCOUNT.replace(/\./g, '\\.')}\\.planfix\\.com/task/\\d+$`)),
-      clientUrl: expect.stringMatching(new RegExp(`^https://${PLANFIX_ACCOUNT.replace(/\./g, '\\.')}\\.planfix\\.com/contact/\\d+$`)),
+      url: expect.stringMatching(
+        new RegExp(
+          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/task/\\d+$`,
+        ),
+      ),
+      clientUrl: expect.stringMatching(
+        new RegExp(
+          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/contact/\\d+$`,
+        ),
+      ),
       assignees: {
         users: expect.arrayContaining([
           expect.objectContaining({
             id: expect.stringMatching(/^user:\d+$/),
-            name: expect.any(String)
-          })
+            name: expect.any(String),
+          }),
         ]),
-        groups: expect.any(Array)
+        groups: expect.any(Array),
       },
       firstName: expect.any(String),
       lastName: expect.any(String),
-      agencyId: expect.any(Number)
+      agencyId: expect.any(Number),
     });
 
     // Additional specific checks
@@ -55,7 +63,7 @@ describe("planfix_create_task tool prod", () => {
     expect(content.clientId).toBeGreaterThan(0);
     expect(content.agencyId).toBeGreaterThan(0);
     expect(content.assignees.users.length).toBeGreaterThan(0);
-    expect(content.firstName).toBe('Stanislav');
-    expect(content.lastName).toBe('Popov');
+    expect(content.firstName).toBe("Stanislav");
+    expect(content.lastName).toBe("Popov");
   });
 });

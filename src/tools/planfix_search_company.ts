@@ -57,9 +57,12 @@ export async function planfixSearchCompany({
     try {
       const result = await planfixRequest<{
         contacts: Array<{ id: number; name: string }>;
-      }>(`contact/list`, {
-        ...postBody,
-        filters: currentFilters,
+      }>({
+        path: `contact/list`,
+        body: {
+          ...postBody,
+          filters: currentFilters,
+        },
       });
 
       if (result.contacts?.length > 0) {

@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  PLANFIX_DRY_RUN,
-  PLANFIX_FIELD_IDS,
-} from "../config.js";
+import { PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS } from "../config.js";
 import {
   getContactUrl,
   getToolWithHandler,
@@ -104,10 +101,10 @@ export async function createPlanfixContact(
       }
     }
 
-    const result = await planfixRequest<{ id: number }>(
-      `contact/`,
-      postBody as unknown as Record<string, unknown>,
-    );
+    const result = await planfixRequest<{ id: number }>({
+      path: `contact/`,
+      body: postBody as unknown as Record<string, unknown>,
+    });
     const contactId = result.id;
     const url = getContactUrl(contactId);
 

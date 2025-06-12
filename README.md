@@ -178,6 +178,11 @@ const objects = await planfixClient.post('object/list', {
 - `createComment`: Add a comment to a task
 - `getChildTasks`: Retrieve all child tasks of a parent task
 
+### Directory Management
+
+- `planfix_search_directory`: Search directories by name
+- `planfix_search_directory_entry`: Search directory entry by directory name and entry name
+
 ### User Management
 
 - `searchManager`: Find a manager by email
