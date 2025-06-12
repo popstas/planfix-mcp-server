@@ -3,7 +3,6 @@ import path from 'path';
 import {promises as fs} from 'fs';
 import {fileURLToPath} from 'url';
 import process from 'process';
-import fetch from 'node-fetch';
 
 const scriptName = 'zapier-amocrm-webhook-lead';
 
@@ -55,7 +54,7 @@ ${scriptContent}
       const {default: executeFn} = await import(importPath);
 
       // Execute the function with the provided data
-      const result = await executeFn(inputData, global.fetch || fetch);
+      const result = await executeFn(inputData, global.fetch);
       console.log(JSON.stringify(result, null, 2));
       const outputFilePath = path.join(__dirname, `${scriptName}.output.json`);
       await fs.writeFile(outputFilePath, JSON.stringify(result, null, 2));
