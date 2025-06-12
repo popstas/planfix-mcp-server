@@ -6,6 +6,7 @@ if (!token) throw new Error("AMOCRM access token is required");
 
 const baseUrl = (body["account[_links][self]"] || "").replace(/\/$/, "");
 const leadId = body["leads[add][0][id]"];
+const leadName = body["leads[add][0][name]"];
 if (!baseUrl || !leadId) throw new Error("Invalid webhook body");
 
 async function amoGet(path) {
@@ -39,7 +40,7 @@ for (const c of contacts) {
 lead.contactsDetailed = detailedContacts;
 
 function extractTaskParams() {
-  const params = { title: lead.name };
+  const params = { title: `${leadName} (${lead.name}` };
   const mainContactId = contacts.find((c) => c.is_main)?.id;
   const mainContact =
     detailedContacts.find((c) => c.id === mainContactId) || detailedContacts[0];
@@ -66,6 +67,26 @@ function extractTaskParams() {
   return params;
 }
 
+// POST https://bot-dev.stable.popstas.ru/agent/planfix/tool/planfix_create_task
+// token at inputData.agent_token
+async function createTask(taskParams) {
+  const res = await fetch(`https://bot-dev.stable.popstas.ru/agent/planfix/tool/planfix_create_task`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${inputData.agent_token}`,
+    },
+    body: JSON.stringify(taskParams),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`planfix_create_task request failed: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
 const taskParams = extractTaskParams();
 
-return { body, lead, taskParams };
+const task = await createTask(taskParams);
+
+return { body, lead, taskParams, task };

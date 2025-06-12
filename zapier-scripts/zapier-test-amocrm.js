@@ -18,7 +18,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Function to run search-planfix-task.js in a debuggable way
-async function runSearchPlanfixTask(inputData) {
+async function runZapierTest(inputData) {
   try {
     // Path to the original script
     const scriptPath = path.join(__dirname, `${scriptName}.js`);
@@ -57,6 +57,9 @@ ${scriptContent}
       // Execute the function with the provided data
       const result = await executeFn(inputData, global.fetch || fetch);
       console.log(JSON.stringify(result, null, 2));
+      const outputFilePath = path.join(__dirname, `${scriptName}.output.json`);
+      await fs.writeFile(outputFilePath, JSON.stringify(result, null, 2));
+      console.log('Output file created at:', outputFilePath);
       return result;
     } finally {
       // Don't delete the debug file to allow for continued debugging
@@ -68,4 +71,4 @@ ${scriptContent}
   }
 }
 
-await runSearchPlanfixTask(inputData);
+await runZapierTest(inputData);
