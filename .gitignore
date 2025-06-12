@@ -80,3 +80,4 @@ pmlogs/
 .env.production.local
 .env
 *.debug.js
+*.output.json
