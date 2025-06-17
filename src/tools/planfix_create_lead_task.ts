@@ -8,6 +8,11 @@ import {
 } from "../helpers.js";
 import type { CustomFieldDataType } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
+import { getFieldDirectoryId } from "../lib/planfixObjects.js";
+import {
+  searchDirectoryEntryById,
+  getDirectoryFields,
+} from "../lib/planfixDirectory.js";
 
 interface TaskRequestBody {
   template: {
@@ -28,6 +33,8 @@ export const CreateLeadTaskInputSchema = z.object({
   managerId: z.number().optional(),
   agencyId: z.number().optional(),
   project: z.string().optional(),
+  leadSource: z.string().optional(),
+  referral: z.string().optional(),
 });
 
 export const CreateLeadTaskOutputSchema = z.object({
@@ -53,6 +60,9 @@ export async function createLeadTask({
   managerId,
   agencyId,
   project,
+  leadSource,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  referral,
 }: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{
   taskId: number;
   url?: string;
@@ -106,18 +116,44 @@ export async function createLeadTask({
     });
   }
 
-  const leadSourceValue = Number(
-    process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE,
-  );
-  if (leadSourceValue) {
-    postBody.customFieldData.push({
-      field: {
-        id: PLANFIX_FIELD_IDS.leadSource,
-      },
-      value: {
-        id: leadSourceValue,
-      },
+  if (leadSource) {
+    const directoryId = await getFieldDirectoryId({
+      objectId: TEMPLATE_ID,
+      fieldId: PLANFIX_FIELD_IDS.leadSource,
     });
+    if (directoryId) {
+      const directoryFields = await getDirectoryFields(directoryId);
+      const directoryFieldId = directoryFields?.[0]?.id || 0;
+      const entryId = await searchDirectoryEntryById(
+        directoryId,
+        directoryFieldId,
+        leadSource,
+      );
+      if (entryId) {
+        postBody.customFieldData.push({
+          field: {
+            id: PLANFIX_FIELD_IDS.leadSource,
+          },
+          value: {
+            id: entryId,
+          },
+        });
+      }
+    }
+  } else {
+    const leadSourceValue = Number(
+      process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE,
+    );
+    if (leadSourceValue) {
+      postBody.customFieldData.push({
+        field: {
+          id: PLANFIX_FIELD_IDS.leadSource,
+        },
+        value: {
+          id: leadSourceValue,
+        },
+      });
+    }
   }
 
   if (agencyId) {

@@ -5,12 +5,13 @@ import { runTool } from "../helpers.js";
 
 describe("planfix_search_directory tool", () => {
   it("searches directory by name", async () => {
-    const args = { name: "Источники лидов" };
+    const args = { name: "Источники задач" };
     const { valid, content } = await runTool<{
       directoryId: number;
       found: boolean;
     }>("planfix_search_directory", args);
     expect(valid).toBe(true);
     expect(typeof content.directoryId).toBe("number");
+    expect(content.directoryId).toBeGreaterThan(0);
   });
 });

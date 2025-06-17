@@ -1,12 +1,9 @@
 import { z } from "zod";
 import { getToolWithHandler } from "../helpers.js";
-import { getFieldDirectoryId } from "../lib/planfixObjects.js";
-import { searchDirectoryEntryById } from "../lib/planfixDirectory.js";
 import {
   addToLeadTask,
   AddToLeadTaskOutputSchema,
 } from "./planfix_add_to_lead_task.js";
-import { PLANFIX_FIELD_IDS } from "../config.js";
 
 export const PlanfixCreateTaskInputSchema = z.object({
   object: z.string().optional(),
@@ -34,18 +31,6 @@ export async function planfixCreateTask(
   const messageParts = [];
   if (leadSource) {
     messageParts.push(`Источник: ${leadSource}`);
-    if (args.object) {
-      const directoryId = await getFieldDirectoryId({
-        objectName: args.object,
-        fieldId: PLANFIX_FIELD_IDS.leadSource,
-      });
-      if (directoryId) {
-        const entryId = await searchDirectoryEntryById(directoryId, leadSource);
-        if (entryId) {
-          messageParts.push(`ID источника: ${entryId}`);
-        }
-      }
-    }
   }
   if (referral) {
     messageParts.push(`Реферал: ${referral}`);
@@ -59,6 +44,8 @@ export async function planfixCreateTask(
     message,
     managerEmail: args.managerEmail,
     project: args.project,
+    leadSource,
+    referral,
   });
 }
 

@@ -3,6 +3,9 @@ import { getToolWithHandler, log } from "../helpers.js";
 import {
   searchDirectory,
   searchDirectoryEntryById,
+  searchAllDirectoryEntries,
+  getDirectoryFields,
+  type DirectoryEntry,
 } from "../lib/planfixDirectory.js";
 
 export const PlanfixSearchDirectoryEntryInputSchema = z.object({
@@ -27,9 +30,25 @@ export async function planfixSearchDirectoryEntry({
     if (!dir) {
       return { entryId: 0, found: false, error: "Directory not found" };
     }
-    const entryId = await searchDirectoryEntryById(dir.id, entry);
+    const fields = await getDirectoryFields(dir.id);
+    if (!fields) {
+      return { entryId: 0, found: false, error: "Directory fields not found" };
+    }
+    const field = fields[0];
+
+    // First try exact match for performance
+    const entryId = await searchDirectoryEntryById(dir.id, field.id, entry);
     if (entryId) {
       return { entryId, found: true };
+    }
+
+    // If not found, try case-insensitive search
+    const allEntries = await searchAllDirectoryEntries(dir.id);
+    const foundEntry = allEntries?.find(
+      (e: DirectoryEntry) => e.name?.toLowerCase() === entry.toLowerCase(),
+    );
+    if (foundEntry?.key) {
+      return { entryId: foundEntry.key, found: true };
     }
     return { entryId: 0, found: false };
   } catch (e) {

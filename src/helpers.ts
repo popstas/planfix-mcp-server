@@ -67,7 +67,7 @@ export async function planfixRequest<T = unknown>({
   path,
   body,
   method = "POST",
-  cacheTime = 3600,
+  cacheTime = 0,
 }: PlanfixRequestArgs): Promise<T> {
   if (!PLANFIX_ACCOUNT) {
     throw new Error("PLANFIX_ACCOUNT is not defined");
@@ -78,6 +78,7 @@ export async function planfixRequest<T = unknown>({
   if (cacheTime > 0) {
     const cached = await cache.get<T>(cacheKey);
     if (cached !== undefined) {
+      log(`[planfixRequest] Cache hit for ${path}`);
       return cached;
     }
   }
@@ -109,7 +110,7 @@ export async function planfixRequest<T = unknown>({
   const result = await response.json();
 
   log(
-    `[planfixRequest] ${response.status} ${method} ${PLANFIX_BASE_URL}${requestUrl}`,
+    `[planfixRequest] ${response.status} ${method} ${PLANFIX_BASE_URL}${requestUrl}, body: ${requestBody}`,
   );
 
   if (!response.ok) {

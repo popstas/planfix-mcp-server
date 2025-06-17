@@ -7,7 +7,7 @@ export interface CacheProvider {
 }
 
 export class SqliteCache implements CacheProvider {
-  private db: any;
+  private db: ReturnType<typeof DatabaseConstructor>;
   constructor(dbPath: string) {
     this.db = new DatabaseConstructor(dbPath);
     this.db.exec(
