@@ -13,6 +13,7 @@ import { z } from "zod";
 import { execa } from "execa";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { getCacheProvider } from "./lib/cache.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,16 +56,34 @@ export function getToolWithHandler<
   };
 }
 
-export async function planfixRequest<T = unknown>(
-  url: string,
-  body?: Record<string, unknown>,
-  method: "GET" | "POST" = "POST",
-): Promise<T> {
+export interface PlanfixRequestArgs {
+  path: string;
+  body?: Record<string, unknown>;
+  method?: "GET" | "POST";
+  cacheTime?: number;
+}
+
+export async function planfixRequest<T = unknown>({
+  path,
+  body,
+  method = "POST",
+  cacheTime = 0,
+}: PlanfixRequestArgs): Promise<T> {
   if (!PLANFIX_ACCOUNT) {
     throw new Error("PLANFIX_ACCOUNT is not defined");
   }
 
-  let requestUrl = url;
+  const cache = getCacheProvider();
+  const cacheKey = JSON.stringify({ path, body, method });
+  if (cacheTime > 0) {
+    const cached = await cache.get<T>(cacheKey);
+    if (cached !== undefined) {
+      log(`[planfixRequest] Cache hit for ${path}`);
+      return cached;
+    }
+  }
+
+  let requestUrl = path;
   let requestBody: string | undefined;
 
   if (method === "GET" && body) {
@@ -76,8 +95,8 @@ export async function planfixRequest<T = unknown>(
     });
     const queryString = params.toString();
     requestUrl = queryString
-      ? `${url}${url.includes("?") ? "&" : "?"}${queryString}`
-      : url;
+      ? `${path}${path.includes("?") ? "&" : "?"}${queryString}`
+      : path;
   } else if (body) {
     requestBody = JSON.stringify(body);
   }
@@ -90,12 +109,20 @@ export async function planfixRequest<T = unknown>(
 
   const result = await response.json();
 
-  log(`[planfixRequest] ${response.status} ${method} ${PLANFIX_BASE_URL}${requestUrl}`);
+  log(
+    `[planfixRequest] ${response.status} ${method} ${PLANFIX_BASE_URL}${requestUrl}, body: ${requestBody}`,
+  );
 
   if (!response.ok) {
-    log(`[planfixRequest] HTTP error! Status: ${response.status}, ${result.error}`);
+    log(
+      `[planfixRequest] HTTP error! Status: ${response.status}, ${result.error}`,
+    );
     log(`[planfixRequest] Body: ${requestBody}`);
     throw new Error(result.error || `Unknown error: ${response.status}`);
+  }
+
+  if (cacheTime > 0) {
+    await cache.set(cacheKey, result, cacheTime);
   }
 
   return result;

@@ -27,10 +27,13 @@ export async function listReports(): Promise<
   z.infer<typeof ListReportsOutputSchema>
 > {
   try {
-    const result = (await planfixRequest(`report/list`, {
-      offset: 0,
-      pageSize: 100,
-      fields: "id,name",
+    const result = (await planfixRequest({
+      path: `report/list`,
+      body: {
+        offset: 0,
+        pageSize: 100,
+        fields: "id,name",
+      },
     })) as ReportListResponse;
 
     return {

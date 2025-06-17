@@ -102,17 +102,22 @@ export async function getObjectsNames(
 
 export async function getFieldDirectoryId({
   objectName,
+  objectId,
   fieldName,
   fieldId,
   cachePath,
 }: {
-  objectName: string;
+  objectName?: string;
+  objectId?: number;
   fieldName?: string;
   fieldId?: number;
   cachePath?: string;
 }): Promise<number | undefined> {
   const objects = await ensureCache(cachePath);
-  const obj = objects[objectName];
+  const obj = objectName
+    ? objects[objectName]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    : Object.entries(objects).find(([_, o]) => o.id === objectId)?.[1];
   if (!obj) return undefined;
   interface CustomField {
     field: { name: string; directoryId?: number; id?: number };

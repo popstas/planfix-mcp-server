@@ -43,7 +43,10 @@ export async function searchManager({
       ],
     };
 
-    const result = (await planfixRequest("user/list", postBody)) as {
+    const result = (await planfixRequest({
+      path: "user/list",
+      body: postBody,
+    })) as {
       users?: Array<{
         id: number;
         name?: string;

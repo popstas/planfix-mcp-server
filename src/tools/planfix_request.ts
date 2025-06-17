@@ -11,6 +11,7 @@ export const PlanfixRequestInputSchema = z.object({
     .record(z.unknown())
     .optional()
     .describe("Request body as planfix request object"),
+  cacheTime: z.number().optional().describe("Cache TTL in seconds"),
 });
 
 export const PlanfixRequestOutputSchema = z.record(z.unknown());
@@ -23,11 +24,12 @@ export async function planfixRequestHandler({
   method,
   path,
   body = {},
+  cacheTime,
 }: z.infer<typeof PlanfixRequestInputSchema>): Promise<
   z.infer<typeof PlanfixRequestOutputSchema>
 > {
   try {
-    const response = await planfixRequest(path, body, method);
+    const response = await planfixRequest({ path, body, method, cacheTime });
     return response as Record<string, unknown>;
   } catch (error) {
     const errorMessage =

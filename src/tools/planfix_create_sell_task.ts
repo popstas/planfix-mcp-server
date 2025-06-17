@@ -163,10 +163,10 @@ export async function createSellTask({
       });
     }
 
-    const result = await planfixRequest<{ id: number }>(
-      `task/`,
-      postBody as unknown as Record<string, unknown>,
-    );
+    const result = await planfixRequest<{ id: number }>({
+      path: `task/`,
+      body: postBody as unknown as Record<string, unknown>,
+    });
     const taskId = result.id;
     const url = getTaskUrl(taskId);
     return { taskId, url };

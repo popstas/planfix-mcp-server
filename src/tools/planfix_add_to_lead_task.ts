@@ -14,6 +14,8 @@ export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
   description: z.string(),
   managerEmail: z.string().optional(),
   project: z.string().optional(),
+  leadSource: z.string().optional(),
+  referral: z.string().optional(),
 });
 
 export const AddToLeadTaskOutputSchema = z.object({
@@ -115,6 +117,8 @@ export async function addToLeadTask({
   description,
   managerEmail,
   project,
+  leadSource,
+  referral,
 }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<
   z.infer<typeof AddToLeadTaskOutputSchema>
 > {
@@ -208,6 +212,8 @@ export async function addToLeadTask({
         managerId: managerId ?? undefined,
         agencyId,
         project,
+        leadSource,
+        referral,
       });
       if (createLeadTaskResult.error) {
         return { taskId: 0, clientId: 0, error: createLeadTaskResult.error };

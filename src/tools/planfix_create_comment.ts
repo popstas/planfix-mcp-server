@@ -64,10 +64,10 @@ export async function createComment({
       recipients,
     } as const;
 
-    const result = await planfixRequest<{ id: number }>(
-      `task/${taskId}/comments/`,
-      postBody,
-    );
+    const result = await planfixRequest<{ id: number }>({
+      path: `task/${taskId}/comments/`,
+      body: postBody,
+    });
     return { commentId: result.id };
   } catch (error: unknown) {
     const errorMessage =
