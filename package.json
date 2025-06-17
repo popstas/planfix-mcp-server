@@ -23,6 +23,7 @@
     "test:integration": "npx vitest integration",
     "test-full": "npm run typecheck && npm run test && npm run lint src",
     "prepare-build": "npm run build && npm run test-full",
+    "prepublishOnly": "npm run prepare-build",
     "mcp-cli": "mcp-inspector --cli npm run dev",
     "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
