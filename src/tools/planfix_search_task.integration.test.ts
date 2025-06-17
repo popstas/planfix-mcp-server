@@ -4,7 +4,7 @@ import { runTool } from "../helpers.js";
 describe("planfix_search_task tool", () => {
   it('searches task by name="Корягин Егор - работа с клиентом" and returns task details', async () => {
     const args = {
-      taskName: "Корягин Егор - работа с клиентом",
+      taskTitle: "Корягин Егор - работа с клиентом",
     };
     const { valid, content } = await runTool<{
       taskId: number;
@@ -37,7 +37,7 @@ describe("planfix_search_task tool", () => {
 
   it("returns found: false when no task is found", async () => {
     const args = {
-      taskName: "Nonexistent Task Name 12345",
+      taskTitle: "Nonexistent Task Name 12345",
     };
     const { valid, content } = await runTool<{ found: boolean }>(
       "planfix_search_task",

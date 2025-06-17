@@ -3,7 +3,7 @@ import { PLANFIX_FIELD_IDS } from "../config.js";
 import { getTaskUrl, getToolWithHandler, planfixRequest } from "../helpers.js";
 
 export const SearchPlanfixTaskInputSchema = z.object({
-  taskName: z.string().optional(),
+  taskTitle: z.string().optional(),
   clientId: z.number().optional(),
 });
 
@@ -22,10 +22,10 @@ interface Assignee {
 }
 
 export async function searchPlanfixTask({
-  taskName,
+  taskTitle,
   clientId,
 }: {
-  taskName?: string;
+  taskTitle?: string;
   clientId?: number;
 }): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
   let taskId: number | undefined = undefined;
@@ -58,7 +58,7 @@ export async function searchPlanfixTask({
     byName: {
       type: 8,
       operator: "equal",
-      value: taskName,
+      value: taskTitle,
     },
   };
 
@@ -109,7 +109,7 @@ export async function searchPlanfixTask({
       taskId = result.taskId;
       assignees = result.assignees;
     }
-    if (!taskId && taskName) {
+    if (!taskId && taskTitle) {
       const result = await searchWithFilter([
         filters.byName /*, filters.byLastDays*/,
       ]);
@@ -145,7 +145,7 @@ async function handler(
 
 export const planfixSearchTaskTool = getToolWithHandler({
   name: "planfix_search_task",
-  description: "Search for a task in Planfix by name or client ID",
+  description: "Search for a task in Planfix by title or client ID",
   inputSchema: SearchPlanfixTaskInputSchema,
   outputSchema: SearchPlanfixTaskOutputSchema,
   handler,
