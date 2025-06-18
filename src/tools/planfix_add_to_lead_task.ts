@@ -1,12 +1,11 @@
 import { z } from "zod";
-import { PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS } from "../config.js";
+import { PLANFIX_DRY_RUN } from "../config.js";
 import {
   log,
   getToolWithHandler,
   getTaskUrl,
   getCommentUrl,
   getContactUrl,
-  planfixRequest,
 } from "../helpers.js";
 import { UserDataInputSchema } from "../types.js";
 import { searchLeadTask } from "./planfix_search_lead_task.js";
@@ -16,12 +15,6 @@ import { createComment } from "./planfix_create_comment.js";
 import { searchManager } from "./planfix_search_manager.js";
 import { searchPlanfixTask } from "./planfix_search_task.js";
 import { updatePlanfixContact } from "./planfix_update_contact.js";
-import { getFieldDirectoryId } from "../lib/planfixObjects.js";
-import {
-  searchDirectoryEntryById,
-  getDirectoryFields,
-  createDirectoryEntry,
-} from "../lib/planfixDirectory.js";
 
 export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
   title: z.string().optional(),

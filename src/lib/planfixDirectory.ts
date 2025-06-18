@@ -150,7 +150,8 @@ export async function createDirectoryEntry(
         ],
       },
     });
-    const key = (result as any).key ?? (result as any).entry?.key;
+    const key = (result as { key?: number; entry?: { key: number } }).key ??
+      (result as { key?: number; entry?: { key: number } }).entry?.key;
     return typeof key === "number" ? key : undefined;
   } catch (error) {
     log(`[createDirectoryEntry] ${(error as Error).message}`);
