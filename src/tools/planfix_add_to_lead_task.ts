@@ -20,6 +20,7 @@ import { getFieldDirectoryId } from "../lib/planfixObjects.js";
 import {
   searchDirectoryEntryById,
   getDirectoryFields,
+  createDirectoryEntry,
 } from "../lib/planfixDirectory.js";
 
 export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
@@ -278,11 +279,14 @@ export async function addToLeadTask({
         const directoryFieldId = directoryFields?.[0]?.id || 0;
         const tagIds: number[] = [];
         for (const tag of tags) {
-          const id = await searchDirectoryEntryById(
+          let id = await searchDirectoryEntryById(
             directoryId,
             directoryFieldId,
             tag,
           );
+          if (!id) {
+            id = await createDirectoryEntry(directoryId, directoryFieldId, tag);
+          }
           if (id) tagIds.push(id);
         }
         if (tagIds.length) {

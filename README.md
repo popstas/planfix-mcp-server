@@ -28,6 +28,7 @@ The server requires the following environment variables for Planfix API access:
 - `PLANFIX_FIELD_ID_LEAD_SOURCE` – Custom field ID for lead source
 - `PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE` – Value ID for default lead source
 - `PLANFIX_FIELD_ID_TAGS` – Custom field ID for task tags
+  - Missing tag names will be added automatically to the directory
 
 ## Debug
 

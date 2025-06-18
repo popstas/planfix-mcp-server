@@ -1,4 +1,9 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+
+vi.mock("../config.js", () => ({
+  PLANFIX_DRY_RUN: false,
+  PLANFIX_FIELD_IDS: { tags: 10 },
+}));
 
 vi.mock("./planfix_search_lead_task.js", () => ({
   searchLeadTask: vi.fn().mockResolvedValue({
@@ -48,22 +53,64 @@ vi.mock("../helpers.js", async (importOriginal) => {
   };
 });
 
+vi.mock("../lib/planfixDirectory.js", () => ({
+  searchDirectoryEntryById: vi.fn(),
+  getDirectoryFields: vi.fn(),
+  createDirectoryEntry: vi.fn(),
+}));
+
+vi.mock("../lib/planfixObjects.js", () => ({
+  getFieldDirectoryId: vi.fn().mockResolvedValue(20),
+}));
+
 import { updatePlanfixContact } from "./planfix_update_contact.js";
 import { addToLeadTask } from "./planfix_add_to_lead_task.js";
+import { planfixRequest } from "../helpers.js";
+import {
+  searchDirectoryEntryById,
+  createDirectoryEntry,
+  getDirectoryFields,
+} from "../lib/planfixDirectory.js";
 
 const mockUpdate = vi.mocked(updatePlanfixContact);
+const mockPlanfixRequest = vi.mocked(planfixRequest);
+const mockSearchEntry = vi.mocked(searchDirectoryEntryById);
+const mockCreateEntry = vi.mocked(createDirectoryEntry);
+const mockGetDirectoryFields = vi.mocked(getDirectoryFields);
 
 describe("planfix_add_to_lead_task", () => {
+  beforeEach(() => {
+    mockPlanfixRequest.mockResolvedValue({ id: 3 });
+  });
   afterEach(() => {
     vi.clearAllMocks();
   });
 
   it("calls updatePlanfixContact when contact exists", async () => {
     const args = { name: "John Doe", description: "Test" };
-    const res = await addToLeadTask(args as any);
-    expect(res.clientId).toBe(2);
+    await addToLeadTask(args as any);
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ contactId: 2 }),
+    );
+  });
+
+  it("creates directory entry when tag id not found", async () => {
+    process.env.PLANFIX_LEAD_TEMPLATE_ID = "1";
+    mockGetDirectoryFields.mockResolvedValueOnce([
+      { id: 30, name: "name", type: 1 },
+    ]);
+    mockSearchEntry.mockResolvedValueOnce(undefined);
+    mockCreateEntry.mockResolvedValueOnce(55);
+
+    await addToLeadTask({
+      name: "John Doe",
+      description: "Test",
+      tags: ["new"],
+    } as any);
+
+    expect(mockCreateEntry).toHaveBeenCalledWith(20, 30, "new");
+    expect(mockPlanfixRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "task/3" }),
     );
   });
 });
