@@ -76,14 +76,15 @@ export async function updatePlanfixContact({
       ? splitName(name)
       : { firstName: undefined, lastName: undefined };
 
+    const isStubName = ["Клиент", "Контакт"].includes(contact.name || "");
     if (firstName !== undefined) {
-      const current = contact.name || "";
+      const current = isStubName ? "" : contact.name || "";
       if ((forceUpdate || !current) && firstName !== current) {
         postBody.name = firstName;
       }
     }
     if (lastName !== undefined) {
-      const current = contact.lastname || "";
+      const current = isStubName ? "" : contact.lastname || "";
       if ((forceUpdate || !current) && lastName !== current) {
         postBody.lastname = lastName;
       }

@@ -192,7 +192,7 @@ export async function addToLeadTask({
             ? ((userData.telegram ||
                 userData.phone ||
                 userData.email) as string)
-            : `Клиент ${nowDatetime}`;
+            : `Контакт ${nowDatetime}`;
       }
       const createResult = await createPlanfixContact(userData);
       clientId = createResult.contactId || 0;
