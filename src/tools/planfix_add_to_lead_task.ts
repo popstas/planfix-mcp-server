@@ -229,7 +229,6 @@ export async function addToLeadTask({
     let commentId: number | undefined;
 
     if (!taskId) {
-      // console.log('[leadToTask] Creating task...');
       assignees = { users: [] };
       let managerId: number | null = null;
       if (managerEmail) {
@@ -245,6 +244,7 @@ export async function addToLeadTask({
         project,
         leadSource,
         referral,
+        tags,
       });
       if (createLeadTaskResult.error) {
         return { taskId: 0, clientId: 0, error: createLeadTaskResult.error };
@@ -255,8 +255,6 @@ export async function addToLeadTask({
       }
     } else {
       // 6. If task found, add comment
-      // console.log('[leadToTask] Creating comment in found task...');
-
       const commentResult = await createComment({
         taskId,
         description: descriptionText,
@@ -268,42 +266,6 @@ export async function addToLeadTask({
       }
     }
 
-    if (taskId && tags?.length && PLANFIX_FIELD_IDS.tags && !PLANFIX_DRY_RUN) {
-      const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
-      const directoryId = await getFieldDirectoryId({
-        objectId: TEMPLATE_ID,
-        fieldId: PLANFIX_FIELD_IDS.tags,
-      });
-      if (directoryId) {
-        const directoryFields = await getDirectoryFields(directoryId);
-        const directoryFieldId = directoryFields?.[0]?.id || 0;
-        const tagIds: number[] = [];
-        for (const tag of tags) {
-          let id = await searchDirectoryEntryById(
-            directoryId,
-            directoryFieldId,
-            tag,
-          );
-          if (!id) {
-            id = await createDirectoryEntry(directoryId, directoryFieldId, tag);
-          }
-          if (id) tagIds.push(id);
-        }
-        if (tagIds.length) {
-          await planfixRequest({
-            path: `task/${taskId}`,
-            body: {
-              customFieldData: [
-                {
-                  field: { id: PLANFIX_FIELD_IDS.tags },
-                  value: tagIds.map((id) => ({ id })),
-                },
-              ],
-            },
-          });
-        }
-      }
-    }
     url = commentId ? getCommentUrl(taskId, commentId) : getTaskUrl(taskId);
     clientUrl = getContactUrl(clientId);
     return {

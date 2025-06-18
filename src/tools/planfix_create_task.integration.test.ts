@@ -11,6 +11,7 @@ describe("planfix_create_task tool prod", () => {
       agency: "Тестовое агентство",
       object: "Задача",
       leadSource: "agent",
+      tags: ["инвесткомитет10.06"],
       title: "Test task title",
       telegram: "popstas",
       project: "Тестирование интеграции с Планфикс",
