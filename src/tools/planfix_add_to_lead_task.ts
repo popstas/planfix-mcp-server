@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { PLANFIX_ACCOUNT, PLANFIX_DRY_RUN } from "../config.js";
-import { getToolWithHandler, log } from "../helpers.js";
+import { PLANFIX_DRY_RUN } from "../config.js";
+import { log, getToolWithHandler, getTaskUrl, getCommentUrl, getContactUrl } from "../helpers.js";
 import { UserDataInputSchema } from "../types.js";
 import { searchLeadTask } from "./planfix_search_lead_task.js";
 import { createPlanfixContact } from "./planfix_create_contact.js";
@@ -146,8 +146,8 @@ export async function addToLeadTask({
       return {
         taskId: mockTaskId,
         clientId: mockClientId,
-        url: `https://${PLANFIX_ACCOUNT}.planfix.com/task/${mockTaskId}`,
-        clientUrl: `https://${PLANFIX_ACCOUNT}.planfix.com/contact/${mockClientId}`,
+        url: getTaskUrl(mockTaskId),
+        clientUrl: getContactUrl(mockClientId),
         assignees: { users: [] },
       };
     }
@@ -197,6 +197,8 @@ export async function addToLeadTask({
       assignees = result.assignees;
     }
     // 4. If still no task, create it
+    let commentId: number | undefined;
+    
     if (!taskId) {
       // console.log('[leadToTask] Creating task...');
       assignees = { users: [] };
@@ -225,19 +227,19 @@ export async function addToLeadTask({
     } else {
       // 5. If task found, add comment
       // console.log('[leadToTask] Creating comment in found task...');
+      
       const commentResult = await createComment({
         taskId,
         description: descriptionText,
-        recipients: assignees,
+        // recipients: assignees,
       });
       if (commentResult.commentId) {
-        log(`[leadToTask] Comment created with ID: ${commentResult.commentId}`);
+        commentId = commentResult.commentId;
+        log(`[leadToTask] Comment created with ID: ${commentId}`);
       }
     }
-    url = taskId ? `https://${PLANFIX_ACCOUNT}.planfix.com/task/${taskId}` : "";
-    clientUrl = clientId
-      ? `https://${PLANFIX_ACCOUNT}.planfix.com/contact/${clientId}`
-      : "";
+    url = commentId ? getCommentUrl(taskId, commentId) : getTaskUrl(taskId);
+    clientUrl = getContactUrl(clientId);
     return {
       taskId,
       clientId,

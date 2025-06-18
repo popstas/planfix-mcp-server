@@ -132,6 +132,12 @@ export function getTaskUrl(taskId?: number): string {
   return taskId ? `https://${PLANFIX_ACCOUNT}.planfix.com/task/${taskId}` : "";
 }
 
+export function getCommentUrl(taskId?: number, commentId?: number): string {
+  return taskId && commentId
+    ? `https://${PLANFIX_ACCOUNT}.planfix.com/task/${taskId}?comment=${commentId}`
+    : "";
+}
+
 export function getContactUrl(contactId?: number): string {
   return contactId
     ? `https://${PLANFIX_ACCOUNT}.planfix.com/contact/${contactId}`

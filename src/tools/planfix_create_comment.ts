@@ -11,21 +11,21 @@ export const CreateCommentInputSchema = z.object({
       users: z
         .array(
           z.object({
-            id: z.string(),
-            name: z.string().optional(),
-          }),
+            id: z.string(), // "user:1"
+          })
         )
         .optional(),
       groups: z
         .array(
           z.object({
-            id: z.string(),
-            name: z.string().optional(),
-          }),
+            id: z.number(), // 1
+          })
         )
         .optional(),
+      roles: z.array(z.string()).optional(), // assignee, participant, auditor, assigner
     })
     .optional(),
+  silent: z.boolean().optional().describe("Don't notify recipients"),
 });
 
 // Output schema for the created comment
@@ -46,6 +46,7 @@ export async function createComment({
   taskId,
   description,
   recipients,
+  silent,
 }: z.infer<typeof CreateCommentInputSchema>): Promise<{
   commentId: number;
   error?: string;
@@ -54,10 +55,13 @@ export async function createComment({
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
       log(
-        `[DRY RUN] Would create comment for task ${taskId} with description: ${description}`,
+        `[DRY RUN] Would create comment for task ${taskId} with description: ${description}`
       );
       return { commentId: mockId };
     }
+
+    if (silent) recipients = undefined;
+    else if (!recipients) recipients = { roles: ["assignee"] };
 
     const postBody = {
       description: description.replace(/\n/g, "<br>"),
@@ -81,7 +85,7 @@ export async function createComment({
 }
 
 export async function handler(
-  args?: Record<string, unknown>,
+  args?: Record<string, unknown>
 ): Promise<z.infer<typeof CreateCommentOutputSchema>> {
   const parsedArgs = CreateCommentInputSchema.parse(args);
   return await createComment(parsedArgs);

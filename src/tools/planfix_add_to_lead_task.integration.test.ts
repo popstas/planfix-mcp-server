@@ -37,10 +37,10 @@ describe("planfix_add_to_lead_task tool", () => {
     expect(content.clientId).toBeGreaterThan(0);
 
     expect(content.url).toContain(
-      `https://expertizeme.planfix.com/task/${content.taskId}`,
+      `https://popstas.planfix.com/task/${content.taskId}`,
     );
     expect(content.clientUrl).toContain(
-      `https://expertizeme.planfix.com/contact/${content.clientId}`,
+      `https://popstas.planfix.com/contact/${content.clientId}`,
     );
   }, 60000); // Increase timeout if API calls are slow
 });
