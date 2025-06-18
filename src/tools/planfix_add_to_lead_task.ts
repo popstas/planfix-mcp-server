@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { PLANFIX_DRY_RUN } from "../config.js";
+import { PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS } from "../config.js";
 import {
   log,
   getToolWithHandler,
   getTaskUrl,
   getCommentUrl,
   getContactUrl,
+  planfixRequest,
 } from "../helpers.js";
 import { UserDataInputSchema } from "../types.js";
 import { searchLeadTask } from "./planfix_search_lead_task.js";
@@ -15,6 +16,11 @@ import { createComment } from "./planfix_create_comment.js";
 import { searchManager } from "./planfix_search_manager.js";
 import { searchPlanfixTask } from "./planfix_search_task.js";
 import { updatePlanfixContact } from "./planfix_update_contact.js";
+import { getFieldDirectoryId } from "../lib/planfixObjects.js";
+import {
+  searchDirectoryEntryById,
+  getDirectoryFields,
+} from "../lib/planfixDirectory.js";
 
 export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
   title: z.string().optional(),
@@ -23,6 +29,7 @@ export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
   project: z.string().optional(),
   leadSource: z.string().optional(),
   referral: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export const AddToLeadTaskOutputSchema = z.object({
@@ -126,6 +133,7 @@ export async function addToLeadTask({
   project,
   leadSource,
   referral,
+  tags,
 }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<
   z.infer<typeof AddToLeadTaskOutputSchema>
 > {
@@ -256,6 +264,40 @@ export async function addToLeadTask({
       if (commentResult.commentId) {
         commentId = commentResult.commentId;
         log(`[leadToTask] Comment created with ID: ${commentId}`);
+      }
+    }
+
+    if (taskId && tags?.length && PLANFIX_FIELD_IDS.tags && !PLANFIX_DRY_RUN) {
+      const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
+      const directoryId = await getFieldDirectoryId({
+        objectId: TEMPLATE_ID,
+        fieldId: PLANFIX_FIELD_IDS.tags,
+      });
+      if (directoryId) {
+        const directoryFields = await getDirectoryFields(directoryId);
+        const directoryFieldId = directoryFields?.[0]?.id || 0;
+        const tagIds: number[] = [];
+        for (const tag of tags) {
+          const id = await searchDirectoryEntryById(
+            directoryId,
+            directoryFieldId,
+            tag,
+          );
+          if (id) tagIds.push(id);
+        }
+        if (tagIds.length) {
+          await planfixRequest({
+            path: `task/${taskId}`,
+            body: {
+              customFieldData: [
+                {
+                  field: { id: PLANFIX_FIELD_IDS.tags },
+                  value: tagIds.map((id) => ({ id })),
+                },
+              ],
+            },
+          });
+        }
       }
     }
     url = commentId ? getCommentUrl(taskId, commentId) : getTaskUrl(taskId);

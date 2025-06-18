@@ -19,6 +19,7 @@ export const PlanfixCreateTaskInputSchema = z.object({
   agency: z.string().optional(),
   referral: z.string().optional(),
   managerEmail: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export const PlanfixCreateTaskOutputSchema = AddToLeadTaskOutputSchema;
@@ -49,6 +50,7 @@ export async function planfixCreateTask(
     project: args.project,
     leadSource,
     referral,
+    tags: args.tags,
   });
 }
 

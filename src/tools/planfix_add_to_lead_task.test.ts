@@ -40,6 +40,14 @@ vi.mock("./planfix_search_manager.js", () => ({
   searchManager: vi.fn().mockResolvedValue({ managerId: null }),
 }));
 
+vi.mock("../helpers.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../helpers.js")>();
+  return {
+    ...actual,
+    planfixRequest: vi.fn(),
+  };
+});
+
 import { updatePlanfixContact } from "./planfix_update_contact.js";
 import { addToLeadTask } from "./planfix_add_to_lead_task.js";
 
