@@ -10,6 +10,7 @@ import type { CustomFieldDataType } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
 import { getFieldDirectoryId } from "../lib/planfixObjects.js";
 import {
+  createDirectoryEntry,
   searchDirectoryEntryById,
   getDirectoryFields,
 } from "../lib/planfixDirectory.js";
@@ -35,6 +36,7 @@ export const CreateLeadTaskInputSchema = z.object({
   project: z.string().optional(),
   leadSource: z.string().optional(),
   referral: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export const CreateLeadTaskOutputSchema = z.object({
@@ -51,6 +53,9 @@ export const CreateLeadTaskOutputSchema = z.object({
  * @param managerId - Optional ID of the manager
  * @param agencyId - Optional ID of the agency
  * @param project - Optional name of the project
+ * @param leadSource - Optional name of the lead source
+ * @param referral - Optional name of the referral
+ * @param tags - Optional array of tags
  * @returns Promise with the created task ID and URL
  */
 export async function createLeadTask({
@@ -61,6 +66,7 @@ export async function createLeadTask({
   agencyId,
   project,
   leadSource,
+  tags,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   referral,
 }: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{
@@ -165,6 +171,36 @@ export async function createLeadTask({
         id: agencyId,
       },
     });
+  }
+
+
+  if (tags?.length && PLANFIX_FIELD_IDS.tags && !PLANFIX_DRY_RUN) {
+    const directoryId = await getFieldDirectoryId({
+      objectId: TEMPLATE_ID,
+      fieldId: PLANFIX_FIELD_IDS.tags,
+    });
+    if (directoryId) {
+      const directoryFields = await getDirectoryFields(directoryId);
+      const directoryFieldId = directoryFields?.[0]?.id || 0;
+      const tagIds: number[] = [];
+      for (const tag of tags) {
+        let id = await searchDirectoryEntryById(
+          directoryId,
+          directoryFieldId,
+          tag,
+        );
+        if (!id) {
+          id = await createDirectoryEntry(directoryId, directoryFieldId, tag);
+        }
+        if (id) tagIds.push(id);
+      }
+      if (tagIds.length) {
+        postBody.customFieldData.push({
+          field: { id: PLANFIX_FIELD_IDS.tags },
+          value: tagIds.map((id) => ({ id })),
+        });
+      }
+    }
   }
 
   try {

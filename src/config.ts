@@ -32,4 +32,5 @@ export const PLANFIX_FIELD_IDS = {
   agency: Number(process.env.PLANFIX_FIELD_ID_AGENCY),
   leadSource: Number(process.env.PLANFIX_FIELD_ID_LEAD_SOURCE),
   serviceMatrix: Number(process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX),
+  tags: Number(process.env.PLANFIX_FIELD_ID_TAGS),
 };

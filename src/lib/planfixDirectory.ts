@@ -129,3 +129,32 @@ export async function searchDirectory(
     return undefined;
   }
 }
+
+export async function createDirectoryEntry(
+  directoryId: number,
+  fieldId: number,
+  entryName: string,
+): Promise<number | undefined> {
+  try {
+    const result = await planfixRequest<{
+      key?: number;
+      entry?: { key: number };
+    }>({
+      path: `directory/${directoryId}/entry/`,
+      body: {
+        customFieldData: [
+          {
+            field: { id: fieldId },
+            value: entryName,
+          },
+        ],
+      },
+    });
+    const key = (result as { key?: number; entry?: { key: number } }).key ??
+      (result as { key?: number; entry?: { key: number } }).entry?.key;
+    return typeof key === "number" ? key : undefined;
+  } catch (error) {
+    log(`[createDirectoryEntry] ${(error as Error).message}`);
+    return undefined;
+  }
+}

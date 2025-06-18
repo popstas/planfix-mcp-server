@@ -23,6 +23,7 @@ export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
   project: z.string().optional(),
   leadSource: z.string().optional(),
   referral: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export const AddToLeadTaskOutputSchema = z.object({
@@ -126,6 +127,7 @@ export async function addToLeadTask({
   project,
   leadSource,
   referral,
+  tags,
 }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<
   z.infer<typeof AddToLeadTaskOutputSchema>
 > {
@@ -220,7 +222,6 @@ export async function addToLeadTask({
     let commentId: number | undefined;
 
     if (!taskId) {
-      // console.log('[leadToTask] Creating task...');
       assignees = { users: [] };
       let managerId: number | null = null;
       if (managerEmail) {
@@ -236,6 +237,7 @@ export async function addToLeadTask({
         project,
         leadSource,
         referral,
+        tags,
       });
       if (createLeadTaskResult.error) {
         return { taskId: 0, clientId: 0, error: createLeadTaskResult.error };
@@ -246,8 +248,6 @@ export async function addToLeadTask({
       }
     } else {
       // 6. If task found, add comment
-      // console.log('[leadToTask] Creating comment in found task...');
-
       const commentResult = await createComment({
         taskId,
         description: descriptionText,
@@ -258,6 +258,7 @@ export async function addToLeadTask({
         log(`[leadToTask] Comment created with ID: ${commentId}`);
       }
     }
+
     url = commentId ? getCommentUrl(taskId, commentId) : getTaskUrl(taskId);
     clientUrl = getContactUrl(clientId);
     return {
