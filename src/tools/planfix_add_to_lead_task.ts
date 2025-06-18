@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { PLANFIX_DRY_RUN } from "../config.js";
-import { log, getToolWithHandler, getTaskUrl, getCommentUrl, getContactUrl } from "../helpers.js";
+import {
+  log,
+  getToolWithHandler,
+  getTaskUrl,
+  getCommentUrl,
+  getContactUrl,
+} from "../helpers.js";
 import { UserDataInputSchema } from "../types.js";
 import { searchLeadTask } from "./planfix_search_lead_task.js";
 import { createPlanfixContact } from "./planfix_create_contact.js";
@@ -8,6 +14,7 @@ import { createLeadTask } from "./planfix_create_lead_task.js";
 import { createComment } from "./planfix_create_comment.js";
 import { searchManager } from "./planfix_search_manager.js";
 import { searchPlanfixTask } from "./planfix_search_task.js";
+import { updatePlanfixContact } from "./planfix_update_contact.js";
 
 export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
   title: z.string().optional(),
@@ -180,14 +187,27 @@ export async function addToLeadTask({
       // console.log('[leadToTask] Creating contact...');
       if (!userData.name) {
         const nowDatetime = new Date().toLocaleString();
-        userData.name = userData.telegram || userData.phone || userData.email
-          ? (userData.telegram || userData.phone || userData.email) as string
-          : `Клиент ${nowDatetime}`;
+        userData.name =
+          userData.telegram || userData.phone || userData.email
+            ? ((userData.telegram ||
+                userData.phone ||
+                userData.email) as string)
+            : `Клиент ${nowDatetime}`;
       }
       const createResult = await createPlanfixContact(userData);
       clientId = createResult.contactId || 0;
     }
-    // 3. If task not found and name has space, search by name
+    // 3. Update contact with provided data
+    if (clientId) {
+      await updatePlanfixContact({
+        contactId: clientId,
+        name: userData.name,
+        telegram: userData.telegram,
+        email: userData.email,
+        phone: userData.phone,
+      });
+    }
+    // 4. If task not found and name has space, search by name
     if (clientId && !taskId && userData.name && userData.name.includes(" ")) {
       // console.log('[leadToTask] Searching for task by name...');
       const result = await searchPlanfixTask({
@@ -196,9 +216,9 @@ export async function addToLeadTask({
       taskId = result.taskId || 0;
       assignees = result.assignees;
     }
-    // 4. If still no task, create it
+    // 5. If still no task, create it
     let commentId: number | undefined;
-    
+
     if (!taskId) {
       // console.log('[leadToTask] Creating task...');
       assignees = { users: [] };
@@ -225,9 +245,9 @@ export async function addToLeadTask({
         assignees.users = [{ id: `user:${managerId}` }];
       }
     } else {
-      // 5. If task found, add comment
+      // 6. If task found, add comment
       // console.log('[leadToTask] Creating comment in found task...');
-      
+
       const commentResult = await createComment({
         taskId,
         description: descriptionText,
