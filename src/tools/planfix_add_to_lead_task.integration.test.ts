@@ -12,35 +12,88 @@ describe("planfix_add_to_lead_task tool", () => {
       email: "pop.stas@gmail.com",
       title: "Test Lead via Automated Test",
       description: "This is a test message for adding a lead task.",
-      // managerEmail: 'optional_manager@example.com', // Optional: add if specific manager assignment needs testing
     };
 
     const result = await runTool("planfix_add_to_lead_task", args);
-
-    // Check if the tool execution was marked as valid by runTool wrapper
-    expect(
-      result.valid,
-      `Tool MCP response was invalid. Raw response: ${JSON.stringify(result.parsed)}`,
-    ).toBe(true);
-
-    // Check the content returned by the tool itself
+    expect(result.valid).toBe(true);
+    
     const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
-    expect(
-      content.error,
-      `Tool returned an error: ${content.error}`,
-    ).toBeUndefined();
-
+    expect(content.error).toBeUndefined();
+    
     expect(typeof content.taskId).toBe("number");
     expect(content.taskId).toBeGreaterThan(0);
-
     expect(typeof content.clientId).toBe("number");
     expect(content.clientId).toBeGreaterThan(0);
-
     expect(content.url).toContain(
       `https://popstas.planfix.com/task/${content.taskId}`,
     );
     expect(content.clientUrl).toContain(
       `https://popstas.planfix.com/contact/${content.clientId}`,
     );
-  }, 60000); // Increase timeout if API calls are slow
+  }, 60000);
+
+  describe("name fallback logic", () => {
+    it("should use telegram as name when name is not provided", async () => {
+      const args = {
+        phone: "+79222229531",
+        telegram: "@testtelegram",
+        email: "test@example.com",
+        title: "Test Name Fallback - Telegram",
+        description: "This should use telegram as the name",
+      };
+
+      const result = await runTool("planfix_add_to_lead_task", args);
+      expect(result.valid).toBe(true);
+      
+      const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
+      expect(content.error).toBeUndefined();
+      expect(content.clientId).toBeGreaterThan(0);
+    }, 60000);
+
+    it("should use phone as name when name and telegram are not provided", async () => {
+      const args = {
+        phone: "+79222229532",
+        email: "test2@example.com",
+        title: "Test Name Fallback - Phone",
+        description: "This should use phone as the name",
+      };
+
+      const result = await runTool("planfix_add_to_lead_task", args);
+      expect(result.valid).toBe(true);
+      
+      const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
+      expect(content.error).toBeUndefined();
+      expect(content.clientId).toBeGreaterThan(0);
+    }, 60000);
+
+    it("should use email as name when name, telegram and phone are not provided", async () => {
+      const args = {
+        email: "test3@example.com",
+        title: "Test Name Fallback - Email",
+        description: "This should use email as the name",
+      };
+
+      const result = await runTool("planfix_add_to_lead_task", args);
+      expect(result.valid).toBe(true);
+      
+      const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
+      expect(content.error).toBeUndefined();
+      expect(content.clientId).toBeGreaterThan(0);
+    }, 60000);
+
+    it("should use default name when no contact info is provided", async () => {
+      const args = {
+        title: "Test Name Fallback - Default",
+        description: "This should use default client name",
+      };
+
+      const result = await runTool("planfix_add_to_lead_task", args);
+      expect(result.valid).toBe(true);
+      
+      const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
+      expect(content.error).toBeUndefined();
+      expect(content.clientId).toBeGreaterThan(0);
+      expect(content.clientUrl).toBeDefined();
+    }, 60000);
+  });
 });

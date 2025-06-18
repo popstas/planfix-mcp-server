@@ -180,8 +180,8 @@ export async function addToLeadTask({
       // console.log('[leadToTask] Creating contact...');
       if (!userData.name) {
         const nowDatetime = new Date().toLocaleString();
-        userData.name = userData.telegram
-          ? userData.telegram
+        userData.name = userData.telegram || userData.phone || userData.email
+          ? (userData.telegram || userData.phone || userData.email) as string
           : `Клиент ${nowDatetime}`;
       }
       const createResult = await createPlanfixContact(userData);
