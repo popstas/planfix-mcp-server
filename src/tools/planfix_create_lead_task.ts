@@ -130,11 +130,15 @@ export async function createLeadTask({
     if (directoryId) {
       const directoryFields = await getDirectoryFields(directoryId);
       const directoryFieldId = directoryFields?.[0]?.id || 0;
-      const entryId = await searchDirectoryEntryById(
+      let entryId = await searchDirectoryEntryById(
         directoryId,
         directoryFieldId,
         leadSource,
       );
+      if (!entryId) {
+        entryId = await createDirectoryEntry(directoryId, directoryFieldId, leadSource);
+      }
+
       if (entryId) {
         postBody.customFieldData.push({
           field: {
