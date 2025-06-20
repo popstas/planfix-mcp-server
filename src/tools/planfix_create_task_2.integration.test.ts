@@ -8,6 +8,9 @@ describe("planfix_create_task tool prod", () => {
       title: "Сделка 79660620181",
       name: "Контакт 79660620181",
       phone: "79660620181",
+      leadSource: "Входящий звонок",
+      tags: ["+7 966 032-88-03", "Пропущенный звонок"],
+      managerEmail: "popstas@gmail.com",
       description: "Теги: +7 966 032-88-03, Пропущенный звонок\n\nПоля:\nПереход в &quot;Новый лид&quot;: 1750235798\nАктуальный этап (Основная воронка): Новый лид\nИсточник: Входящий звонок\n\nURL: https://impactcapital.amocrm.ru/leads/detail/36924929"
     };
     const { valid, content } = await runTool<{
