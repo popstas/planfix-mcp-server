@@ -28,6 +28,7 @@ import planfix_search_manager from "./tools/planfix_search_manager.js";
 import planfix_search_project from "./tools/planfix_search_project.js";
 import planfix_search_task from "./tools/planfix_search_task.js";
 import planfix_update_contact from "./tools/planfix_update_contact.js";
+import planfix_update_lead_task from "./tools/planfix_update_lead_task.js";
 
 log("Starting Planfix MCP Server");
 
@@ -52,6 +53,7 @@ const TOOLS: ToolWithHandler[] = [
   planfix_search_project,
   planfix_search_task,
   planfix_update_contact,
+  planfix_update_lead_task,
 ];
 
 const server = new Server(

@@ -26,6 +26,10 @@ export type UsersListType = {
     id: string;
     name?: string;
   }[];
+  groups?: {
+    id: number;
+  }[];
+  roles?: string[];
 };
 
 export type CustomFieldDataType = {
