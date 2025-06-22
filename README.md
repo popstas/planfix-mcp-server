@@ -86,6 +86,14 @@ PLANFIX_FIELD_ID_TAGS=131 \
 npx @popstas/planfix-mcp-server
 ```
 
+To run the server over Server-Sent Events (SSE), use the `planfix-mcp-server-sse` command:
+
+```sh
+PLANFIX_ACCOUNT=yourcompany \
+PLANFIX_TOKEN=your-api-token \
+planfix-mcp-server-sse
+```
+
 ### Using the Planfix Client
 
 The Planfix client provides a convenient way to interact with the Planfix API directly from the command line.
