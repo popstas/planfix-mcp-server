@@ -5,13 +5,18 @@
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
-  "bin": "./dist/index.js",
+  "bin": {
+    "planfix-mcp-server": "./dist/index.js",
+    "planfix-mcp-server-sse": "./dist/sse-server.js"
+  },
   "files": [
     "dist"
   ],
   "scripts": {
     "start": "node dist/index.js",
+    "sse": "node dist/sse-server.js",
     "dev": "tsx src/index.ts",
+    "dev:sse": "tsx src/sse-server.ts",
     "build": "tsc --project tsconfig.json",
     "clean": "rimraf dist",
     "lint": "eslint",
