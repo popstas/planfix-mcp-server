@@ -47,6 +47,7 @@ export const AddToLeadTaskOutputSchema = z.object({
 
 export const UpdateLeadTaskInputSchema = LeadTaskBaseSchema.extend({
   taskId: z.number(),
+  forceUpdate: z.boolean().optional(),
 });
 
 export const UpdateLeadTaskOutputSchema = z.object({

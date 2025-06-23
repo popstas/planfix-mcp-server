@@ -42,13 +42,61 @@ describe("planfix_update_lead_task", () => {
     vi.clearAllMocks();
   });
 
-  it("updates lead task fields", async () => {
+  it("updates lead task fields with forceUpdate", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      task: {
+        id: 1,
+        project: { id: 99 },
+        assignees: { users: [{ id: "user:2" }] },
+        customFieldData: [],
+      },
+    });
     mockPlanfixRequest.mockResolvedValueOnce({});
+
     const { updateLeadTask } = await import("./planfix_update_lead_task.js");
 
     const result = await updateLeadTask({
       taskId: 1,
-      name: "New",
+      description: "Desc",
+      managerEmail: "manager@example.com",
+      project: "Proj",
+      leadSource: "Site",
+      tags: ["tag"],
+      forceUpdate: true,
+    });
+
+    const calls = mockPlanfixRequest.mock.calls.map((c) => c[0]);
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "task/1",
+          body: { fields: "id,project,assignees,customFieldData" },
+          method: "GET",
+        }),
+        expect.objectContaining({ path: "task/1" }),
+      ]),
+    );
+    expect(result.taskId).toBe(1);
+    expect(result.url).toBe("https://example.com/task/1");
+  });
+
+  it("skips update when fields exist and forceUpdate is false", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      task: {
+        id: 1,
+        project: { id: 10 },
+        assignees: { users: [{ id: "user:1" }] },
+        customFieldData: [
+          { field: { id: 3 }, value: { id: 5 } },
+          { field: { id: 4 }, value: [{ id: 5 }] },
+        ],
+      },
+    });
+
+    const { updateLeadTask } = await import("./planfix_update_lead_task.js");
+
+    const result = await updateLeadTask({
+      taskId: 1,
       description: "Desc",
       managerEmail: "manager@example.com",
       project: "Proj",
@@ -56,12 +104,9 @@ describe("planfix_update_lead_task", () => {
       tags: ["tag"],
     });
 
-    expect(mockPlanfixRequest).toHaveBeenCalledWith({
-      path: "task/1",
-      body: expect.any(Object),
-    });
+    const calls = mockPlanfixRequest.mock.calls.map((c) => c[0]);
+    expect(calls.filter((c) => c.path === "task/1").length).toBe(1);
     expect(result.taskId).toBe(1);
-    expect(result.url).toBe("https://example.com/task/1");
   });
 
   it("handles dry run", async () => {
@@ -74,10 +119,10 @@ describe("planfix_update_lead_task", () => {
     const { updateLeadTask: updateDry } = await import(
       "./planfix_update_lead_task.js"
     );
-    const res = await updateDry({ 
-      taskId: 2, 
+    const res = await updateDry({
+      taskId: 2,
       name: "Test",
-      description: "Test description" 
+      description: "Test description",
     });
     expect(res.taskId).toBe(2);
     expect(mockPlanfixRequest).not.toHaveBeenCalled();

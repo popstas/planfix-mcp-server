@@ -191,7 +191,7 @@ const objects = await planfixClient.post('object/list', {
 - `createTask`: Create a task using text fields
 - `createComment`: Add a comment to a task
 - `getChildTasks`: Retrieve all child tasks of a parent task
-- `updateLeadTask`: Update an existing lead task
+- `updateLeadTask`: Update an existing lead task (only empty fields are updated unless `forceUpdate` is true)
 
 ### Directory Management
 
