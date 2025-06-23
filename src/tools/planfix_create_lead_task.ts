@@ -6,7 +6,6 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
-import type { CustomFieldDataType, UsersListType } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
 import { getFieldDirectoryId } from "../lib/planfixObjects.js";
 import {
@@ -14,19 +13,7 @@ import {
   searchDirectoryEntryById,
   getDirectoryFields,
 } from "../lib/planfixDirectory.js";
-
-interface TaskRequestBody {
-  template: {
-    id: number;
-  };
-  name: string;
-  description: string;
-  customFieldData: CustomFieldDataType[];
-  project?: {
-    id: number;
-  };
-  assignees?: UsersListType;
-}
+import { TaskRequestBody } from "../types.js";
 
 export const CreateLeadTaskInputSchema = z.object({
   name: z.string(),
@@ -136,39 +123,31 @@ export async function createLeadTask({
       let entryId = await searchDirectoryEntryById(
         directoryId,
         directoryFieldId,
-        leadSource,
+        leadSource
       );
       if (!entryId) {
         entryId = await createDirectoryEntry(
           directoryId,
           directoryFieldId,
-          leadSource,
+          leadSource
         );
       }
 
       if (entryId) {
         postBody.customFieldData.push({
-          field: {
-            id: PLANFIX_FIELD_IDS.leadSource,
-          },
-          value: {
-            id: entryId,
-          },
+          field: { id: PLANFIX_FIELD_IDS.leadSource },
+          value: { id: entryId },
         });
       }
     }
   } else {
     const leadSourceValue = Number(
-      process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE,
+      process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE
     );
     if (leadSourceValue) {
       postBody.customFieldData.push({
-        field: {
-          id: PLANFIX_FIELD_IDS.leadSource,
-        },
-        value: {
-          id: leadSourceValue,
-        },
+        field: { id: PLANFIX_FIELD_IDS.leadSource },
+        value: { id: leadSourceValue },
       });
     }
   }
@@ -184,24 +163,20 @@ export async function createLeadTask({
       let entryId = await searchDirectoryEntryById(
         directoryId,
         directoryFieldId,
-        pipeline,
+        pipeline
       );
       if (!entryId) {
         entryId = await createDirectoryEntry(
           directoryId,
           directoryFieldId,
-          pipeline,
+          pipeline
         );
       }
 
       if (entryId) {
         postBody.customFieldData.push({
-          field: {
-            id: PLANFIX_FIELD_IDS.pipeline,
-          },
-          value: {
-            id: entryId,
-          },
+          field: { id: PLANFIX_FIELD_IDS.pipeline },
+          value: { id: entryId },
         });
       }
     }
@@ -209,12 +184,8 @@ export async function createLeadTask({
 
   if (agencyId) {
     postBody.customFieldData.push({
-      field: {
-        id: PLANFIX_FIELD_IDS.agency,
-      },
-      value: {
-        id: agencyId,
-      },
+      field: { id: PLANFIX_FIELD_IDS.agency },
+      value: { id: agencyId },
     });
   }
 
@@ -231,7 +202,7 @@ export async function createLeadTask({
         let id = await searchDirectoryEntryById(
           directoryId,
           directoryFieldId,
-          tag,
+          tag
         );
         if (!id) {
           id = await createDirectoryEntry(directoryId, directoryFieldId, tag);
@@ -275,7 +246,7 @@ export async function createLeadTask({
 }
 
 export async function handler(
-  args?: Record<string, unknown>,
+  args?: Record<string, unknown>
 ): Promise<z.infer<typeof CreateLeadTaskOutputSchema>> {
   const parsedArgs = CreateLeadTaskInputSchema.parse(args);
   return await createLeadTask(parsedArgs);

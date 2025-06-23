@@ -9,9 +9,12 @@ describe("planfix_create_task tool prod", () => {
       name: "Контакт 79660620181",
       phone: "79660620181",
       leadSource: "Входящий звонок",
+      pipeline: "1000Х",
+      project: "Тестирование интеграции с Планфикс",
       tags: ["+7 966 032-88-03", "Пропущенный звонок"],
       managerEmail: "popstas@gmail.com",
-      description: "Теги: +7 966 032-88-03, Пропущенный звонок\n\nПоля:\nПереход в &quot;Новый лид&quot;: 1750235798\nАктуальный этап (Основная воронка): Новый лид\nИсточник: Входящий звонок\n\nURL: https://impactcapital.amocrm.ru/leads/detail/36924929"
+      description:
+        "Теги: +7 966 032-88-03, Пропущенный звонок\n\nПоля:\nПереход в &quot;Новый лид&quot;: 1750235798\nАктуальный этап (Основная воронка): Новый лид\nИсточник: Входящий звонок\n\nURL: https://impactcapital.amocrm.ru/leads/detail/36924929",
     };
     const { valid, content } = await runTool<{
       taskId: number;
@@ -34,13 +37,13 @@ describe("planfix_create_task tool prod", () => {
       clientId: expect.any(Number),
       url: expect.stringMatching(
         new RegExp(
-          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/task/\\d+$`,
-        ),
+          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/task/\\d+$`
+        )
       ),
       clientUrl: expect.stringMatching(
         new RegExp(
-          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/contact/\\d+$`,
-        ),
+          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/contact/\\d+$`
+        )
       ),
       assignees: {
         users: expect.arrayContaining([

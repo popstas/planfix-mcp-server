@@ -6,7 +6,7 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
-import type { CustomFieldDataType } from "../types.js";
+import { TaskRequestBody } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
 import { getFieldDirectoryId } from "../lib/planfixObjects.js";
 import {
@@ -14,16 +14,11 @@ import {
   searchDirectoryEntryById,
   getDirectoryFields,
 } from "../lib/planfixDirectory.js";
+import { searchManager } from "./planfix_search_manager.js";
+import { LeadTaskBaseSchema } from "./schemas/leadTaskSchemas.js";
 
-export const UpdateLeadTaskInputSchema = z.object({
+export const UpdateLeadTaskInputSchema = LeadTaskBaseSchema.extend({
   taskId: z.number(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  managerId: z.number().optional(),
-  agencyId: z.number().optional(),
-  project: z.string().optional(),
-  leadSource: z.string().optional(),
-  tags: z.array(z.string()).optional(),
 });
 
 export const UpdateLeadTaskOutputSchema = z.object({
@@ -36,38 +31,56 @@ export async function updateLeadTask({
   taskId,
   name,
   description,
-  managerId,
-  agencyId,
+  managerEmail,
   project,
   leadSource,
+  pipeline,
+  // ignore referral
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  referral,
   tags,
 }: z.infer<typeof UpdateLeadTaskInputSchema>): Promise<
   z.infer<typeof UpdateLeadTaskOutputSchema>
 > {
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
-  const postBody: Record<string, unknown> = {};
-  const customFieldData: CustomFieldDataType[] = [];
+  const postBody: TaskRequestBody = {
+    template: {
+      id: TEMPLATE_ID,
+    },
+    // name: name || "",
+    // description: description.replace(/\n/g, "<br>"),
+    customFieldData: [],
+  };
 
-  if (name !== undefined) {
-    postBody.name = name;
+  if (name) {
+    console.log("name is not updated");
   }
 
-  if (description !== undefined) {
-    postBody.description = description.replace(/\n/g, "<br>");
+  if (description) {
+    console.log("description is not updated");
   }
 
+  let managerId = 0;
+  if (managerEmail) {
+    const managerResult = await searchManager({ email: managerEmail });
+    managerId = managerResult.managerId;
+  }
   if (managerId) {
-    customFieldData.push({
-      field: { id: PLANFIX_FIELD_IDS.manager },
-      value: { id: managerId },
-    });
+    if (PLANFIX_FIELD_IDS.manager) {
+      postBody.customFieldData.push({
+        field: { id: PLANFIX_FIELD_IDS.manager },
+        value: { id: managerId },
+      });
+    } else {
+      postBody.assignees = { users: [{ id: `user:${managerId}` }] };
+    }
   }
 
-  if (agencyId) {
-    customFieldData.push({
-      field: { id: PLANFIX_FIELD_IDS.agency },
-      value: { id: agencyId },
-    });
+  if (project) {
+    const projectResult = await searchProject({ name: project });
+    if (projectResult.found) {
+      postBody.project = { id: projectResult.projectId };
+    }
   }
 
   if (leadSource) {
@@ -81,11 +94,34 @@ export async function updateLeadTask({
       const entryId = await searchDirectoryEntryById(
         directoryId,
         directoryFieldId,
-        leadSource,
+        leadSource
       );
       if (entryId) {
-        customFieldData.push({
+        postBody.customFieldData.push({
           field: { id: PLANFIX_FIELD_IDS.leadSource },
+          value: { id: entryId },
+        });
+      }
+    }
+  }
+
+  if (pipeline) {
+    const directoryId = await getFieldDirectoryId({
+      objectId: TEMPLATE_ID,
+      fieldId: PLANFIX_FIELD_IDS.pipeline,
+    });
+    if (directoryId) {
+      const directoryFields = await getDirectoryFields(directoryId);
+      const directoryFieldId = directoryFields?.[0]?.id || 0;
+      const entryId = await searchDirectoryEntryById(
+        directoryId,
+        directoryFieldId,
+        pipeline
+      );
+
+      if (entryId) {
+        postBody.customFieldData.push({
+          field: { id: PLANFIX_FIELD_IDS.pipeline },
           value: { id: entryId },
         });
       }
@@ -105,7 +141,7 @@ export async function updateLeadTask({
         let id = await searchDirectoryEntryById(
           directoryId,
           directoryFieldId,
-          tag,
+          tag
         );
         if (!id) {
           id = await createDirectoryEntry(directoryId, directoryFieldId, tag);
@@ -113,24 +149,11 @@ export async function updateLeadTask({
         if (id) tagIds.push(id);
       }
       if (tagIds.length) {
-        customFieldData.push({
+        postBody.customFieldData.push({
           field: { id: PLANFIX_FIELD_IDS.tags },
           value: tagIds.map((id) => ({ id })),
         });
       }
-    }
-  }
-
-  if (customFieldData.length) {
-    postBody.customFieldData = customFieldData;
-  }
-
-  if (project) {
-    const projectResult = await searchProject({ name: project });
-    if (projectResult.found) {
-      postBody.project = { id: projectResult.projectId };
-    } else if (description !== undefined) {
-      postBody.description = `${postBody.description || ""}<br>Проект: ${project}`;
     }
   }
 
@@ -140,7 +163,10 @@ export async function updateLeadTask({
       return { taskId, url: getTaskUrl(taskId) };
     }
 
-    await planfixRequest({ path: `task/${taskId}`, body: postBody });
+    await planfixRequest({
+      path: `task/${taskId}`,
+      body: postBody as unknown as Record<string, unknown>,
+    });
     return { taskId, url: getTaskUrl(taskId) };
   } catch (error) {
     const errorMessage =
@@ -151,7 +177,7 @@ export async function updateLeadTask({
 }
 
 async function handler(
-  args?: Record<string, unknown>,
+  args?: Record<string, unknown>
 ): Promise<z.infer<typeof UpdateLeadTaskOutputSchema>> {
   const parsedArgs = UpdateLeadTaskInputSchema.parse(args);
   return updateLeadTask(parsedArgs);
