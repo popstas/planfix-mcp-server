@@ -22,6 +22,7 @@ export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
   managerEmail: z.string().optional(),
   project: z.string().optional(),
   leadSource: z.string().optional(),
+  pipeline: z.string().optional(),
   referral: z.string().optional(),
   tags: z.array(z.string()).optional(),
 });
@@ -126,6 +127,7 @@ export async function addToLeadTask({
   managerEmail,
   project,
   leadSource,
+  pipeline,
   referral,
   tags,
 }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<
@@ -236,6 +238,7 @@ export async function addToLeadTask({
         agencyId,
         project,
         leadSource,
+        pipeline,
         referral,
         tags,
       });
