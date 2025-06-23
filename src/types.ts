@@ -42,3 +42,16 @@ export type CustomFieldDataType = {
 export type ToolWithHandler = Tool & {
   handler: <T = unknown>(args?: Record<string, unknown>) => Promise<T>;
 };
+
+export interface TaskRequestBody {
+  template: {
+    id: number;
+  };
+  name?: string;
+  description?: string;
+  customFieldData: CustomFieldDataType[];
+  project?: {
+    id: number;
+  };
+  assignees?: UsersListType;
+}

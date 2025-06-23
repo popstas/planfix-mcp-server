@@ -15,48 +15,16 @@ import { createComment } from "./planfix_create_comment.js";
 import { searchManager } from "./planfix_search_manager.js";
 import { searchPlanfixTask } from "./planfix_search_task.js";
 import { updatePlanfixContact } from "./planfix_update_contact.js";
+import { updateLeadTask } from "./planfix_update_lead_task.js";
+import { 
+  AddToLeadTaskInputSchema,
+  AddToLeadTaskOutputSchema 
+} from "./schemas/leadTaskSchemas.js";
 
-export const AddToLeadTaskInputSchema = UserDataInputSchema.extend({
-  title: z.string().optional(),
-  description: z.string(),
-  managerEmail: z.string().optional(),
-  project: z.string().optional(),
-  leadSource: z.string().optional(),
-  pipeline: z.string().optional(),
-  referral: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-});
-
-export const AddToLeadTaskOutputSchema = z.object({
-  taskId: z.number(),
-  clientId: z.number(),
-  url: z.string().optional(),
-  clientUrl: z.string().optional(),
-  assignees: z
-    .object({
-      users: z
-        .array(
-          z.object({
-            id: z.string(),
-            name: z.string().optional(),
-          }),
-        )
-        .optional(),
-      groups: z
-        .array(
-          z.object({
-            id: z.string(),
-            name: z.string().optional(),
-          }),
-        )
-        .optional(),
-    })
-    .optional(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  agencyId: z.number().optional(),
-  error: z.string().optional(),
-});
+export { 
+  AddToLeadTaskInputSchema,
+  AddToLeadTaskOutputSchema 
+};
 
 // Helper: generate description for the task/comment
 function generateDescription(
@@ -259,6 +227,21 @@ export async function addToLeadTask({
       if (commentResult.commentId) {
         commentId = commentResult.commentId;
         log(`[leadToTask] Comment created with ID: ${commentId}`);
+      }
+
+      // 7. Update lead task
+      const updateLeadTaskResult = await updateLeadTask({
+        taskId,
+        description: descriptionText,
+        managerEmail,
+        project,
+        leadSource,
+        pipeline,
+        referral,
+        tags,
+      });
+      if (updateLeadTaskResult.error) {
+        return { taskId: 0, clientId: 0, error: updateLeadTaskResult.error };
       }
     }
 

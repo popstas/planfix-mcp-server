@@ -50,8 +50,7 @@ describe("planfix_update_lead_task", () => {
       taskId: 1,
       name: "New",
       description: "Desc",
-      managerId: 2,
-      agencyId: 3,
+      managerEmail: "manager@example.com",
       project: "Proj",
       leadSource: "Site",
       tags: ["tag"],
@@ -75,7 +74,11 @@ describe("planfix_update_lead_task", () => {
     const { updateLeadTask: updateDry } = await import(
       "./planfix_update_lead_task.js"
     );
-    const res = await updateDry({ taskId: 2 });
+    const res = await updateDry({ 
+      taskId: 2, 
+      name: "Test",
+      description: "Test description" 
+    });
     expect(res.taskId).toBe(2);
     expect(mockPlanfixRequest).not.toHaveBeenCalled();
     vi.resetModules();
