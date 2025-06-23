@@ -15,6 +15,7 @@ export const PlanfixCreateTaskInputSchema = z.object({
   email: z.string().optional(),
   telegram: z.string().optional(),
   leadSource: z.string().optional(),
+  pipeline: z.string().optional(),
   project: z.string().optional(),
   agency: z.string().optional(),
   referral: z.string().optional(),
@@ -25,14 +26,24 @@ export const PlanfixCreateTaskInputSchema = z.object({
 export const PlanfixCreateTaskOutputSchema = AddToLeadTaskOutputSchema;
 
 export async function planfixCreateTask(
-  args: z.infer<typeof PlanfixCreateTaskInputSchema>
+  args: z.infer<typeof PlanfixCreateTaskInputSchema>,
 ): Promise<z.infer<typeof PlanfixCreateTaskOutputSchema>> {
-  const { agency, referral, leadSource, title, managerEmail, ...userData } =
-    args;
+  const {
+    agency,
+    referral,
+    leadSource,
+    pipeline,
+    title,
+    managerEmail,
+    ...userData
+  } = args;
 
   const messageParts = [];
   if (leadSource) {
     messageParts.push(`Источник: ${leadSource}`);
+  }
+  if (pipeline) {
+    messageParts.push(`Воронка: ${pipeline}`);
   }
   if (referral) {
     messageParts.push(`Реферал: ${referral}`);
@@ -53,6 +64,7 @@ export async function planfixCreateTask(
     managerEmail,
     project: args.project,
     leadSource,
+    pipeline,
     referral,
     tags: args.tags,
   });

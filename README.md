@@ -27,6 +27,7 @@ The server requires the following environment variables for Planfix API access:
 - `PLANFIX_FIELD_ID_AGENCY` – Custom field ID for agency
 - `PLANFIX_FIELD_ID_LEAD_SOURCE` – Custom field ID for lead source
 - `PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE` – Value ID for default lead source
+- `PLANFIX_FIELD_ID_PIPELINE` – Custom field ID for pipeline
 - `PLANFIX_FIELD_ID_TAGS` – Custom field ID for task tags
   - Missing tag names will be added automatically to the directory
 
@@ -82,7 +83,8 @@ PLANFIX_FIELD_ID_MANAGER=127 \
 PLANFIX_FIELD_ID_AGENCY=128 \
 PLANFIX_FIELD_ID_LEAD_SOURCE=129 \
 PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE=130 \
-PLANFIX_FIELD_ID_TAGS=131 \
+PLANFIX_FIELD_ID_PIPELINE=131 \
+PLANFIX_FIELD_ID_TAGS=132 \
 npx @popstas/planfix-mcp-server
 ```
 
