@@ -37,6 +37,10 @@ The server requires the following environment variables for Planfix API access:
 npx @modelcontextprotocol/inspector node d:/projects/expertizeme/planfix-mcp-server/dist/index.js
 ```
 
+### Logging
+
+Set `LOG_LEVEL=debug` to enable detailed cache logs. Logs are written to `data/mcp.log`.
+
 ## Example MCP Config (NPX)
 
 ```json

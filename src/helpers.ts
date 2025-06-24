@@ -31,6 +31,12 @@ export function log(message: string) {
   fs.appendFileSync(logPath, logMessage);
 }
 
+export function debugLog(message: string) {
+  if (process.env.LOG_LEVEL === "debug") {
+    log(`[debug] ${message}`);
+  }
+}
+
 export function getToolWithHandler<
   Input extends z.ZodType,
   Output extends z.ZodType,
@@ -246,11 +252,13 @@ export async function withCache<T>(
 ): Promise<T> {
   const cacheDir = path.join(__dirname, "..", "data", "cache");
   const cachePath = path.join(cacheDir, `${name}.json`);
+  debugLog(`[withCache] cache path: ${cachePath}`);
 
   try {
     // Ensure cache directory exists with recursive: true
     try {
       await fsp.mkdir(cacheDir, { recursive: true });
+      debugLog(`[withCache] cache dir ensured: ${cacheDir}`);
     } catch (error) {
       log(
         `Failed to create cache directory: ${error instanceof Error ? error.message : String(error)}`,
@@ -263,10 +271,15 @@ export async function withCache<T>(
 
       // Check if cache is still valid
       if (cacheData.expiresAt > Date.now()) {
+        debugLog(`[withCache] cache hit: ${name}`);
         return cacheData.data;
       }
+      debugLog(`[withCache] cache expired: ${name}`);
     } catch (error: unknown) {
       // Cache file doesn't exist or is invalid, continue to generate new data
+      debugLog(
+        `[withCache] cache miss for ${name}: ${error instanceof Error ? error.message : String(error)}`,
+      );
       log(
         `Cache miss for ${name}: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -280,6 +293,7 @@ export async function withCache<T>(
     };
 
     await fsp.writeFile(cachePath, JSON.stringify(cacheData, null, 2), "utf-8");
+    debugLog(`[withCache] wrote cache: ${name}`);
     return data;
   } catch (error) {
     log(
