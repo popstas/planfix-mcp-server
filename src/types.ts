@@ -47,6 +47,9 @@ export interface TaskRequestBody {
   template: {
     id: number;
   };
+  status?: {
+    id: number;
+  };
   name?: string;
   description?: string;
   customFieldData: CustomFieldDataType[];

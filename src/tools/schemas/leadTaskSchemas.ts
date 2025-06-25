@@ -3,7 +3,7 @@ import { UserDataInputSchema } from "../../types.js";
 
 export const LeadTaskBaseSchema = UserDataInputSchema.extend({
   title: z.string().optional(),
-  description: z.string(),
+  description: z.string().optional(),
   managerEmail: z.string().optional(),
   project: z.string().optional(),
   leadSource: z.string().optional(),

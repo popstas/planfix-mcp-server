@@ -23,10 +23,12 @@ interface TaskResponse {
   project?: { id: number };
   assignees?: { users?: Array<{ id: string }> };
   customFieldData?: CustomFieldDataType[];
+  status?: { id: number };
 }
 
 export const UpdateLeadTaskInputSchema = LeadTaskBaseSchema.extend({
   taskId: z.number(),
+  status: z.enum(["closed", "active"]).optional(),
   forceUpdate: z.boolean().optional(),
 });
 
@@ -45,6 +47,7 @@ export async function updateLeadTask({
   leadSource,
   pipeline,
   leadId,
+  status,
   // ignore referral
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   referral,
@@ -61,6 +64,10 @@ export async function updateLeadTask({
     customFieldData: [],
   };
 
+  if (status === 'closed') {
+    postBody.status = { id: 3 };
+  }
+
   try {
     if (PLANFIX_DRY_RUN) {
       log(`[DRY RUN] Would update lead task ${taskId}`);
@@ -70,20 +77,21 @@ export async function updateLeadTask({
     const fieldsIds = Object.values(PLANFIX_FIELD_IDS)
       .filter(Boolean)
       .join(",");
-    const fields = `id,name,description,${fieldsIds}`;
+    const fields = `id,name,description,status,${fieldsIds}`;
     const { task } = await planfixRequest<{ task: TaskResponse }>({
       path: `task/${taskId}`,
       body: { fields },
       method: "GET",
     });
 
-    if (name) {
-      console.log("name is not updated");
-    }
-
-    if (description) {
-      console.log("description is not updated");
-    }
+    // Check if we need to update the status
+    const isStatusUpdate = status === 'closed' && task.status?.id !== 3;
+    
+    // If we have no updates to make and forceUpdate is false, return early
+    
+    // Log any fields that won't be updated (for debugging)
+    if (name) console.log("name is not updated");
+    if (description) console.log("description is not updated");
 
     let managerId = 0;
     if (managerEmail) {
@@ -245,7 +253,8 @@ export async function updateLeadTask({
     const hasUpdates =
       postBody.project ||
       postBody.assignees ||
-      postBody.customFieldData.length > 0;
+      postBody.customFieldData.length > 0 ||
+      isStatusUpdate;
 
     if (!hasUpdates) {
       return { taskId, url: getTaskUrl(taskId) };

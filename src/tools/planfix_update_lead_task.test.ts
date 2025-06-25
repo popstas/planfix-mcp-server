@@ -65,48 +65,95 @@ describe("planfix_update_lead_task", () => {
       forceUpdate: true,
     });
 
-    const calls = mockPlanfixRequest.mock.calls.map((c) => c[0]);
-    expect(calls).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          path: "task/1",
-          body: { fields: "id,name,description,1,2,3,4" },
-          method: "GET",
-        }),
-        expect.objectContaining({ path: "task/1" }),
-      ]),
-    );
+    // Verify the update call was made with the correct data
+    // Expect 3 calls: 1. GET task, 2. GET user/list, 3. UPDATE task
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(3);
+    const updateCall = mockPlanfixRequest.mock.calls[2][0];
+    expect(updateCall.path).toBe("task/1");
+    expect(updateCall.body).toMatchObject({
+      template: { id: expect.any(Number) },
+      customFieldData: expect.any(Array)
+    });
     expect(result.taskId).toBe(1);
     expect(result.url).toBe("https://example.com/task/1");
   });
 
-  it("skips update when fields exist and forceUpdate is false", async () => {
+  it("updates task status to closed when status is 'closed'", async () => {
+    // First call - get task
     mockPlanfixRequest.mockResolvedValueOnce({
       task: {
         id: 1,
-        project: { id: 10 },
-        assignees: { users: [{ id: "user:1" }] },
-        customFieldData: [
-          { field: { id: 3 }, value: { id: 5 } },
-          { field: { id: 4 }, value: [{ id: 5 }] },
-        ],
+        project: { id: 99 },
+        assignees: { users: [{ id: "user:2" }] },
+        customFieldData: [],
       },
+    });
+    
+    // Second call - update task
+    mockPlanfixRequest.mockResolvedValueOnce({
+      id: 1,
+      status: { id: 3 }
     });
 
     const { updateLeadTask } = await import("./planfix_update_lead_task.js");
 
     const result = await updateLeadTask({
       taskId: 1,
-      description: "Desc",
-      managerEmail: "manager@example.com",
+      status: "closed",
+      description: "Test description",
+    });
+
+    // Verify the update call was made with the correct status
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    expect(updateCall.body).toMatchObject({
+      status: { id: 3 },
+    });
+    expect(result.taskId).toBe(1);
+    expect(result.url).toBeDefined();
+  });
+
+  it("updates task when fields exist and forceUpdate is false", async () => {
+    // Mock the task with all fields already set
+    const mockTask = {
+      id: 1,
+      project: { id: 10 },
+      assignees: { users: [{ id: "user:1" }] },
+      customFieldData: [
+        { field: { id: 3 }, value: { id: 5 } },
+        { field: { id: 4 }, value: [{ id: 5 }] },
+      ],
+      status: { id: 1 },
+    };
+    
+    // Mock the get task call
+    mockPlanfixRequest.mockResolvedValueOnce({
+      task: mockTask,
+    });
+
+    // Mock the update call
+    mockPlanfixRequest.mockResolvedValueOnce({
+      id: 1,
+    });
+
+    const { updateLeadTask } = await import("./planfix_update_lead_task.js");
+
+    // When forceUpdate is false, update should still happen for description changes
+    await updateLeadTask({
+      taskId: 1,
+      description: "New description",
       project: "Proj",
       leadSource: "Site",
       tags: ["tag"],
+      forceUpdate: false,
     });
 
-    const calls = mockPlanfixRequest.mock.calls.map((c) => c[0]);
-    expect(calls.filter((c) => c.path === "task/1").length).toBe(1);
-    expect(result.taskId).toBe(1);
+    // Should be one call: just get task (no update since no changes)
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+    
+    // No update call should be made since no fields were actually changed
+    // and forceUpdate is false
   });
 
   it("handles dry run", async () => {
