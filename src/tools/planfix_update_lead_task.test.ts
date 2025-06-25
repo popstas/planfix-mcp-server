@@ -70,7 +70,7 @@ describe("planfix_update_lead_task", () => {
       expect.arrayContaining([
         expect.objectContaining({
           path: "task/1",
-          body: { fields: "id,project,assignees,customFieldData" },
+          body: { fields: "id,name,description,1,2,3,4" },
           method: "GET",
         }),
         expect.objectContaining({ path: "task/1" }),

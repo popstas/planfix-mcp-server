@@ -66,7 +66,8 @@ export async function updateLeadTask({
       return { taskId, url: getTaskUrl(taskId) };
     }
 
-    const fields = "id,project,assignees,customFieldData";
+    const fieldsIds = Object.values(PLANFIX_FIELD_IDS).filter(Boolean).join(",");
+    const fields = `id,name,description,${fieldsIds}`;
     const { task } = await planfixRequest<{ task: TaskResponse }>({
       path: `task/${taskId}`,
       body: { fields },
@@ -193,9 +194,8 @@ export async function updateLeadTask({
         const tagsField = task.customFieldData?.find(
           (f) => f.field.id === PLANFIX_FIELD_IDS.tags,
         );
-        const hasTags =
-          Array.isArray(tagsField?.value) &&
-          (tagsField?.value as { id: number }[]).length > 0;
+        const currentTagsValue = (tagsField?.value || []) as { id: number }[];
+        const hasTags = currentTagsValue.length > 0;
         if (!forceUpdate && hasTags) {
           // skip updating tags if already set
         } else {
@@ -212,7 +212,7 @@ export async function updateLeadTask({
                 tag,
               );
             }
-            if (id) tagIds.push(id);
+            if (id && !currentTagsValue.some((t) => t.id === id)) tagIds.push(id);
           }
           if (tagIds.length) {
             postBody.customFieldData.push({
