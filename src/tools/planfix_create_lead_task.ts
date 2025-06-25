@@ -13,6 +13,7 @@ import {
   searchDirectoryEntryById,
   getDirectoryFields,
 } from "../lib/planfixDirectory.js";
+import { getTaskCustomFieldName } from "../lib/planfixCustomFields.js";
 import { TaskRequestBody } from "../types.js";
 
 export const CreateLeadTaskInputSchema = z.object({
@@ -123,13 +124,13 @@ export async function createLeadTask({
       let entryId = await searchDirectoryEntryById(
         directoryId,
         directoryFieldId,
-        leadSource
+        leadSource,
       );
       if (!entryId) {
         entryId = await createDirectoryEntry(
           directoryId,
           directoryFieldId,
-          leadSource
+          leadSource,
         );
       }
 
@@ -142,7 +143,7 @@ export async function createLeadTask({
     }
   } else {
     const leadSourceValue = Number(
-      process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE
+      process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE,
     );
     if (leadSourceValue) {
       postBody.customFieldData.push({
@@ -163,13 +164,13 @@ export async function createLeadTask({
       let entryId = await searchDirectoryEntryById(
         directoryId,
         directoryFieldId,
-        pipeline
+        pipeline,
       );
       if (!entryId) {
         entryId = await createDirectoryEntry(
           directoryId,
           directoryFieldId,
-          pipeline
+          pipeline,
         );
       }
 
@@ -202,7 +203,7 @@ export async function createLeadTask({
         let id = await searchDirectoryEntryById(
           directoryId,
           directoryFieldId,
-          tag
+          tag,
         );
         if (!id) {
           id = await createDirectoryEntry(directoryId, directoryFieldId, tag);
@@ -234,8 +235,21 @@ export async function createLeadTask({
 
     return { taskId, url };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    let errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const match = /custom_field_is_required, id (\d+)/i.exec(errorMessage);
+    if (match) {
+      try {
+        const fieldId = Number(match[1]);
+        const fieldName = await getTaskCustomFieldName(fieldId);
+        if (fieldName) {
+          errorMessage += `, name: ${fieldName}`;
+        }
+      } catch (e) {
+        log(
+          `[createLeadTask] Failed to get field name: ${(e as Error).message}`,
+        );
+      }
+    }
     log(`[createLeadTask] Error: ${errorMessage}`);
     const requestStr = JSON.stringify(postBody);
     return {
@@ -246,7 +260,7 @@ export async function createLeadTask({
 }
 
 export async function handler(
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ): Promise<z.infer<typeof CreateLeadTaskOutputSchema>> {
   const parsedArgs = CreateLeadTaskInputSchema.parse(args);
   return await createLeadTask(parsedArgs);
