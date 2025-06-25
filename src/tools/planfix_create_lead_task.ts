@@ -27,6 +27,7 @@ export const CreateLeadTaskInputSchema = z.object({
   pipeline: z.string().optional(),
   referral: z.string().optional(),
   tags: z.array(z.string()).optional(),
+  leadId: z.number().optional(),
 });
 
 export const CreateLeadTaskOutputSchema = z.object({
@@ -57,6 +58,7 @@ export async function createLeadTask({
   project,
   leadSource,
   pipeline,
+  leadId,
   tags,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   referral,
@@ -181,6 +183,13 @@ export async function createLeadTask({
         });
       }
     }
+  }
+
+  if (leadId && PLANFIX_FIELD_IDS.leadId) {
+    postBody.customFieldData.push({
+      field: { id: PLANFIX_FIELD_IDS.leadId },
+      value: leadId,
+    });
   }
 
   if (agencyId) {

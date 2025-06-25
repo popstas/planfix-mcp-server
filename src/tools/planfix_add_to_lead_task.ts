@@ -16,15 +16,12 @@ import { searchManager } from "./planfix_search_manager.js";
 import { searchPlanfixTask } from "./planfix_search_task.js";
 import { updatePlanfixContact } from "./planfix_update_contact.js";
 import { updateLeadTask } from "./planfix_update_lead_task.js";
-import { 
+import {
   AddToLeadTaskInputSchema,
-  AddToLeadTaskOutputSchema 
+  AddToLeadTaskOutputSchema,
 } from "./schemas/leadTaskSchemas.js";
 
-export { 
-  AddToLeadTaskInputSchema,
-  AddToLeadTaskOutputSchema 
-};
+export { AddToLeadTaskInputSchema, AddToLeadTaskOutputSchema };
 
 // Helper: generate description for the task/comment
 function generateDescription(
@@ -98,6 +95,7 @@ export async function addToLeadTask({
   pipeline,
   referral,
   tags,
+  leadId,
 }: z.infer<typeof AddToLeadTaskInputSchema>): Promise<
   z.infer<typeof AddToLeadTaskOutputSchema>
 > {
@@ -207,6 +205,7 @@ export async function addToLeadTask({
         project,
         leadSource,
         pipeline,
+        leadId,
         referral,
         tags,
       });
@@ -237,6 +236,7 @@ export async function addToLeadTask({
         project,
         leadSource,
         pipeline,
+        leadId,
         referral,
         tags,
       });

@@ -36,7 +36,7 @@ export type CustomFieldDataType = {
   field: {
     id: number;
   };
-  value: string | { id: number } | { id: number }[];
+  value: string | number | { id: number } | { id: number }[];
 };
 
 export type ToolWithHandler = Tool & {
