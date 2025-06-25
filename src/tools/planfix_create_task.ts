@@ -41,12 +41,12 @@ export async function planfixCreateTask(
   } = args;
 
   const messageParts = [];
-  if (leadSource) {
-    messageParts.push(`Источник: ${leadSource}`);
-  }
-  if (pipeline) {
-    messageParts.push(`Воронка: ${pipeline}`);
-  }
+  // if (leadSource) {
+  //   messageParts.push(`Источник: ${leadSource}`);
+  // }
+  // if (pipeline) {
+  //   messageParts.push(`Воронка: ${pipeline}`);
+  // }
   if (referral) {
     messageParts.push(`Реферал: ${referral}`);
   }
