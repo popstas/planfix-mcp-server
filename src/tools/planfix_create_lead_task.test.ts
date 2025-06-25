@@ -35,6 +35,10 @@ vi.mock("../lib/planfixDirectory.js", () => ({
   getDirectoryFields: vi.fn().mockResolvedValue([{ id: 1 }]),
 }));
 
+vi.mock("../lib/planfixCustomFields.js", () => ({
+  getTaskCustomFieldName: vi.fn().mockResolvedValue("Field name"),
+}));
+
 import { planfixRequest } from "../helpers.js";
 
 const mockPlanfixRequest = vi.mocked(planfixRequest);
@@ -71,5 +75,25 @@ describe("planfix_create_lead_task", () => {
       }),
     });
     expect(result.taskId).toBe(1);
+  });
+
+  it("adds field name to error message when custom field required", async () => {
+    mockPlanfixRequest.mockRejectedValueOnce(
+      new Error("custom_field_is_required, id 81905"),
+    );
+    const { getTaskCustomFieldName } = await import(
+      "../lib/planfixCustomFields.js"
+    );
+    const mockGetName = vi.mocked(getTaskCustomFieldName);
+    mockGetName.mockResolvedValueOnce("Источник лида");
+
+    const { createLeadTask } = await import("./planfix_create_lead_task.js");
+    const result = await createLeadTask({
+      name: "Test",
+      description: "Desc",
+      clientId: 1,
+    });
+
+    expect(result.error).toContain("name: Источник лида");
   });
 });
