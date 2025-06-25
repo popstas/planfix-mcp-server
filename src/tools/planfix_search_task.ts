@@ -5,6 +5,7 @@ import { getTaskUrl, getToolWithHandler, planfixRequest } from "../helpers.js";
 export const SearchPlanfixTaskInputSchema = z.object({
   taskTitle: z.string().optional(),
   clientId: z.number().optional(),
+  leadId: z.number().optional(),
 });
 
 export const SearchPlanfixTaskOutputSchema = z.object({
@@ -24,9 +25,11 @@ interface Assignee {
 export async function searchPlanfixTask({
   taskTitle,
   clientId,
+  leadId,
 }: {
   taskTitle?: string;
   clientId?: number;
+  leadId?: number;
 }): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
   let taskId: number | undefined = undefined;
   let assignees: { users: Assignee[] } | undefined;
@@ -54,6 +57,12 @@ export async function searchPlanfixTask({
       field: PLANFIX_FIELD_IDS.client,
       operator: "equal",
       value: `contact:${clientId}`,
+    },
+    byLeadId: {
+      type: 102,
+      field: PLANFIX_FIELD_IDS.leadId,
+      operator: "equal",
+      value: leadId,
     },
     byName: {
       type: 8,
@@ -104,7 +113,12 @@ export async function searchPlanfixTask({
   }
 
   try {
-    if (clientId) {
+    if (leadId) {
+      const result = await searchWithFilter([filters.byLeadId]);
+      taskId = result.taskId;
+      assignees = result.assignees;
+    }
+    if (clientId && !taskId) {
       const result = await searchWithFilter([filters.byClient]);
       taskId = result.taskId;
       assignees = result.assignees;

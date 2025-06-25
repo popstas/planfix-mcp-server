@@ -44,6 +44,7 @@ export async function updateLeadTask({
   project,
   leadSource,
   pipeline,
+  leadId,
   // ignore referral
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   referral,
@@ -66,7 +67,9 @@ export async function updateLeadTask({
       return { taskId, url: getTaskUrl(taskId) };
     }
 
-    const fieldsIds = Object.values(PLANFIX_FIELD_IDS).filter(Boolean).join(",");
+    const fieldsIds = Object.values(PLANFIX_FIELD_IDS)
+      .filter(Boolean)
+      .join(",");
     const fields = `id,name,description,${fieldsIds}`;
     const { task } = await planfixRequest<{ task: TaskResponse }>({
       path: `task/${taskId}`,
@@ -182,6 +185,20 @@ export async function updateLeadTask({
       }
     }
 
+    if (leadId && PLANFIX_FIELD_IDS.leadId) {
+      const leadField = task.customFieldData?.find(
+        (f) => f.field.id === PLANFIX_FIELD_IDS.leadId,
+      );
+      const currentLeadId =
+        typeof leadField?.value === "number" ? (leadField.value as number) : 0;
+      if (forceUpdate || !currentLeadId) {
+        postBody.customFieldData.push({
+          field: { id: PLANFIX_FIELD_IDS.leadId },
+          value: leadId,
+        });
+      }
+    }
+
     if (tags?.length && PLANFIX_FIELD_IDS.tags && !PLANFIX_DRY_RUN) {
       const directoryId = await getFieldDirectoryId({
         objectId: TEMPLATE_ID,
@@ -212,7 +229,8 @@ export async function updateLeadTask({
                 tag,
               );
             }
-            if (id && !currentTagsValue.some((t) => t.id === id)) tagIds.push(id);
+            if (id && !currentTagsValue.some((t) => t.id === id))
+              tagIds.push(id);
           }
           if (tagIds.length) {
             postBody.customFieldData.push({

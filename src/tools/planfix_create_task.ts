@@ -21,6 +21,7 @@ export const PlanfixCreateTaskInputSchema = z.object({
   referral: z.string().optional(),
   managerEmail: z.string().optional(),
   tags: z.array(z.string()).optional(),
+  leadId: z.number().optional(),
 });
 
 export const PlanfixCreateTaskOutputSchema = AddToLeadTaskOutputSchema;
@@ -35,6 +36,7 @@ export async function planfixCreateTask(
     pipeline,
     title,
     managerEmail,
+    leadId,
     ...userData
   } = args;
 
@@ -67,6 +69,7 @@ export async function planfixCreateTask(
     pipeline,
     referral,
     tags: args.tags,
+    leadId,
   });
 }
 

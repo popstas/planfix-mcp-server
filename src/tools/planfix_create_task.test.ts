@@ -24,6 +24,7 @@ describe("planfix_create_task", () => {
       referral: "Ref",
       leadSource: "site",
       pipeline: "Main",
+      leadId: 42,
     };
 
     const res = await planfixCreateTask(args);
@@ -34,6 +35,7 @@ describe("planfix_create_task", () => {
         phone: args.phone,
         title: args.title,
         pipeline: args.pipeline,
+        leadId: args.leadId,
       }),
     );
     expect(res.taskId).toBe(3);

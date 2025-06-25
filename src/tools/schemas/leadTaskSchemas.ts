@@ -10,6 +10,7 @@ export const LeadTaskBaseSchema = UserDataInputSchema.extend({
   pipeline: z.string().optional(),
   referral: z.string().optional(),
   tags: z.array(z.string()).optional(),
+  leadId: z.number().optional(),
 });
 
 export const AddToLeadTaskInputSchema = LeadTaskBaseSchema;

@@ -34,4 +34,5 @@ export const PLANFIX_FIELD_IDS = {
   pipeline: Number(process.env.PLANFIX_FIELD_ID_PIPELINE),
   serviceMatrix: Number(process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX),
   tags: Number(process.env.PLANFIX_FIELD_ID_TAGS),
+  leadId: Number(process.env.PLANFIX_FIELD_ID_LEAD_ID),
 };
