@@ -8,7 +8,6 @@ import {
 } from "../helpers.js";
 import type { CustomFieldDataType } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
-import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 
 interface TaskRequestBody {
@@ -41,7 +40,7 @@ const CreateSellTaskInputSchemaBase = z.object({
 
 export const CreateSellTaskInputSchema = extendSchemaWithCustomFields(
   CreateSellTaskInputSchemaBase,
-  customFieldsConfig.leadTaskFields,
+  [],
 );
 
 export const CreateSellTaskOutputSchema = z.object({

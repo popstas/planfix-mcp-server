@@ -22,7 +22,7 @@ export const LeadTaskBaseSchema = extendSchemaWithCustomFields(
 
 export const AddToLeadTaskInputSchema = extendSchemaWithCustomFields(
   LeadTaskBaseSchema,
-  customFieldsConfig.contactFields,
+  customFieldsConfig.leadTaskFields,
 );
 
 export const AddToLeadTaskOutputSchema = z.object({
