@@ -8,6 +8,7 @@ import {
 } from "../helpers.js";
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendFiltersWithCustomFields } from "../lib/extendFiltersWithCustomFields.js";
 
 const PlanfixSearchContactInputSchemaBase = z.object({
   name: z.string().optional(),
@@ -124,6 +125,14 @@ export async function planfixSearchContact({
           : undefined,
   };
 
+  const customFilters: FilterType[] = [];
+  extendFiltersWithCustomFields(
+    customFilters,
+    { name, nameTranslated, phone, email, telegram } as Record<string, unknown>,
+    customFieldsConfig.contactFields,
+    "contact",
+  );
+
   async function searchWithFilter(
     filter: FilterType,
   ): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
@@ -199,6 +208,13 @@ export async function planfixSearchContact({
       // If not found, try with @
       if (!contactId && filters.byTelegramWithAt) {
         result = await searchWithFilter(filters.byTelegramWithAt);
+        contactId = result.contactId;
+      }
+    }
+    if (!contactId && customFilters.length) {
+      for (const cf of customFilters) {
+        if (contactId) break;
+        result = await searchWithFilter(cf);
         contactId = result.contactId;
       }
     }

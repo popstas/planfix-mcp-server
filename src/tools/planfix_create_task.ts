@@ -66,7 +66,7 @@ export async function planfixCreateTask(
   const description = messageParts.join("\n");
 
   return await addToLeadTask({
-    ...userData,
+    ...args,
     company: agency,
     title,
     description,

@@ -17,6 +17,8 @@ import {
 import { searchManager } from "./planfix_search_manager.js";
 import { UpdateLeadTaskInputSchema } from "./schemas/leadTaskSchemas.js";
 import type { CustomFieldDataType } from "../types.js";
+import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
 
 interface TaskResponse {
   id: number;
@@ -32,24 +34,23 @@ export const UpdateLeadTaskOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export async function updateLeadTask({
-  taskId,
-  name,
-  description,
-  managerEmail,
-  project,
-  leadSource,
-  pipeline,
-  leadId,
-  status,
-  // ignore referral
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  referral,
-  tags,
-  forceUpdate,
-}: z.infer<typeof UpdateLeadTaskInputSchema>): Promise<
-  z.infer<typeof UpdateLeadTaskOutputSchema>
-> {
+export async function updateLeadTask(
+  args: z.infer<typeof UpdateLeadTaskInputSchema>,
+): Promise<z.infer<typeof UpdateLeadTaskOutputSchema>> {
+  const {
+    taskId,
+    name,
+    description,
+    managerEmail,
+    project,
+    leadSource,
+    pipeline,
+    leadId,
+    status,
+    referral,
+    tags,
+    forceUpdate,
+  } = args;
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
   const postBody: TaskRequestBody = {
     template: {
@@ -243,6 +244,12 @@ export async function updateLeadTask({
         }
       }
     }
+
+    extendPostBodyWithCustomFields(
+      postBody,
+      args as Record<string, unknown>,
+      customFieldsConfig.leadTaskFields,
+    );
 
     const hasUpdates =
       postBody.project ||

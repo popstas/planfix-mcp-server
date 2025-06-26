@@ -80,25 +80,26 @@ function generateDescription(
  * @param params - Parameters including leadTaskId and content to add
  * @returns Promise with the result of the operation
  */
-export async function addToLeadTask({
-  name,
-  nameTranslated,
-  phone,
-  email,
-  telegram,
-  company,
-  title,
-  description,
-  managerEmail,
-  project,
-  leadSource,
-  pipeline,
-  referral,
-  tags,
-  leadId,
-}: z.infer<typeof AddToLeadTaskInputSchema>): Promise<
-  z.infer<typeof AddToLeadTaskOutputSchema>
-> {
+export async function addToLeadTask(
+  args: z.infer<typeof AddToLeadTaskInputSchema>,
+): Promise<z.infer<typeof AddToLeadTaskOutputSchema>> {
+  const {
+    name,
+    nameTranslated,
+    phone,
+    email,
+    telegram,
+    company,
+    title,
+    description,
+    managerEmail,
+    project,
+    leadSource,
+    pipeline,
+    referral,
+    tags,
+    leadId,
+  } = args;
   // Helper: template string replacement
   function replaceTemplateVars(
     template: string,
@@ -175,6 +176,7 @@ export async function addToLeadTask({
         telegram: userData.telegram,
         email: userData.email,
         phone: userData.phone,
+        ...(args as Record<string, unknown>),
       });
     }
     // 4. If task not found and name has space, search by name
@@ -208,6 +210,7 @@ export async function addToLeadTask({
         leadId,
         referral,
         tags,
+        ...(args as Record<string, unknown>),
       });
       if (createLeadTaskResult.error) {
         return { taskId: 0, clientId: 0, error: createLeadTaskResult.error };
@@ -239,6 +242,7 @@ export async function addToLeadTask({
         leadId,
         referral,
         tags,
+        ...(args as Record<string, unknown>),
       });
       if (updateLeadTaskResult.error) {
         return { taskId: 0, clientId: 0, error: updateLeadTaskResult.error };

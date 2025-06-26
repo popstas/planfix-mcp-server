@@ -9,6 +9,7 @@ import {
 import type { CustomFieldDataType } from "../types.js";
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
 
 interface ContactRequestBody {
   template: {
@@ -107,6 +108,12 @@ export async function createPlanfixContact(
         postBody.telegram = normalized;
       }
     }
+
+    extendPostBodyWithCustomFields(
+      postBody,
+      userData as Record<string, unknown>,
+      customFieldsConfig.contactFields,
+    );
 
     const result = await planfixRequest<{ id: number }>({
       path: `contact/`,

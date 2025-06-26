@@ -9,6 +9,7 @@ import {
 import type { CustomFieldDataType } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
 
 interface TaskRequestBody {
   template: {
@@ -40,17 +41,18 @@ const CreateSellTaskInputSchemaBase = z.object({
 
 export const CreateSellTaskInputSchema = extendSchemaWithCustomFields(
   CreateSellTaskInputSchemaBase,
-  [],
-);
-
-export const CreateSellTaskOutputSchema = z.object({
-  taskId: z.number(),
-  url: z.string(),
-});
-
-/**
- * Create a sell task in Planfix using the SELL template, with parent task set to the lead task
- * @param clientId - The Planfix client/contact ID
+export async function createSellTask(
+  args: z.infer<typeof CreateSellTaskInputSchema>,
+): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
+  let {
+    clientId,
+    leadTaskId,
+    agencyId,
+    assignees,
+    name,
+    description,
+    project,
+  } = args;
  * @param leadTaskId - The Planfix lead task ID (parent)
  * @param agencyId - The Planfix agency ID (optional)
  * @param assignees - The Planfix assignees IDs (optional)
@@ -168,6 +170,12 @@ export async function createSellTask({
         },
       });
     }
+
+    extendPostBodyWithCustomFields(
+      postBody,
+      args as Record<string, unknown>,
+      customFieldsConfig.leadTaskFields,
+    );
 
     const result = await planfixRequest<{ id: number }>({
       path: `task/`,

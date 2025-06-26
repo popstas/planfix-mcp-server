@@ -9,6 +9,7 @@ import {
 import type { CustomFieldDataType } from "../types.js";
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
 
 interface ContactResponse {
   id: number;
@@ -49,16 +50,10 @@ export const UpdatePlanfixContactOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export async function updatePlanfixContact({
-  contactId,
-  name,
-  telegram,
-  email,
-  phone,
-  forceUpdate,
-}: z.infer<typeof UpdatePlanfixContactInputSchema>): Promise<
-  z.infer<typeof UpdatePlanfixContactOutputSchema>
-> {
+export async function updatePlanfixContact(
+  args: z.infer<typeof UpdatePlanfixContactInputSchema>,
+): Promise<z.infer<typeof UpdatePlanfixContactOutputSchema>> {
+  const { contactId, name, telegram, email, phone, forceUpdate } = args;
   try {
     if (PLANFIX_DRY_RUN) {
       log(`[DRY RUN] Would update contact ${contactId}`);
@@ -137,6 +132,12 @@ export async function updatePlanfixContact({
         postBody.phones = [...phones, { number: phone, type: 1 }];
       }
     }
+
+    extendPostBodyWithCustomFields(
+      postBody as any,
+      args as Record<string, unknown>,
+      customFieldsConfig.contactFields,
+    );
 
     if (Object.keys(postBody).length === 0) {
       return { contactId, url: getContactUrl(contactId) };
