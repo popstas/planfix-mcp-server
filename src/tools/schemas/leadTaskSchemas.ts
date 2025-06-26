@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { UserDataInputSchema } from "../../types.js";
+import { customFieldsConfig } from "../../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../../lib/extendSchemaWithCustomFields.js";
 
-export const LeadTaskBaseSchema = UserDataInputSchema.extend({
+const LeadTaskBaseSchemaBase = UserDataInputSchema.extend({
   title: z.string().optional(),
   description: z.string().optional(),
   managerEmail: z.string().optional(),
@@ -13,7 +15,15 @@ export const LeadTaskBaseSchema = UserDataInputSchema.extend({
   leadId: z.number().optional(),
 });
 
-export const AddToLeadTaskInputSchema = LeadTaskBaseSchema;
+export const LeadTaskBaseSchema = extendSchemaWithCustomFields(
+  LeadTaskBaseSchemaBase,
+  customFieldsConfig.leadTaskFields,
+);
+
+export const AddToLeadTaskInputSchema = extendSchemaWithCustomFields(
+  LeadTaskBaseSchema,
+  customFieldsConfig.contactFields,
+);
 
 export const AddToLeadTaskOutputSchema = z.object({
   taskId: z.number(),
@@ -46,10 +56,14 @@ export const AddToLeadTaskOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export const UpdateLeadTaskInputSchema = LeadTaskBaseSchema.extend({
-  taskId: z.number(),
-  forceUpdate: z.boolean().optional(),
-});
+export const UpdateLeadTaskInputSchema = extendSchemaWithCustomFields(
+  LeadTaskBaseSchemaBase.extend({
+    taskId: z.number(),
+    status: z.enum(["closed", "active"]).optional(),
+    forceUpdate: z.boolean().optional(),
+  }),
+  customFieldsConfig.leadTaskFields,
+);
 
 export const UpdateLeadTaskOutputSchema = z.object({
   taskId: z.number(),

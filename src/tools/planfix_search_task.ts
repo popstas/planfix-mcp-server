@@ -1,12 +1,19 @@
 import { z } from "zod";
 import { PLANFIX_FIELD_IDS } from "../config.js";
 import { getTaskUrl, getToolWithHandler, planfixRequest } from "../helpers.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 
-export const SearchPlanfixTaskInputSchema = z.object({
+const SearchPlanfixTaskInputSchemaBase = z.object({
   taskTitle: z.string().optional(),
   clientId: z.number().optional(),
   leadId: z.number().optional(),
 });
+
+export const SearchPlanfixTaskInputSchema = extendSchemaWithCustomFields(
+  SearchPlanfixTaskInputSchemaBase,
+  customFieldsConfig.leadTaskFields,
+);
 
 export const SearchPlanfixTaskOutputSchema = z.object({
   taskId: z.number().optional(),

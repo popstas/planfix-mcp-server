@@ -6,14 +6,21 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 
-export const PlanfixSearchContactInputSchema = z.object({
+const PlanfixSearchContactInputSchemaBase = z.object({
   name: z.string().optional(),
   nameTranslated: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
   telegram: z.string().optional(),
 });
+
+export const PlanfixSearchContactInputSchema = extendSchemaWithCustomFields(
+  PlanfixSearchContactInputSchemaBase,
+  customFieldsConfig.contactFields,
+);
 
 export const PlanfixSearchContactOutputSchema = z.object({
   contactId: z.number(),

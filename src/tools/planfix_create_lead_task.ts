@@ -15,8 +15,10 @@ import {
 } from "../lib/planfixDirectory.js";
 import { getTaskCustomFieldName } from "../lib/planfixCustomFields.js";
 import { TaskRequestBody } from "../types.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 
-export const CreateLeadTaskInputSchema = z.object({
+const CreateLeadTaskInputSchemaBase = z.object({
   name: z.string(),
   description: z.string(),
   clientId: z.number(),
@@ -29,6 +31,11 @@ export const CreateLeadTaskInputSchema = z.object({
   tags: z.array(z.string()).optional(),
   leadId: z.number().optional(),
 });
+
+export const CreateLeadTaskInputSchema = extendSchemaWithCustomFields(
+  CreateLeadTaskInputSchemaBase,
+  customFieldsConfig.leadTaskFields,
+);
 
 export const CreateLeadTaskOutputSchema = z.object({
   taskId: z.number(),

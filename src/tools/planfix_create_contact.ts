@@ -7,6 +7,8 @@ import {
   planfixRequest,
 } from "../helpers.js";
 import type { CustomFieldDataType } from "../types.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 
 interface ContactRequestBody {
   template: {
@@ -23,12 +25,17 @@ interface ContactRequestBody {
   customFieldData: CustomFieldDataType[];
 }
 
-export const CreatePlanfixContactInputSchema = z.object({
+const CreatePlanfixContactInputSchemaBase = z.object({
   name: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
   telegram: z.string().optional(),
 });
+
+export const CreatePlanfixContactInputSchema = extendSchemaWithCustomFields(
+  CreatePlanfixContactInputSchemaBase,
+  customFieldsConfig.contactFields,
+);
 
 export const CreatePlanfixContactOutputSchema = z.object({
   contactId: z.number(),

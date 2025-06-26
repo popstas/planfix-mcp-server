@@ -7,6 +7,8 @@ import {
   planfixRequest,
 } from "../helpers.js";
 import type { CustomFieldDataType } from "../types.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 
 interface ContactResponse {
   id: number;
@@ -27,7 +29,7 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
   return { firstName, lastName };
 }
 
-export const UpdatePlanfixContactInputSchema = z.object({
+const UpdatePlanfixContactInputSchemaBase = z.object({
   contactId: z.number(),
   name: z.string().optional(),
   telegram: z.string().optional(),
@@ -35,6 +37,11 @@ export const UpdatePlanfixContactInputSchema = z.object({
   phone: z.string().optional(),
   forceUpdate: z.boolean().optional(),
 });
+
+export const UpdatePlanfixContactInputSchema = extendSchemaWithCustomFields(
+  UpdatePlanfixContactInputSchemaBase,
+  customFieldsConfig.contactFields,
+);
 
 export const UpdatePlanfixContactOutputSchema = z.object({
   contactId: z.number(),

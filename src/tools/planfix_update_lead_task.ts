@@ -15,7 +15,7 @@ import {
   getDirectoryFields,
 } from "../lib/planfixDirectory.js";
 import { searchManager } from "./planfix_search_manager.js";
-import { LeadTaskBaseSchema } from "./schemas/leadTaskSchemas.js";
+import { UpdateLeadTaskInputSchema } from "./schemas/leadTaskSchemas.js";
 import type { CustomFieldDataType } from "../types.js";
 
 interface TaskResponse {
@@ -25,12 +25,6 @@ interface TaskResponse {
   customFieldData?: CustomFieldDataType[];
   status?: { id: number };
 }
-
-export const UpdateLeadTaskInputSchema = LeadTaskBaseSchema.extend({
-  taskId: z.number(),
-  status: z.enum(["closed", "active"]).optional(),
-  forceUpdate: z.boolean().optional(),
-});
 
 export const UpdateLeadTaskOutputSchema = z.object({
   taskId: z.number(),
@@ -64,7 +58,7 @@ export async function updateLeadTask({
     customFieldData: [],
   };
 
-  if (status === 'closed') {
+  if (status === "closed") {
     postBody.status = { id: 3 };
   }
 
@@ -85,10 +79,10 @@ export async function updateLeadTask({
     });
 
     // Check if we need to update the status
-    const isStatusUpdate = status === 'closed' && task.status?.id !== 3;
-    
+    const isStatusUpdate = status === "closed" && task.status?.id !== 3;
+
     // If we have no updates to make and forceUpdate is false, return early
-    
+
     // Log any fields that won't be updated (for debugging)
     if (name) console.log("name is not updated");
     if (description) console.log("description is not updated");

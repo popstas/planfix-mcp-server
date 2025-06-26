@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { getToolWithHandler } from "../helpers.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import {
   addToLeadTask,
   AddToLeadTaskOutputSchema,
 } from "./planfix_add_to_lead_task.js";
 
-export const PlanfixCreateTaskInputSchema = z.object({
+const PlanfixCreateTaskInputSchemaBase = z.object({
   object: z.string().optional(),
   title: z.string().describe("Task title"),
   description: z.string().optional(),
@@ -23,6 +25,11 @@ export const PlanfixCreateTaskInputSchema = z.object({
   tags: z.array(z.string()).optional(),
   leadId: z.number().optional(),
 });
+
+export const PlanfixCreateTaskInputSchema = extendSchemaWithCustomFields(
+  PlanfixCreateTaskInputSchemaBase,
+  [...customFieldsConfig.leadTaskFields, ...customFieldsConfig.contactFields],
+);
 
 export const PlanfixCreateTaskOutputSchema = AddToLeadTaskOutputSchema;
 

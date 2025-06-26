@@ -32,6 +32,29 @@ The server requires the following environment variables for Planfix API access:
   - Missing tag names will be added automatically to the directory
 - `PLANFIX_FIELD_ID_LEAD_ID` – Custom field ID for external lead ID
 
+### config.yml
+
+Custom fields can also be configured via `config.yml`. The default path is
+`./data/config.yml`. Override it with the `--config=/abs/path/config.yml` CLI
+flag or the `PLANFIX_CONFIG` environment variable.
+
+```yaml
+leadTaskFields:
+  - id: "456"
+    name: "id сделки"
+    argName: lead_id
+    type: number
+contactFields:
+  - id: "123"
+    name: "Резидентство"
+    argName: resident
+    type: enum
+    values: ["резидент", "нерезидент", "иное"]
+```
+
+Values from `config.yml` override matching entries from the legacy environment
+variables when merged by `id`.
+
 ## Debug
 
 ```
