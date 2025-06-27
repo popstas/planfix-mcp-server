@@ -106,3 +106,21 @@ describe("withCache", () => {
     expect(fn2).not.toHaveBeenCalled();
   });
 });
+
+describe("isValidToolResponse", () => {
+  let isValidToolResponse: typeof import("./helpers.js").isValidToolResponse;
+
+  beforeAll(async () => {
+    ({ isValidToolResponse } = await import("./helpers.js"));
+  });
+
+  it("returns true for a valid response", () => {
+    const parsed = { content: [{ text: "{}" }], structuredContent: {} };
+    expect(isValidToolResponse(parsed)).toBe(true);
+  });
+
+  it("returns false for an invalid response", () => {
+    const parsed = { foo: "bar" } as any;
+    expect(isValidToolResponse(parsed)).toBe(false);
+  });
+});
