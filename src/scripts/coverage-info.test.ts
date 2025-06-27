@@ -43,6 +43,19 @@ describe("parseCoverage", () => {
     expect(result[0].lines_uncovered).toBe(5);
     expect(result[1].path).toContain("b.ts");
   });
+
+  it("parses non-existing file", () => {
+    const result = parseCoverage("non-existing-file.json");
+    expect(result).toEqual([]);
+  });
+
+  it("throws on invalid file", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cov-"));
+    const file = path.join(tmpDir, "summary.json");
+    fs.writeFileSync(file, "invalid");
+    const result = parseCoverage(file);
+    expect(result).toEqual([]);
+  });
 });
 
 describe("coverageInfo", () => {
