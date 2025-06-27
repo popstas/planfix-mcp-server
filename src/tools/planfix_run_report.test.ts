@@ -171,3 +171,29 @@ describe("processRows grouping and sorting", () => {
     expect(res.map((r) => r.value)).toEqual(["a", "c", "b"]);
   });
 });
+
+describe("runReport additional cases", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns error when generateReport fails", async () => {
+    mockWithCache.mockResolvedValueOnce({ error: "boom" });
+    const { runReport } = await import("./planfix_run_report.js");
+    const res = await runReport({ reportId: 2 });
+    expect(res.success).toBe(false);
+    expect(res.error).toBe("boom");
+  });
+
+  it("parses rows from report data", async () => {
+    const data = [
+      { type: "Header", items: [{ text: "A" }, { text: "B" }] },
+      { type: "Normal", items: [{ text: "1" }, { text: "2" }] },
+    ];
+    mockWithCache.mockResolvedValueOnce(data);
+    const { runReport } = await import("./planfix_run_report.js");
+    const res = await runReport({ reportId: 3 });
+    expect(res.success).toBe(true);
+    expect(res.rows).toEqual([{ A: "1", B: "2" }]);
+  });
+});

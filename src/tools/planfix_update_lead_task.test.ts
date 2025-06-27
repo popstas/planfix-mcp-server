@@ -72,7 +72,7 @@ describe("planfix_update_lead_task", () => {
     expect(updateCall.path).toBe("task/1");
     expect(updateCall.body).toMatchObject({
       template: { id: expect.any(Number) },
-      customFieldData: expect.any(Array)
+      customFieldData: expect.any(Array),
     });
     expect(result.taskId).toBe(1);
     expect(result.url).toBe("https://example.com/task/1");
@@ -88,11 +88,11 @@ describe("planfix_update_lead_task", () => {
         customFieldData: [],
       },
     });
-    
+
     // Second call - update task
     mockPlanfixRequest.mockResolvedValueOnce({
       id: 1,
-      status: { id: 3 }
+      status: { id: 3 },
     });
 
     const { updateLeadTask } = await import("./planfix_update_lead_task.js");
@@ -105,7 +105,7 @@ describe("planfix_update_lead_task", () => {
 
     // Verify the update call was made with the correct status
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
-    
+
     const updateCall = mockPlanfixRequest.mock.calls[1][0];
     expect(updateCall.body).toMatchObject({
       status: { id: 3 },
@@ -126,7 +126,7 @@ describe("planfix_update_lead_task", () => {
       ],
       status: { id: 1 },
     };
-    
+
     // Mock the get task call
     mockPlanfixRequest.mockResolvedValueOnce({
       task: mockTask,
@@ -151,7 +151,7 @@ describe("planfix_update_lead_task", () => {
 
     // Should be one call: just get task (no update since no changes)
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
-    
+
     // No update call should be made since no fields were actually changed
     // and forceUpdate is false
   });
@@ -174,5 +174,18 @@ describe("planfix_update_lead_task", () => {
     expect(res.taskId).toBe(2);
     expect(mockPlanfixRequest).not.toHaveBeenCalled();
     vi.resetModules();
+  });
+
+  it("handler invokes updateLeadTask", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      task: { id: 1, customFieldData: [] },
+    });
+    mockPlanfixRequest.mockResolvedValueOnce({});
+    const mod = await import("./planfix_update_lead_task.js");
+    const res = (await mod.planfixUpdateLeadTaskTool.handler({
+      taskId: 1,
+      forceUpdate: true,
+    })) as { taskId: number };
+    expect(res.taskId).toBe(1);
   });
 });
