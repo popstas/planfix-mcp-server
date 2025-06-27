@@ -2,6 +2,12 @@
 
 This repository contains a Model Context Protocol (MCP) server written in TypeScript that integrates with the Planfix CRM REST API. The server exposes several tools located in `src/tools` which can be called by MCP clients.
 
+## Coverage improve rules
+- Run `npm test` and `npm run coverage-info` to check coverage, sorted by lines_uncovered.
+- Prefer less covered files.
+- Cover each function first.
+- Check `npm run coverage-info` in the end of each iteration, calculate coverage change.
+
 ## Rules before commit
 - Run `npm run test-full` before commit.
 - Run `npm run format` before commit.
