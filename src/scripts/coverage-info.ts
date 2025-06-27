@@ -1,34 +1,23 @@
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 
+interface CoverageMetrics {
+  total: number;
+  covered: number;
+  skipped: number;
+  pct: number;
+}
+
+interface FileCoverage {
+  lines: CoverageMetrics;
+  statements: CoverageMetrics;
+  functions: CoverageMetrics;
+  branches: CoverageMetrics;
+}
+
 interface CoverageSummary {
-  total: {
-    lines: {
-      total: number;
-      covered: number;
-      skipped: number;
-      pct: number;
-    };
-    statements: {
-      total: number;
-      covered: number;
-      skipped: number;
-      pct: number;
-    };
-    functions: {
-      total: number;
-      covered: number;
-      skipped: number;
-      pct: number;
-    };
-    branches: {
-      total: number;
-      covered: number;
-      skipped: number;
-      pct: number;
-    };
-  };
-  [filePath: string]: any;
+  total: FileCoverage;
+  [filePath: string]: FileCoverage;
 }
 
 export interface FileCoverageInfo {
