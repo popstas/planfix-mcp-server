@@ -28,7 +28,6 @@ const CreateLeadTaskInputSchemaBase = z.object({
   project: z.string().optional(),
   leadSource: z.string().optional(),
   pipeline: z.string().optional(),
-  referral: z.string().optional(),
   tags: z.array(z.string()).optional(),
   leadId: z.number().optional(),
 });
@@ -53,7 +52,6 @@ export const CreateLeadTaskOutputSchema = z.object({
  * @param agencyId - Optional ID of the agency
  * @param project - Optional name of the project
  * @param leadSource - Optional name of the lead source
- * @param referral - Optional name of the referral
  * @param tags - Optional array of tags
  * @returns Promise with the created task ID and URL
  */
@@ -75,7 +73,6 @@ export async function createLeadTask(
     pipeline,
     leadId,
     tags,
-    referral,
   } = args;
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
   let finalDescription = description;

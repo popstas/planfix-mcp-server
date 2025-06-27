@@ -36,15 +36,16 @@ export const PlanfixSearchContactOutputSchema = z.object({
  * Search for a contact in Planfix by name, phone, email, or telegram.
  * This is a placeholder implementation that should be replaced with actual Planfix API calls.
  */
-export async function planfixSearchContact({
-  name,
-  nameTranslated,
-  phone,
-  email,
-  telegram,
-}: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<
+export async function planfixSearchContact(args: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<
   z.infer<typeof PlanfixSearchContactOutputSchema>
 > {
+  const {
+    name,
+    nameTranslated,
+    email,
+    telegram,
+  } = args;
+  let { phone } = args;
   // console.log('Searching Planfix contact...');
   let contactId: number | null = null;
   // If phone looks like a Telegram username (starts with @) or doesn't look like a phone number, set it to empty string
@@ -128,7 +129,7 @@ export async function planfixSearchContact({
   const customFilters: FilterType[] = [];
   extendFiltersWithCustomFields(
     customFilters,
-    { name, nameTranslated, phone, email, telegram } as Record<string, unknown>,
+    args,
     customFieldsConfig.contactFields,
     "contact",
   );

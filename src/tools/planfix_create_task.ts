@@ -28,7 +28,7 @@ const PlanfixCreateTaskInputSchemaBase = z.object({
 
 export const PlanfixCreateTaskInputSchema = extendSchemaWithCustomFields(
   PlanfixCreateTaskInputSchemaBase,
-  [...customFieldsConfig.leadTaskFields, ...customFieldsConfig.contactFields],
+  customFieldsConfig.leadTaskFields,
 );
 
 export const PlanfixCreateTaskOutputSchema = AddToLeadTaskOutputSchema;
@@ -39,21 +39,10 @@ export async function planfixCreateTask(
   const {
     agency,
     referral,
-    leadSource,
-    pipeline,
-    title,
     managerEmail,
-    leadId,
-    ...userData
   } = args;
 
   const messageParts = [];
-  // if (leadSource) {
-  //   messageParts.push(`Источник: ${leadSource}`);
-  // }
-  // if (pipeline) {
-  //   messageParts.push(`Воронка: ${pipeline}`);
-  // }
   if (referral) {
     messageParts.push(`Реферал: ${referral}`);
   }
@@ -68,15 +57,7 @@ export async function planfixCreateTask(
   return await addToLeadTask({
     ...args,
     company: agency,
-    title,
     description,
-    managerEmail,
-    project: args.project,
-    leadSource,
-    pipeline,
-    referral,
-    tags: args.tags,
-    leadId,
   });
 }
 

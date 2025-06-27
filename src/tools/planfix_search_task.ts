@@ -3,7 +3,7 @@ import { PLANFIX_FIELD_IDS } from "../config.js";
 import { getTaskUrl, getToolWithHandler, planfixRequest } from "../helpers.js";
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
-import { extendFiltersWithCustomFields } from "../lib/extendFiltersWithCustomFields.js";
+import { extendFiltersWithCustomFields, type PlanfixFilter } from "../lib/extendFiltersWithCustomFields.js";
 
 const SearchPlanfixTaskInputSchemaBase = z.object({
   taskTitle: z.string().optional(),
@@ -79,16 +79,16 @@ export async function searchPlanfixTask({
     },
   };
 
-  const customFilters: Record<string, unknown>[] = [];
+  const customFilters: PlanfixFilter[] = [];
   extendFiltersWithCustomFields(
-    customFilters as any,
-    { taskTitle, clientId, leadId } as Record<string, unknown>,
+    customFilters,
+    { taskTitle, clientId, leadId },
     customFieldsConfig.leadTaskFields,
     "task",
   );
 
   async function searchWithFilter(
-    filtersArr: Array<Record<string, unknown>>,
+    filtersArr: PlanfixFilter[],
   ): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
     try {
       const result = (await planfixRequest({

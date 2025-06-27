@@ -6,7 +6,7 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
-import { TaskRequestBody } from "../types.js";
+import { TaskRequestBody, TaskResponse } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
 import { getFieldDirectoryId } from "../lib/planfixObjects.js";
 import {
@@ -16,17 +16,8 @@ import {
 } from "../lib/planfixDirectory.js";
 import { searchManager } from "./planfix_search_manager.js";
 import { UpdateLeadTaskInputSchema } from "./schemas/leadTaskSchemas.js";
-import type { CustomFieldDataType } from "../types.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
 import { customFieldsConfig } from "../customFieldsConfig.js";
-
-interface TaskResponse {
-  id: number;
-  project?: { id: number };
-  assignees?: { users?: Array<{ id: string }> };
-  customFieldData?: CustomFieldDataType[];
-  status?: { id: number };
-}
 
 export const UpdateLeadTaskOutputSchema = z.object({
   taskId: z.number(),
@@ -47,7 +38,6 @@ export async function updateLeadTask(
     pipeline,
     leadId,
     status,
-    referral,
     tags,
     forceUpdate,
   } = args;
@@ -249,6 +239,9 @@ export async function updateLeadTask(
       postBody,
       args as Record<string, unknown>,
       customFieldsConfig.leadTaskFields,
+      task,
+      undefined,
+      forceUpdate,
     );
 
     const hasUpdates =

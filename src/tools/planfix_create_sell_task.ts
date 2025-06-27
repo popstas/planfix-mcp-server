@@ -10,6 +10,7 @@ import type { CustomFieldDataType } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
 
 interface TaskRequestBody {
   template: {
@@ -41,37 +42,26 @@ const CreateSellTaskInputSchemaBase = z.object({
 
 export const CreateSellTaskInputSchema = extendSchemaWithCustomFields(
   CreateSellTaskInputSchemaBase,
+  [],
+);
+
+export const CreateSellTaskOutputSchema = z.object({
+  taskId: z.number(),
+  url: z.string(),
+});
+
 export async function createSellTask(
   args: z.infer<typeof CreateSellTaskInputSchema>,
 ): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
-  let {
+  const {
     clientId,
     leadTaskId,
     agencyId,
     assignees,
-    name,
-    description,
     project,
   } = args;
- * @param leadTaskId - The Planfix lead task ID (parent)
- * @param agencyId - The Planfix agency ID (optional)
- * @param assignees - The Planfix assignees IDs (optional)
- * @param name - The name of the task
- * @param description - The description of the task
- * @param project - The name of the project (optional)
- * @returns {Promise<typeof CreateSellTaskOutputSchema>} The created task ID and URL
- */
-export async function createSellTask({
-  clientId,
-  leadTaskId,
-  agencyId,
-  assignees,
-  name,
-  description,
-  project,
-}: z.infer<typeof CreateSellTaskInputSchema>): Promise<
-  z.infer<typeof CreateSellTaskOutputSchema>
-> {
+  let { name, description } = args;
+
   try {
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);

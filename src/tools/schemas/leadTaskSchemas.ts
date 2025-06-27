@@ -10,7 +10,6 @@ const LeadTaskBaseSchemaBase = UserDataInputSchema.extend({
   project: z.string().optional(),
   leadSource: z.string().optional(),
   pipeline: z.string().optional(),
-  referral: z.string().optional(),
   tags: z.array(z.string()).optional(),
   leadId: z.number().optional(),
 });

@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { runTool } from "../helpers.js";
 
 describe("planfix_search_contact tool", () => {
-  it('searches contact by name when both first and last names are provided (e.g., "Tetiana Dadochkina")', async () => {
+  it('searches contact by name when both first and last names are provided (e.g., "Stanislav Popov")', async () => {
     const args = {
-      name: "Tetiana Dadochkina",
+      name: "Stanislav Popov",
     };
     const { valid, content } = await runTool<{
       contactId: number;
@@ -19,9 +19,9 @@ describe("planfix_search_contact tool", () => {
     expect(found).toBe(true);
   });
 
-  it('does not search by name when only first name is provided (e.g., "Tetiana")', async () => {
+  it('does not search by name when only first name is provided (e.g., "Stanislav")', async () => {
     const args = {
-      name: "Tetiana",
+      name: "Stanislav",
     };
     const { valid, content } = await runTool<{
       contactId: number;
@@ -33,7 +33,7 @@ describe("planfix_search_contact tool", () => {
 
   it("searches contact by email and returns contact details", async () => {
     const args = {
-      email: "test@example.com", // Replace with a valid test email
+      email: "pop.stas@gmail.com",
     };
     const { valid, content } = await runTool<{
       contactId: number;

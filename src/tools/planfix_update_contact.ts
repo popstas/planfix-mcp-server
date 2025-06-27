@@ -6,20 +6,10 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
-import type { CustomFieldDataType } from "../types.js";
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
-
-interface ContactResponse {
-  id: number;
-  name?: string;
-  lastname?: string;
-  email?: string;
-  phones?: Array<{ number: string; type?: number }>;
-  telegram?: string;
-  customFieldData?: CustomFieldDataType[];
-}
+import { ContactResponse } from "../types.js";
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   if (!fullName) return { firstName: "", lastName: "" };
@@ -60,9 +50,10 @@ export async function updatePlanfixContact(
       return { contactId, url: getContactUrl(contactId) };
     }
 
-    const fieldsBase = `id,name,lastname,email,phones`;
+    const customContactFieldsIds = customFieldsConfig.contactFields.map((f) => f.id);
+    const fieldsBase = `id,name,lastname,email,phones,${customContactFieldsIds.join(",")}`;
     const fields = PLANFIX_FIELD_IDS.telegramCustom
-      ? `${fieldsBase},customFieldData`
+      ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
       : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase;
@@ -125,18 +116,20 @@ export async function updatePlanfixContact(
       }
     }
 
+    const cleanPhone = (phone: string) => phone.replace(/[^0-9]/g, "");
     if (phone) {
       const phones = contact.phones || [];
-      const exists = phones.some((p) => p.number === phone);
+      const exists = phones.some((p) => p.number === cleanPhone(phone));
       if (!exists) {
-        postBody.phones = [...phones, { number: phone, type: 1 }];
+        postBody.phones = [...phones, { number: cleanPhone(phone), type: 1 }];
       }
     }
 
     extendPostBodyWithCustomFields(
-      postBody as any,
-      args as Record<string, unknown>,
+      postBody,
+      args,
       customFieldsConfig.contactFields,
+      contact,
     );
 
     if (Object.keys(postBody).length === 0) {

@@ -4,8 +4,9 @@ export interface CustomField {
   id: number;
   name?: string;
   argName: string;
-  type?: string;
+  type: "string" | "number" | "boolean" | "enum";
   values?: string[];
+  default?: string;
 }
 
 export function extendSchemaWithCustomFields<T extends z.ZodRawShape>(

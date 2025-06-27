@@ -96,7 +96,6 @@ export async function addToLeadTask(
     project,
     leadSource,
     pipeline,
-    referral,
     tags,
     leadId,
   } = args;
@@ -208,7 +207,6 @@ export async function addToLeadTask(
         leadSource,
         pipeline,
         leadId,
-        referral,
         tags,
         ...(args as Record<string, unknown>),
       });
@@ -240,7 +238,6 @@ export async function addToLeadTask(
         leadSource,
         pipeline,
         leadId,
-        referral,
         tags,
         ...(args as Record<string, unknown>),
       });
