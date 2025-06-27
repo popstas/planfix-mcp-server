@@ -3,7 +3,7 @@ import fsp from "fs/promises";
 import os from "os";
 import path from "path";
 import yaml from "js-yaml";
-import { planfixClient } from "./planfix-client.js";
+import { planfixRequest } from "../helpers.js";
 import { log } from "../helpers.js";
 
 export interface PlanfixObject {
@@ -38,15 +38,18 @@ async function readCache(
   return (yaml.load(content) as Record<string, PlanfixObject>) || {};
 }
 
+// TODO: check after remove planfixClient
 async function fetchObjects(): Promise<Record<string, PlanfixObject>> {
-  const list = (await planfixClient.post<{ objects?: { id: number }[] }>(
-    "object/list",
-  )) as { objects?: { id: number }[] };
+  const list = (await planfixRequest<{ objects?: { id: number }[] }>({
+    path: "object/list",
+    method: "POST",
+  })) as { objects?: { id: number }[] };
   const result: Record<string, PlanfixObject> = {};
   for (const item of list.objects || []) {
-    const details = (await planfixClient.get<{ object: PlanfixObject }>(
-      `object/${item.id}`,
-    )) as { object: PlanfixObject };
+    const details = (await planfixRequest<{ object: PlanfixObject }>({
+      path: `object/${item.id}`,
+      method: "GET",
+    })) as { object: PlanfixObject };
     result[details.object.name] = details.object;
   }
   return result;

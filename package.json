@@ -32,8 +32,7 @@
     "prepublishOnly": "npm run prepare-build",
     "mcp-cli": "mcp-inspector --cli npm run dev",
     "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
-    "planfix": "tsx src/scripts/planfix-cli.ts"
+    "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\""
   },
   "publishConfig": {
     "access": "public"
