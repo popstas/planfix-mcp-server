@@ -7,7 +7,7 @@ import {
   PLANFIX_BASE_URL,
   PLANFIX_HEADERS,
 } from "./config.js";
-import { ToolInput, ToolOutput, ToolWithHandler } from "./types.js";
+import { ToolInput, ToolWithHandler } from "./types.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { z } from "zod";
 import { execa } from "execa";
@@ -57,7 +57,8 @@ export function getToolWithHandler<
     name,
     description,
     inputSchema: zodToJsonSchema(inputSchema) as ToolInput,
-    outputSchema: zodToJsonSchema(outputSchema) as ToolOutput,
+    // `outputSchema` should be JSON schema object similar to inputSchema
+    outputSchema: zodToJsonSchema(outputSchema) as ToolInput,
     handler,
   };
 }
