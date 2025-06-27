@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { z } from "zod";
 import {
   afterEach,
   beforeEach,
@@ -17,6 +18,8 @@ let getContactUrl: typeof import("./helpers.js").getContactUrl;
 let getUserUrl: typeof import("./helpers.js").getUserUrl;
 let debugLog: typeof import("./helpers.js").debugLog;
 let withCache: typeof import("./helpers.js").withCache;
+let log: typeof import("./helpers.js").log;
+let getToolWithHandler: typeof import("./helpers.js").getToolWithHandler;
 
 beforeAll(async () => {
   process.env.PLANFIX_ACCOUNT = "example";
@@ -28,6 +31,8 @@ beforeAll(async () => {
     getUserUrl,
     debugLog,
     withCache,
+    log,
+    getToolWithHandler,
   } = helpers);
 });
 
@@ -122,5 +127,49 @@ describe("isValidToolResponse", () => {
   it("returns false for an invalid response", () => {
     const parsed = { foo: "bar" } as any;
     expect(isValidToolResponse(parsed)).toBe(false);
+  });
+});
+
+describe("log", () => {
+  it("creates directory when missing and writes log", () => {
+    const existsSpy = vi
+      .spyOn(fs, "existsSync")
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(false);
+    const mkdirSpy = vi
+      .spyOn(fs, "mkdirSync")
+      .mockReturnValue(undefined as unknown as string | undefined);
+    const appendSpy = vi
+      .spyOn(fs, "appendFileSync")
+      .mockImplementation(() => {});
+
+    log("test message");
+    expect(mkdirSpy).toHaveBeenCalled();
+    expect(appendSpy).toHaveBeenCalled();
+    existsSpy.mockRestore();
+  });
+});
+
+describe("getToolWithHandler and runTool", () => {
+  it("returns tool and parses response", async () => {
+    const handlerFn = vi.fn(async (args: { x: number }) => ({
+      out: args.x * 2,
+    }));
+    const tool = getToolWithHandler({
+      name: "double",
+      description: "desc",
+      inputSchema: z.object({ x: z.number() }),
+      outputSchema: z.object({ out: z.number() }),
+      handler: handlerFn,
+    });
+
+    expect(tool.name).toBe("double");
+    // ensure json schema conversion keeps property name
+    expect((tool.inputSchema as any).properties).toHaveProperty("x");
+    const res = (await tool.handler({ x: 2 })) as { out: number };
+    expect(res.out).toBe(4);
+
+    const result = (await tool.handler({ x: 3 })) as { out: number };
+    expect(result.out).toBe(6);
   });
 });
