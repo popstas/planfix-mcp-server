@@ -1,11 +1,13 @@
 import { z } from "zod";
 import { getToolWithHandler } from "../helpers.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import {
   addToLeadTask,
   AddToLeadTaskOutputSchema,
 } from "./planfix_add_to_lead_task.js";
 
-export const PlanfixCreateTaskInputSchema = z.object({
+const PlanfixCreateTaskInputSchemaBase = z.object({
   object: z.string().optional(),
   title: z.string().describe("Task title"),
   description: z.string().optional(),
@@ -24,6 +26,11 @@ export const PlanfixCreateTaskInputSchema = z.object({
   leadId: z.number().optional(),
 });
 
+export const PlanfixCreateTaskInputSchema = extendSchemaWithCustomFields(
+  PlanfixCreateTaskInputSchemaBase,
+  customFieldsConfig.leadTaskFields,
+);
+
 export const PlanfixCreateTaskOutputSchema = AddToLeadTaskOutputSchema;
 
 export async function planfixCreateTask(
@@ -32,21 +39,10 @@ export async function planfixCreateTask(
   const {
     agency,
     referral,
-    leadSource,
-    pipeline,
-    title,
     managerEmail,
-    leadId,
-    ...userData
   } = args;
 
   const messageParts = [];
-  // if (leadSource) {
-  //   messageParts.push(`Источник: ${leadSource}`);
-  // }
-  // if (pipeline) {
-  //   messageParts.push(`Воронка: ${pipeline}`);
-  // }
   if (referral) {
     messageParts.push(`Реферал: ${referral}`);
   }
@@ -59,17 +55,9 @@ export async function planfixCreateTask(
   const description = messageParts.join("\n");
 
   return await addToLeadTask({
-    ...userData,
+    ...args,
     company: agency,
-    title,
     description,
-    managerEmail,
-    project: args.project,
-    leadSource,
-    pipeline,
-    referral,
-    tags: args.tags,
-    leadId,
   });
 }
 

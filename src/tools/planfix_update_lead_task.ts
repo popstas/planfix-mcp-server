@@ -6,7 +6,7 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
-import { TaskRequestBody } from "../types.js";
+import { TaskRequestBody, TaskResponse } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
 import { getFieldDirectoryId } from "../lib/planfixObjects.js";
 import {
@@ -15,22 +15,9 @@ import {
   getDirectoryFields,
 } from "../lib/planfixDirectory.js";
 import { searchManager } from "./planfix_search_manager.js";
-import { LeadTaskBaseSchema } from "./schemas/leadTaskSchemas.js";
-import type { CustomFieldDataType } from "../types.js";
-
-interface TaskResponse {
-  id: number;
-  project?: { id: number };
-  assignees?: { users?: Array<{ id: string }> };
-  customFieldData?: CustomFieldDataType[];
-  status?: { id: number };
-}
-
-export const UpdateLeadTaskInputSchema = LeadTaskBaseSchema.extend({
-  taskId: z.number(),
-  status: z.enum(["closed", "active"]).optional(),
-  forceUpdate: z.boolean().optional(),
-});
+import { UpdateLeadTaskInputSchema } from "./schemas/leadTaskSchemas.js";
+import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
 
 export const UpdateLeadTaskOutputSchema = z.object({
   taskId: z.number(),
@@ -38,24 +25,22 @@ export const UpdateLeadTaskOutputSchema = z.object({
   error: z.string().optional(),
 });
 
-export async function updateLeadTask({
-  taskId,
-  name,
-  description,
-  managerEmail,
-  project,
-  leadSource,
-  pipeline,
-  leadId,
-  status,
-  // ignore referral
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  referral,
-  tags,
-  forceUpdate,
-}: z.infer<typeof UpdateLeadTaskInputSchema>): Promise<
-  z.infer<typeof UpdateLeadTaskOutputSchema>
-> {
+export async function updateLeadTask(
+  args: z.infer<typeof UpdateLeadTaskInputSchema>,
+): Promise<z.infer<typeof UpdateLeadTaskOutputSchema>> {
+  const {
+    taskId,
+    name,
+    description,
+    managerEmail,
+    project,
+    leadSource,
+    pipeline,
+    leadId,
+    status,
+    tags,
+    forceUpdate,
+  } = args;
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
   const postBody: TaskRequestBody = {
     template: {
@@ -64,7 +49,7 @@ export async function updateLeadTask({
     customFieldData: [],
   };
 
-  if (status === 'closed') {
+  if (status === "closed") {
     postBody.status = { id: 3 };
   }
 
@@ -85,10 +70,10 @@ export async function updateLeadTask({
     });
 
     // Check if we need to update the status
-    const isStatusUpdate = status === 'closed' && task.status?.id !== 3;
-    
+    const isStatusUpdate = status === "closed" && task.status?.id !== 3;
+
     // If we have no updates to make and forceUpdate is false, return early
-    
+
     // Log any fields that won't be updated (for debugging)
     if (name) console.log("name is not updated");
     if (description) console.log("description is not updated");
@@ -249,6 +234,15 @@ export async function updateLeadTask({
         }
       }
     }
+
+    extendPostBodyWithCustomFields(
+      postBody,
+      args as Record<string, unknown>,
+      customFieldsConfig.leadTaskFields,
+      task,
+      undefined,
+      forceUpdate,
+    );
 
     const hasUpdates =
       postBody.project ||

@@ -22,5 +22,9 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          file: ./coverage/lcov.info
       - run: npm run typecheck
       - run: npm run lint src

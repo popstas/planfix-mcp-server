@@ -4,12 +4,14 @@ import {
   ToolSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { customFieldsConfig } from "./customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "./lib/extendSchemaWithCustomFields.js";
 
 export type ToolInput = z.infer<typeof ToolSchema.shape.inputSchema>;
 export type ToolOutput = CallToolResult;
 
 // Input and Output Schemas
-export const UserDataInputSchema = z.object({
+export const UserDataInputSchemaBase = z.object({
   name: z.string().optional(),
   nameTranslated: z
     .string()
@@ -20,6 +22,11 @@ export const UserDataInputSchema = z.object({
   telegram: z.string().optional(),
   company: z.string().optional(),
 });
+
+export const UserDataInputSchema = extendSchemaWithCustomFields(
+  UserDataInputSchemaBase,
+  customFieldsConfig.contactFields,
+);
 
 export type UsersListType = {
   users: {
@@ -36,7 +43,7 @@ export type CustomFieldDataType = {
   field: {
     id: number;
   };
-  value: string | number | { id: number } | { id: number }[];
+  value: string | string[] | number | { id: number } | { id: number }[];
 };
 
 export type ToolWithHandler = Tool & {
@@ -57,4 +64,22 @@ export interface TaskRequestBody {
     id: number;
   };
   assignees?: UsersListType;
+}
+
+export interface ContactResponse {
+  id: number;
+  name?: string;
+  lastname?: string;
+  email?: string;
+  phones?: Array<{ number: string; type?: number }>;
+  telegram?: string;
+  customFieldData?: CustomFieldDataType[];
+}
+
+export interface TaskResponse {
+  id: number;
+  project?: { id: number };
+  assignees?: { users?: Array<{ id: string }> };
+  customFieldData?: CustomFieldDataType[];
+  status?: { id: number };
 }

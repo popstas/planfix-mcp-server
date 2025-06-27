@@ -1,5 +1,7 @@
 # Planfix MCP Server
 
+[![Coverage Status](https://coveralls.io/repos/github/popstas/planfix-mcp-server/badge.svg?branch=master)](https://coveralls.io/github/popstas/planfix-mcp-server?branch=master)
+
 This MCP server provides integration with the Planfix API, allowing Model Context Protocol (MCP) clients to interact
 with Planfix CRM and task management system.
 
@@ -31,6 +33,29 @@ The server requires the following environment variables for Planfix API access:
 - `PLANFIX_FIELD_ID_TAGS` – Custom field ID for task tags
   - Missing tag names will be added automatically to the directory
 - `PLANFIX_FIELD_ID_LEAD_ID` – Custom field ID for external lead ID
+
+### config.yml
+
+Custom fields can also be configured via `config.yml`. The default path is
+`./data/config.yml`. Override it with the `--config=/abs/path/config.yml` CLI
+flag or the `PLANFIX_CONFIG` environment variable.
+
+```yaml
+leadTaskFields:
+  - id: "456"
+    name: "id сделки"
+    argName: lead_id
+    type: number
+contactFields:
+  - id: "123"
+    name: "Резидентство"
+    argName: resident
+    type: enum
+    values: ["резидент", "нерезидент", "иное"]
+```
+
+Values from `config.yml` override matching entries from the legacy environment
+variables when merged by `id`.
 
 ## Debug
 

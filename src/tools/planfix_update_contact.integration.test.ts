@@ -10,6 +10,7 @@ describe("planfix_update_contact tool prod", () => {
       telegram: "popstas",
       phone: "+79222229531",
       name: "Stanislav Popov",
+      // resident: "В процессе",
     };
     const { valid, content } = await runTool<{ contactId: number }>(
       "planfix_update_contact",

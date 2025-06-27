@@ -8,6 +8,9 @@ import {
 } from "../helpers.js";
 import type { CustomFieldDataType } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
 
 interface TaskRequestBody {
   template: {
@@ -27,7 +30,7 @@ interface TaskRequestBody {
   };
 }
 
-export const CreateSellTaskInputSchema = z.object({
+const CreateSellTaskInputSchemaBase = z.object({
   clientId: z.number(),
   leadTaskId: z.number(),
   agencyId: z.number().optional(),
@@ -37,33 +40,28 @@ export const CreateSellTaskInputSchema = z.object({
   project: z.string().optional(),
 });
 
+export const CreateSellTaskInputSchema = extendSchemaWithCustomFields(
+  CreateSellTaskInputSchemaBase,
+  [],
+);
+
 export const CreateSellTaskOutputSchema = z.object({
   taskId: z.number(),
   url: z.string(),
 });
 
-/**
- * Create a sell task in Planfix using the SELL template, with parent task set to the lead task
- * @param clientId - The Planfix client/contact ID
- * @param leadTaskId - The Planfix lead task ID (parent)
- * @param agencyId - The Planfix agency ID (optional)
- * @param assignees - The Planfix assignees IDs (optional)
- * @param name - The name of the task
- * @param description - The description of the task
- * @param project - The name of the project (optional)
- * @returns {Promise<typeof CreateSellTaskOutputSchema>} The created task ID and URL
- */
-export async function createSellTask({
-  clientId,
-  leadTaskId,
-  agencyId,
-  assignees,
-  name,
-  description,
-  project,
-}: z.infer<typeof CreateSellTaskInputSchema>): Promise<
-  z.infer<typeof CreateSellTaskOutputSchema>
-> {
+export async function createSellTask(
+  args: z.infer<typeof CreateSellTaskInputSchema>,
+): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
+  const {
+    clientId,
+    leadTaskId,
+    agencyId,
+    assignees,
+    project,
+  } = args;
+  let { name, description } = args;
+
   try {
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
@@ -162,6 +160,12 @@ export async function createSellTask({
         },
       });
     }
+
+    extendPostBodyWithCustomFields(
+      postBody,
+      args as Record<string, unknown>,
+      customFieldsConfig.leadTaskFields,
+    );
 
     const result = await planfixRequest<{ id: number }>({
       path: `task/`,

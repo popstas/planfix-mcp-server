@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, coverageConfigDefaults } from "vitest/config";
 
 export default defineConfig({
   test: {
@@ -6,10 +6,17 @@ export default defineConfig({
     hookTimeout: 30000, // Also increase hook timeout
     maxConcurrency: 4, // Limit concurrency to prevent API rate limiting
     globals: true, // Enable global test APIs
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/.git/**',
-    ],
+    exclude: ["**/node_modules/**", "**/dist/**", "**/.git/**"],
+    coverage: {
+      enabled: true,
+      exclude: [
+        "data/**",
+        "zapier-scripts/**",
+        ...coverageConfigDefaults.exclude,
+      ],
+      reporter: ["text", "json-summary", "lcov"],
+      reportsDirectory: "coverage",
+      clean: true,
+    },
   },
 });

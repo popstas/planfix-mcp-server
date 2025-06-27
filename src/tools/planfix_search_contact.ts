@@ -6,14 +6,22 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendFiltersWithCustomFields } from "../lib/extendFiltersWithCustomFields.js";
 
-export const PlanfixSearchContactInputSchema = z.object({
+const PlanfixSearchContactInputSchemaBase = z.object({
   name: z.string().optional(),
   nameTranslated: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
   telegram: z.string().optional(),
 });
+
+export const PlanfixSearchContactInputSchema = extendSchemaWithCustomFields(
+  PlanfixSearchContactInputSchemaBase,
+  customFieldsConfig.contactFields,
+);
 
 export const PlanfixSearchContactOutputSchema = z.object({
   contactId: z.number(),
@@ -28,15 +36,16 @@ export const PlanfixSearchContactOutputSchema = z.object({
  * Search for a contact in Planfix by name, phone, email, or telegram.
  * This is a placeholder implementation that should be replaced with actual Planfix API calls.
  */
-export async function planfixSearchContact({
-  name,
-  nameTranslated,
-  phone,
-  email,
-  telegram,
-}: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<
+export async function planfixSearchContact(args: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<
   z.infer<typeof PlanfixSearchContactOutputSchema>
 > {
+  const {
+    name,
+    nameTranslated,
+    email,
+    telegram,
+  } = args;
+  let { phone } = args;
   // console.log('Searching Planfix contact...');
   let contactId: number | null = null;
   // If phone looks like a Telegram username (starts with @) or doesn't look like a phone number, set it to empty string
@@ -117,6 +126,14 @@ export async function planfixSearchContact({
           : undefined,
   };
 
+  const customFilters: FilterType[] = [];
+  extendFiltersWithCustomFields(
+    customFilters,
+    args,
+    customFieldsConfig.contactFields,
+    "contact",
+  );
+
   async function searchWithFilter(
     filter: FilterType,
   ): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
@@ -192,6 +209,13 @@ export async function planfixSearchContact({
       // If not found, try with @
       if (!contactId && filters.byTelegramWithAt) {
         result = await searchWithFilter(filters.byTelegramWithAt);
+        contactId = result.contactId;
+      }
+    }
+    if (!contactId && customFilters.length) {
+      for (const cf of customFilters) {
+        if (contactId) break;
+        result = await searchWithFilter(cf);
         contactId = result.contactId;
       }
     }

@@ -21,7 +21,6 @@ describe("planfix_create_task", () => {
       name: "John Smith",
       phone: "+123",
       agency: "Agency",
-      referral: "Ref",
       leadSource: "site",
       pipeline: "Main",
       leadId: 42,

@@ -15,8 +15,11 @@ import {
 } from "../lib/planfixDirectory.js";
 import { getTaskCustomFieldName } from "../lib/planfixCustomFields.js";
 import { TaskRequestBody } from "../types.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
 
-export const CreateLeadTaskInputSchema = z.object({
+const CreateLeadTaskInputSchemaBase = z.object({
   name: z.string(),
   description: z.string(),
   clientId: z.number(),
@@ -25,10 +28,14 @@ export const CreateLeadTaskInputSchema = z.object({
   project: z.string().optional(),
   leadSource: z.string().optional(),
   pipeline: z.string().optional(),
-  referral: z.string().optional(),
   tags: z.array(z.string()).optional(),
   leadId: z.number().optional(),
 });
+
+export const CreateLeadTaskInputSchema = extendSchemaWithCustomFields(
+  CreateLeadTaskInputSchemaBase,
+  customFieldsConfig.leadTaskFields,
+);
 
 export const CreateLeadTaskOutputSchema = z.object({
   taskId: z.number(),
@@ -45,28 +52,28 @@ export const CreateLeadTaskOutputSchema = z.object({
  * @param agencyId - Optional ID of the agency
  * @param project - Optional name of the project
  * @param leadSource - Optional name of the lead source
- * @param referral - Optional name of the referral
  * @param tags - Optional array of tags
  * @returns Promise with the created task ID and URL
  */
-export async function createLeadTask({
-  name,
-  description,
-  clientId,
-  managerId,
-  agencyId,
-  project,
-  leadSource,
-  pipeline,
-  leadId,
-  tags,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  referral,
-}: z.infer<typeof CreateLeadTaskInputSchema>): Promise<{
+export async function createLeadTask(
+  args: z.infer<typeof CreateLeadTaskInputSchema>,
+): Promise<{
   taskId: number;
   url?: string;
   error?: string;
 }> {
+  const {
+    name,
+    description,
+    clientId,
+    managerId,
+    agencyId,
+    project,
+    leadSource,
+    pipeline,
+    leadId,
+    tags,
+  } = args;
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
   let finalDescription = description;
   let finalProjectId = 0;
@@ -227,6 +234,12 @@ export async function createLeadTask({
       }
     }
   }
+
+  extendPostBodyWithCustomFields(
+    postBody,
+    args as Record<string, unknown>,
+    customFieldsConfig.leadTaskFields,
+  );
 
   try {
     if (PLANFIX_DRY_RUN) {

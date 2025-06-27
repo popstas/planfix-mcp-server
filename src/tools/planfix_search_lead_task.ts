@@ -3,6 +3,8 @@ import { planfixSearchContact } from "./planfix_search_contact.js";
 import { searchPlanfixTask } from "./planfix_search_task.js";
 import { planfixSearchCompany } from "./planfix_search_company.js";
 import { UserDataInputSchema, UsersListType } from "../types.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import {
   getContactUrl,
   getTaskUrl,
@@ -10,7 +12,10 @@ import {
   log,
 } from "../helpers.js";
 
-export const SearchLeadTaskInputSchema = UserDataInputSchema;
+export const SearchLeadTaskInputSchema = extendSchemaWithCustomFields(
+  UserDataInputSchema,
+  customFieldsConfig.contactFields,
+);
 
 export const SearchLeadTaskOutputSchema = z.object({
   taskId: z.number(),

@@ -1,12 +1,20 @@
 import { z } from "zod";
 import { PLANFIX_FIELD_IDS } from "../config.js";
 import { getTaskUrl, getToolWithHandler, planfixRequest } from "../helpers.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendFiltersWithCustomFields, type PlanfixFilter } from "../lib/extendFiltersWithCustomFields.js";
 
-export const SearchPlanfixTaskInputSchema = z.object({
+const SearchPlanfixTaskInputSchemaBase = z.object({
   taskTitle: z.string().optional(),
   clientId: z.number().optional(),
   leadId: z.number().optional(),
 });
+
+export const SearchPlanfixTaskInputSchema = extendSchemaWithCustomFields(
+  SearchPlanfixTaskInputSchemaBase,
+  customFieldsConfig.leadTaskFields,
+);
 
 export const SearchPlanfixTaskOutputSchema = z.object({
   taskId: z.number().optional(),
@@ -71,8 +79,16 @@ export async function searchPlanfixTask({
     },
   };
 
+  const customFilters: PlanfixFilter[] = [];
+  extendFiltersWithCustomFields(
+    customFilters,
+    { taskTitle, clientId, leadId },
+    customFieldsConfig.leadTaskFields,
+    "task",
+  );
+
   async function searchWithFilter(
-    filtersArr: Array<Record<string, unknown>>,
+    filtersArr: PlanfixFilter[],
   ): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
     try {
       const result = (await planfixRequest({
@@ -127,6 +143,11 @@ export async function searchPlanfixTask({
       const result = await searchWithFilter([
         filters.byName /*, filters.byLastDays*/,
       ]);
+      taskId = result.taskId;
+      assignees = result.assignees;
+    }
+    if (!taskId && customFilters.length) {
+      const result = await searchWithFilter(customFilters);
       taskId = result.taskId;
       assignees = result.assignees;
     }

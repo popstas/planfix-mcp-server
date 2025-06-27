@@ -6,17 +6,10 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
-import type { CustomFieldDataType } from "../types.js";
-
-interface ContactResponse {
-  id: number;
-  name?: string;
-  lastname?: string;
-  email?: string;
-  phones?: Array<{ number: string; type?: number }>;
-  telegram?: string;
-  customFieldData?: CustomFieldDataType[];
-}
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import { ContactResponse } from "../types.js";
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   if (!fullName) return { firstName: "", lastName: "" };
@@ -27,7 +20,7 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
   return { firstName, lastName };
 }
 
-export const UpdatePlanfixContactInputSchema = z.object({
+const UpdatePlanfixContactInputSchemaBase = z.object({
   contactId: z.number(),
   name: z.string().optional(),
   telegram: z.string().optional(),
@@ -36,31 +29,31 @@ export const UpdatePlanfixContactInputSchema = z.object({
   forceUpdate: z.boolean().optional(),
 });
 
+export const UpdatePlanfixContactInputSchema = extendSchemaWithCustomFields(
+  UpdatePlanfixContactInputSchemaBase,
+  customFieldsConfig.contactFields,
+);
+
 export const UpdatePlanfixContactOutputSchema = z.object({
   contactId: z.number(),
   url: z.string().optional(),
   error: z.string().optional(),
 });
 
-export async function updatePlanfixContact({
-  contactId,
-  name,
-  telegram,
-  email,
-  phone,
-  forceUpdate,
-}: z.infer<typeof UpdatePlanfixContactInputSchema>): Promise<
-  z.infer<typeof UpdatePlanfixContactOutputSchema>
-> {
+export async function updatePlanfixContact(
+  args: z.infer<typeof UpdatePlanfixContactInputSchema>,
+): Promise<z.infer<typeof UpdatePlanfixContactOutputSchema>> {
+  const { contactId, name, telegram, email, phone, forceUpdate } = args;
   try {
     if (PLANFIX_DRY_RUN) {
       log(`[DRY RUN] Would update contact ${contactId}`);
       return { contactId, url: getContactUrl(contactId) };
     }
 
-    const fieldsBase = `id,name,lastname,email,phones`;
+    const customContactFieldsIds = customFieldsConfig.contactFields.map((f) => f.id);
+    const fieldsBase = `id,name,lastname,email,phones,${customContactFieldsIds.join(",")}`;
     const fields = PLANFIX_FIELD_IDS.telegramCustom
-      ? `${fieldsBase},customFieldData`
+      ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
       : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase;
@@ -123,13 +116,21 @@ export async function updatePlanfixContact({
       }
     }
 
+    const cleanPhone = (phone: string) => phone.replace(/[^0-9]/g, "");
     if (phone) {
       const phones = contact.phones || [];
-      const exists = phones.some((p) => p.number === phone);
+      const exists = phones.some((p) => p.number === cleanPhone(phone));
       if (!exists) {
-        postBody.phones = [...phones, { number: phone, type: 1 }];
+        postBody.phones = [...phones, { number: cleanPhone(phone), type: 1 }];
       }
     }
+
+    extendPostBodyWithCustomFields(
+      postBody,
+      args,
+      customFieldsConfig.contactFields,
+      contact,
+    );
 
     if (Object.keys(postBody).length === 0) {
       return { contactId, url: getContactUrl(contactId) };
