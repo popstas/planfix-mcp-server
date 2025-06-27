@@ -27,6 +27,7 @@
     "test:unit": "cross-env CI=1 npx vitest --exclude '**/*.integration.test.ts'",
     "test:integration": "cross-env CI=1 npx vitest integration",
     "test-full": "npm run typecheck && npm run test && npm run lint src",
+    "coverage-info": "tsx src/scripts/coverage-info.ts",
     "prepare-build": "npm run build && npm run test-full",
     "prepublishOnly": "npm run prepare-build",
     "mcp-cli": "mcp-inspector --cli npm run dev",
