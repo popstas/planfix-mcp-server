@@ -14,7 +14,7 @@ export default defineConfig({
         "zapier-scripts/**",
         ...coverageConfigDefaults.exclude,
       ],
-      reporter: ["text", "json-summary", "lcov"],
+      reporter: ["text", "text-summary", "json-summary", "lcov"],
       reportsDirectory: "coverage",
       clean: true,
     },
