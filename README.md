@@ -1,5 +1,7 @@
 # Planfix MCP Server
 
+[![Coverage Status](https://coveralls.io/repos/github/popstas/planfix-mcp-server/badge.svg?branch=master)](https://coveralls.io/github/popstas/planfix-mcp-server?branch=master)
+
 This MCP server provides integration with the Planfix API, allowing Model Context Protocol (MCP) clients to interact
 with Planfix CRM and task management system.
 
