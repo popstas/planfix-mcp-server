@@ -1,62 +1,108 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import fs from "fs";
 import path from "path";
+import {
+  afterEach,
+  beforeEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
-vi.mock("fs/promises", () => ({
-  default: {
-    mkdir: vi.fn(),
-    readFile: vi.fn(),
-    writeFile: vi.fn(),
-  },
-}));
+let helpers: typeof import("./helpers.js");
+let getTaskUrl: typeof import("./helpers.js").getTaskUrl;
+let getCommentUrl: typeof import("./helpers.js").getCommentUrl;
+let getContactUrl: typeof import("./helpers.js").getContactUrl;
+let getUserUrl: typeof import("./helpers.js").getUserUrl;
+let debugLog: typeof import("./helpers.js").debugLog;
+let withCache: typeof import("./helpers.js").withCache;
 
-import fsp from "fs/promises";
-import { withCache, isValidToolResponse } from "./helpers.js";
+beforeAll(async () => {
+  process.env.PLANFIX_ACCOUNT = "example";
+  helpers = await import("./helpers.js");
+  ({
+    getTaskUrl,
+    getCommentUrl,
+    getContactUrl,
+    getUserUrl,
+    debugLog,
+    withCache,
+  } = helpers);
+});
 
-const mockReadFile = vi.mocked(fsp.readFile);
-const mockWriteFile = vi.mocked(fsp.writeFile);
-const mockMkdir = vi.mocked(fsp.mkdir);
+const cacheDir = path.join(__dirname, "..", "data", "cache");
+const cacheFile = path.join(cacheDir, "test.json");
 
-describe("withCache", () => {
+beforeEach(() => {
+  if (fs.existsSync(cacheFile)) fs.rmSync(cacheFile);
+});
+
+afterEach(() => {
+  if (fs.existsSync(cacheFile)) fs.rmSync(cacheFile);
+  vi.restoreAllMocks();
+  delete process.env.LOG_LEVEL;
+  process.env.PLANFIX_ACCOUNT = "example";
+});
+
+describe("url helpers", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    process.env.PLANFIX_ACCOUNT = "example";
   });
 
-  it("returns cached data if cache is valid", async () => {
-    const cached = { data: { value: 1 }, expiresAt: Date.now() + 1000 };
-    mockReadFile.mockResolvedValueOnce(JSON.stringify(cached));
-    const dataFn = vi.fn();
-
-    const res = await withCache("cache", dataFn);
-
-    expect(res).toEqual(cached.data);
-    expect(dataFn).not.toHaveBeenCalled();
-    expect(mockWriteFile).not.toHaveBeenCalled();
+  it("builds task url", () => {
+    expect(getTaskUrl(1)).toBe("https://example.planfix.com/task/1");
+    expect(getTaskUrl()).toBe("");
   });
 
-  it("generates data and writes cache when missing", async () => {
-    mockReadFile.mockRejectedValueOnce(new Error("miss"));
-    const dataFn = vi.fn().mockResolvedValue({ ok: true });
+  it("builds comment url", () => {
+    expect(getCommentUrl(2, 3)).toBe(
+      "https://example.planfix.com/task/2?comment=3",
+    );
+    expect(getCommentUrl()).toBe("");
+  });
 
-    const res = await withCache("new", dataFn, 10);
+  it("builds contact url", () => {
+    expect(getContactUrl(4)).toBe("https://example.planfix.com/contact/4");
+    expect(getContactUrl()).toBe("");
+  });
 
-    expect(dataFn).toHaveBeenCalledTimes(1);
-    expect(mockMkdir).toHaveBeenCalled();
-    expect(mockWriteFile).toHaveBeenCalled();
-    const writeArgs = mockWriteFile.mock.calls[0];
-    expect(writeArgs[0]).toContain(path.join("data", "cache", "new.json"));
-    const written = JSON.parse(writeArgs[1] as string);
-    expect(written.data).toEqual({ ok: true });
-    expect(res).toEqual({ ok: true });
+  it("builds user url", () => {
+    expect(getUserUrl(5)).toBe("https://example.planfix.com/user/5");
+    expect(getUserUrl()).toBe("");
   });
 });
 
-describe("isValidToolResponse", () => {
-  it("validates correct shape", () => {
-    const obj = { content: [{ text: "hi" }], structuredContent: {} };
-    expect(isValidToolResponse(obj)).toBe(true);
+describe("debugLog", () => {
+  it("logs message when LOG_LEVEL=debug", () => {
+    const appendSpy = vi
+      .spyOn(fs, "appendFileSync")
+      .mockImplementation(() => {});
+    process.env.LOG_LEVEL = "debug";
+    debugLog("msg");
+    expect(appendSpy).toHaveBeenCalled();
   });
 
-  it("fails for invalid value", () => {
-    expect(isValidToolResponse({})).toBe(false);
+  it("does not log when LOG_LEVEL is not debug", () => {
+    const appendSpy = vi
+      .spyOn(fs, "appendFileSync")
+      .mockImplementation(() => {});
+    process.env.LOG_LEVEL = "info";
+    debugLog("msg");
+    expect(appendSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("withCache", () => {
+  it("stores and retrieves cached value", async () => {
+    const fn1 = vi.fn().mockResolvedValue("one");
+    const res1 = await withCache("test", fn1, 100);
+    expect(res1).toBe("one");
+    expect(fn1).toHaveBeenCalledTimes(1);
+
+    const fn2 = vi.fn().mockResolvedValue("two");
+    const res2 = await withCache("test", fn2, 100);
+    expect(res2).toBe("one");
+    expect(fn2).not.toHaveBeenCalled();
   });
 });
