@@ -1,4 +1,5 @@
 import { log, planfixRequest } from "../helpers.js";
+import { getCacheProvider } from "./cache.js";
 import type { CustomFieldDataType } from "../types.js";
 
 export interface DirectoryInfo {
@@ -150,8 +151,11 @@ export async function createDirectoryEntry(
         ],
       },
     });
-    const key = (result as { key?: number; entry?: { key: number } }).key ??
+    const key =
+      (result as { key?: number; entry?: { key: number } }).key ??
       (result as { key?: number; entry?: { key: number } }).entry?.key;
+    const cache = getCacheProvider();
+    await cache.deletePrefix?.(`directory/${directoryId}`);
     return typeof key === "number" ? key : undefined;
   } catch (error) {
     log(`[createDirectoryEntry] ${(error as Error).message}`);
