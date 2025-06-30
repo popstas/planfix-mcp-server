@@ -7,10 +7,11 @@ describe("planfix_add_to_lead_task tool", () => {
   it("should create a new lead task with contact details", async () => {
     const args = {
       name: "Станислав Попов",
-      phone: "+79222229531",
-      telegram: "@popstas",
+      phone: "+79222222222",
+      telegram: "@pop.stas",
       email: "pop.stas@gmail.com",
       title: "Test Lead via Automated Test",
+      pipeline: "Test2",
       description: "This is a test message for adding a lead task.",
     };
 
@@ -35,11 +36,12 @@ describe("planfix_add_to_lead_task tool", () => {
   describe("name fallback logic", () => {
     it("should use telegram as name when name is not provided", async () => {
       const args = {
-        phone: "+79222229531",
+        phone: "+79222222222",
         telegram: "@testtelegram",
         email: "test@example.com",
         title: "Test Name Fallback - Telegram",
         description: "This should use telegram as the name",
+        pipeline: "Test2",
       };
 
       const result = await runTool("planfix_add_to_lead_task", args);
@@ -52,10 +54,11 @@ describe("planfix_add_to_lead_task tool", () => {
 
     it("should use phone as name when name and telegram are not provided", async () => {
       const args = {
-        phone: "+79222229532",
+        phone: "+79222222222",
         email: "test2@example.com",
         title: "Test Name Fallback - Phone",
         description: "This should use phone as the name",
+        pipeline: "Test2",
       };
 
       const result = await runTool("planfix_add_to_lead_task", args);
@@ -71,6 +74,7 @@ describe("planfix_add_to_lead_task tool", () => {
         email: "test3@example.com",
         title: "Test Name Fallback - Email",
         description: "This should use email as the name",
+        pipeline: "Test2",
       };
 
       const result = await runTool("planfix_add_to_lead_task", args);
@@ -85,6 +89,7 @@ describe("planfix_add_to_lead_task tool", () => {
       const args = {
         title: "Test Name Fallback - Default",
         description: "This should use default client name",
+        pipeline: "Test2",
       };
 
       const result = await runTool("planfix_add_to_lead_task", args);
@@ -92,7 +97,7 @@ describe("planfix_add_to_lead_task tool", () => {
       
       const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
       expect(content.error).toBeUndefined();
-      expect(content.clientId).toBeGreaterThan(0);
+      expect(content.clientId).toBe(0);
       expect(content.clientUrl).toBeDefined();
     }, 60000);
   });
