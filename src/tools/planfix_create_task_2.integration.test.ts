@@ -5,16 +5,29 @@ import { runTool } from "../helpers.js";
 describe("planfix_create_task tool prod", () => {
   it("creates task", async () => {
     const args = {
-      title: "Сделка 79660620181",
-      name: "Контакт 79660620181",
-      phone: "79660620181",
-      leadSource: "Входящий звонок",
-      pipeline: "1000Х",
-      project: "Тестирование интеграции с Планфикс",
-      tags: ["+7 966 032-88-03", "Пропущенный звонок"],
-      managerEmail: "popstas@gmail.com",
-      description:
-        "Теги: +7 966 032-88-03, Пропущенный звонок\n\nПоля:\nПереход в &quot;Новый лид&quot;: 1750235798\nАктуальный этап (Основная воронка): Новый лид\nИсточник: Входящий звонок\n\nURL: https://impactcapital.amocrm.ru/leads/detail/36924929",
+      "title": "Автосделка: Ирина США Jet",
+      "leadId": 36969059,
+      "name": "Ирина",
+      "telegram": "@golmgrein",
+      "phone": "+17868368058",
+      "email": "riana.talks@gmail.com",
+      "fields": {
+        "Актуальный этап (Основная воронка)": "В работе",
+        "Переход в &quot;Новый лид&quot;": "1748965132",
+        "Источник": "Реклама в Facebook",
+        "utm_source": "fb",
+        "utm_medium": "eva",
+        "utm_campaign": "{{company__name}}",
+        "utm_content": "{{adset_name}}",
+        "utm_term": "{{ad_name}}",
+        "Переход в &quot;В работе&quot;": "1749211991",
+        "Причина отказа": "Партнёрство (франшиза)"
+      },
+      "leadSource": "fb",
+      "tags": ["merged", "ФБ Евгения", "fb1357103122232251", "инвесткомитет10.06"],
+      "description": "\nТеги:\nmerged, ФБ Евгения, fb1357103122232251, инвесткомитет10.06\n\nПоля:\nАктуальный этап (Основная воронка): В работе\nПереход в &quot;Новый лид&quot;: 1748965132\nИсточник: Реклама в Facebook\nutm_source: fb\nutm_medium: eva\nutm_campaign: {{company__name}}\nutm_content: {{adset_name}}\nutm_term: {{ad_name}}\nПереход в &quot;В работе&quot;: 1749211991\nПричина отказа: Партнёрство (франшиза)\n\nURL: https://impactcapital.amocrm.ru/leads/detail/36969059",
+      "managerEmail": "popstas@gmail.com",
+      "pipeline": "Академия Система"
     };
     const { valid, content } = await runTool<{
       taskId: number;

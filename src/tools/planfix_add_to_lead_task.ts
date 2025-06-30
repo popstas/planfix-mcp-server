@@ -99,6 +99,10 @@ export async function addToLeadTask(
     tags,
     leadId,
   } = args;
+
+  const userData = { name, nameTranslated, phone, email, telegram, company };
+  const eventData = { title, description };
+
   // Helper: template string replacement
   function replaceTemplateVars(
     template: string,
@@ -111,8 +115,6 @@ export async function addToLeadTask(
     return result;
   }
 
-  const userData = { name, nameTranslated, phone, email, telegram, company };
-  const eventData = { title, description };
   // Main logic
 
   try {
@@ -128,6 +130,8 @@ export async function addToLeadTask(
         assignees: { users: [] },
       };
     }
+
+    const errors: string[] = [];
 
     // 1. Try to get taskId and clientId
     const searchResult = await searchLeadTask(userData);
@@ -166,6 +170,9 @@ export async function addToLeadTask(
       }
       const createResult = await createPlanfixContact(userData);
       clientId = createResult.contactId || 0;
+      if (createResult.error) {
+        errors.push(createResult.error);
+      }
     }
     // 3. Update contact with provided data
     if (clientId) {
@@ -248,6 +255,7 @@ export async function addToLeadTask(
 
     url = commentId ? getCommentUrl(taskId, commentId) : getTaskUrl(taskId);
     clientUrl = getContactUrl(clientId);
+    const error = errors.length ? errors.join("\n") : undefined;
     return {
       taskId,
       clientId,
@@ -257,6 +265,7 @@ export async function addToLeadTask(
       firstName,
       lastName,
       agencyId,
+      error,
     };
   } catch (error) {
     // console.error('[leadToTask] Error:', error.message || error);

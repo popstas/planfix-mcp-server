@@ -35,12 +35,13 @@ const CreatePlanfixContactInputSchemaBase = z.object({
 
 export const CreatePlanfixContactInputSchema = extendSchemaWithCustomFields(
   CreatePlanfixContactInputSchemaBase,
-  customFieldsConfig.contactFields,
+  customFieldsConfig.contactFields
 );
 
 export const CreatePlanfixContactOutputSchema = z.object({
   contactId: z.number(),
   url: z.string().optional(),
+  error: z.string().optional(),
 });
 
 // Helper function to split full name into first and last name
@@ -61,13 +62,13 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
  * @returns Promise with the created contact ID and URL
  */
 export async function createPlanfixContact(
-  userData: z.infer<typeof CreatePlanfixContactInputSchema>,
+  userData: z.infer<typeof CreatePlanfixContactInputSchema>
 ): Promise<z.infer<typeof CreatePlanfixContactOutputSchema>> {
   try {
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
       log(
-        `[DRY RUN] Would create contact with name: ${userData.name || "N/A"}, email: ${userData.email || "N/A"}`,
+        `[DRY RUN] Would create contact with name: ${userData.name || "N/A"}, email: ${userData.email || "N/A"}`
       );
       return {
         contactId: mockId,
@@ -112,7 +113,7 @@ export async function createPlanfixContact(
     extendPostBodyWithCustomFields(
       postBody,
       userData as Record<string, unknown>,
-      customFieldsConfig.contactFields,
+      customFieldsConfig.contactFields
     );
 
     const result = await planfixRequest<{ id: number }>({
@@ -124,15 +125,15 @@ export async function createPlanfixContact(
 
     return { contactId, url };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    log(`[createPlanfixContact] Error: ${errorMessage}`);
-    return { contactId: 0, url: undefined };
+    const errMsg = error instanceof Error ? error.message : "Unknown error";
+    const err = `Error creating contact: ${errMsg}`;
+    log(err);
+    return { contactId: 0, url: undefined, error: err };
   }
 }
 
 export async function handler(
-  args?: Record<string, unknown>,
+  args?: Record<string, unknown>
 ): Promise<z.infer<typeof CreatePlanfixContactOutputSchema>> {
   const parsedArgs = CreatePlanfixContactInputSchema.parse(args);
   return createPlanfixContact(parsedArgs);
