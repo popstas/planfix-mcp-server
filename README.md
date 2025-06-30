@@ -205,7 +205,7 @@ const objects = await planfixClient.post('object/list', {
 ### Lead Management
 
 - `leadToTask`: Convert a lead to a task by creating/updating contact and task
- - `searchLeadTask`: Search for lead tasks by contact information. Returns `totalTasks`
+ - `searchLeadTask`: Search for lead tasks by contact information
 
 ### Contact Management
 
@@ -216,7 +216,7 @@ const objects = await planfixClient.post('object/list', {
 
 ### Task Management
 
- - `searchPlanfixTask`: Search for tasks by title, client ID and optional `templateId`. Returns `totalTasks`
+ - `searchPlanfixTask`: Search for tasks by title, client ID and optional `templateId`
 - `createSellTask`: Create a new sell task with template
 - `createLeadTask`: Create a new lead task
 - `addToLeadTask`: Create or update a lead task and update contact details

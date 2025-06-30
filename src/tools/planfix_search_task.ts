@@ -50,11 +50,6 @@ export async function searchPlanfixTask({
   let assignees: { users: Assignee[] } | undefined;
   let totalTasks = 0;
 
-  const TEMPLATE_ID =
-    typeof templateId === "number"
-      ? templateId
-      : Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
-
   const postBody = {
     offset: 0,
     pageSize: 100,
@@ -62,13 +57,15 @@ export async function searchPlanfixTask({
     fields: "id,name,description,template,assignees",
   };
 
-  const filtersDefault = [
-    {
+  const filtersDefault: PlanfixFilter[] = [];
+
+  if (templateId) {
+    filtersDefault.push({
       type: 51, // filter by template
       operator: "equal",
-      value: TEMPLATE_ID,
-    },
-  ];
+      value: templateId,
+    });
+  }
 
   const filters = {
     byClient: {

@@ -41,7 +41,7 @@ describe("searchPlanfixTask", () => {
 
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
     const call = mockPlanfixRequest.mock.calls[0][0];
-    expect((call.body as any).filters[1]).toMatchObject({
+    expect((call.body as any).filters[0]).toMatchObject({
       field: 100,
       value: 1,
     });
@@ -64,7 +64,7 @@ describe("searchPlanfixTask", () => {
 
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
     const second = mockPlanfixRequest.mock.calls[1][0];
-    expect((second.body as any).filters[1]).toMatchObject({
+    expect((second.body as any).filters[0]).toMatchObject({
       field: 200,
       value: "contact:3",
     });
