@@ -12,6 +12,8 @@ import {
   log,
 } from "../helpers.js";
 
+const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
+
 export const SearchLeadTaskInputSchema = extendSchemaWithCustomFields(
   UserDataInputSchema,
   customFieldsConfig.contactFields,
@@ -26,6 +28,7 @@ export const SearchLeadTaskOutputSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   agencyId: z.number().optional(),
+  totalTasks: z.number().optional(),
   found: z.boolean(),
 });
 
@@ -49,14 +52,19 @@ export async function searchLeadTask(
 
     let taskId = 0;
     let assignees: UsersListType = { users: [] };
+    let totalTasks = 0;
 
     // 2. If contact found, search for task by clientId
     if (clientId > 0) {
-      const result = await searchPlanfixTask({ clientId });
+      const result = await searchPlanfixTask({
+        clientId,
+        templateId: TEMPLATE_ID,
+      });
       if (result.assignees && Array.isArray(result.assignees.users)) {
         assignees = result.assignees;
       }
       taskId = result.taskId || 0;
+      totalTasks = result.totalTasks ?? totalTasks;
       log(`[searchLeadTask] Task found: ${taskId}`);
     }
 
@@ -85,6 +93,7 @@ export async function searchLeadTask(
       firstName,
       lastName,
       agencyId,
+      totalTasks,
       found: taskId > 0,
     };
   } catch (error) {
@@ -100,6 +109,7 @@ export async function searchLeadTask(
       agencyId: undefined,
       firstName: undefined,
       lastName: undefined,
+      totalTasks: 0,
       found: false,
     };
   }

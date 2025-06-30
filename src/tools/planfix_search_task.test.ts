@@ -49,6 +49,7 @@ describe("searchPlanfixTask", () => {
       assignees: { users: [] },
       url: "https://example.com/task/5",
       found: true,
+      totalTasks: 1,
     });
   });
 
@@ -68,6 +69,7 @@ describe("searchPlanfixTask", () => {
     });
     expect(res.taskId).toBe(2);
     expect(res.found).toBe(true);
+    expect(res.totalTasks).toBe(1);
   });
 
   it("returns found false when no task is found", async () => {
@@ -80,6 +82,7 @@ describe("searchPlanfixTask", () => {
     expect(res.found).toBe(false);
     expect(res.taskId).toBe(0);
     expect(res.url).toBe("");
+    expect(res.totalTasks).toBe(0);
   });
 
   it("handles request errors", async () => {
@@ -91,6 +94,7 @@ describe("searchPlanfixTask", () => {
     expect(res.found).toBe(false);
     expect(res.taskId).toBe(0);
     expect(res.url).toBe("");
+    expect(res.totalTasks).toBe(0);
   });
 
   it("handler parses args", async () => {
@@ -103,5 +107,15 @@ describe("searchPlanfixTask", () => {
 
     expect(res.taskId).toBe(10);
     expect(mockPlanfixRequest).toHaveBeenCalled();
+  });
+
+  it("uses provided templateId", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({ tasks: [{ id: 7 }] });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    await searchPlanfixTask({ leadId: 1, templateId: 99 });
+
+    const call = mockPlanfixRequest.mock.calls[0][0];
+    expect((call.body as any).filters[0]).toMatchObject({ value: 99 });
   });
 });
