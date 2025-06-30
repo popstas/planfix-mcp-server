@@ -12,6 +12,10 @@ vi.mock("../helpers.js", () => ({
   log: vi.fn(),
   planfixRequest: vi.fn(),
 }));
+const deletePrefixMock = vi.fn();
+vi.mock("./cache.js", () => ({
+  getCacheProvider: () => ({ deletePrefix: deletePrefixMock }),
+}));
 
 const mockedLog = vi.mocked(log);
 const mockedPlanfixRequest = vi.mocked(planfixRequest);
@@ -160,16 +164,19 @@ describe("createDirectoryEntry", () => {
     const result = await createDirectoryEntry(dirId, fieldId, name);
     expect(mockedPlanfixRequest).toHaveBeenCalled();
     expect(result).toBe(12);
+    expect(deletePrefixMock).toHaveBeenCalledWith(`directory/${dirId}`);
   });
   it("handles entry object response", async () => {
     mockedPlanfixRequest.mockResolvedValueOnce({ entry: { key: 13 } });
     const result = await createDirectoryEntry(dirId, fieldId, name);
     expect(result).toBe(13);
+    expect(deletePrefixMock).toHaveBeenCalledWith(`directory/${dirId}`);
   });
   it("returns undefined on error", async () => {
     mockedPlanfixRequest.mockRejectedValueOnce(new Error("err"));
     const result = await createDirectoryEntry(dirId, fieldId, name);
     expect(result).toBeUndefined();
     expect(mockedLog).toHaveBeenCalled();
+    expect(deletePrefixMock).not.toHaveBeenCalled();
   });
 });

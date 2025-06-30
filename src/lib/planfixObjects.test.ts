@@ -7,6 +7,7 @@ import {
   getObjects,
   getObjectsNames,
   getFieldDirectoryId,
+  clearObjectsCache,
 } from "./planfixObjects.js";
 
 function tmpCache(data: any): string {
@@ -67,5 +68,11 @@ describe("planfixObjects", () => {
       cachePath: cache,
     });
     expect(id).toBe(333);
+  });
+
+  it("removes cache file", async () => {
+    const cache = tmpCache({});
+    await clearObjectsCache(cache);
+    expect(fs.existsSync(cache)).toBe(false);
   });
 });
