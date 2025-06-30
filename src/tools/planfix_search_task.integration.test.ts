@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { runTool } from "../helpers.js";
 
 describe("planfix_search_task tool", () => {
-  it('searches task by name="Корягин Егор - работа с клиентом" and returns task details', async () => {
+  it('searches task by name="Сыграть после 11 крылья аккорды" and returns task details', async () => {
     const args = {
-      taskTitle: "Корягин Егор - работа с клиентом",
+      taskTitle: "Сыграть после 11 крылья аккорды",
     };
     const { valid, content } = await runTool<{
       taskId: number;
