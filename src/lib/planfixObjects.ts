@@ -119,8 +119,8 @@ export async function getFieldDirectoryId({
   const objects = await ensureCache(cachePath);
   const obj = objectName
     ? objects[objectName]
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    : Object.entries(objects).find(([_, o]) => o.id === objectId)?.[1];
+    : // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      Object.entries(objects).find(([_, o]) => o.id === objectId)?.[1];
   if (!obj) return undefined;
   interface CustomField {
     field: { name: string; directoryId?: number; id?: number };
@@ -136,4 +136,20 @@ export async function getFieldDirectoryId({
     );
   }
   return field?.field.directoryId;
+}
+
+export function getObjectsCachePath(): string {
+  return getDefaultCachePath();
+}
+
+export async function clearObjectsCache(
+  cachePath: string = getDefaultCachePath(),
+): Promise<void> {
+  try {
+    await fsp.unlink(cachePath);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw e;
+    }
+  }
 }

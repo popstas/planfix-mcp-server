@@ -5,6 +5,10 @@ import { debugLog } from "../helpers.js";
 export interface CacheProvider {
   get<T>(key: string): Promise<T | undefined>;
   set<T>(key: string, value: T, ttl?: number): Promise<void>;
+  /** Delete cache records where key contains the prefix */
+  deletePrefix?(prefix: string): Promise<void>;
+  /** Delete all cache records */
+  clear?(): Promise<void>;
 }
 
 export class SqliteCache implements CacheProvider {
@@ -46,6 +50,16 @@ export class SqliteCache implements CacheProvider {
         "INSERT OR REPLACE INTO cache(key,value,expiresAt) VALUES(?,?,?)",
       )
       .run(key, valueStr, expiresAt);
+  }
+
+  async deletePrefix(prefix: string): Promise<void> {
+    debugLog(`[SqliteCache] delete prefix ${prefix}`);
+    this.db.prepare("DELETE FROM cache WHERE key LIKE ?").run(`%${prefix}%`);
+  }
+
+  async clear(): Promise<void> {
+    debugLog(`[SqliteCache] clear all caches`);
+    this.db.prepare("DELETE FROM cache").run();
   }
 }
 

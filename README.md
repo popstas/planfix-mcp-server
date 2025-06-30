@@ -67,6 +67,10 @@ npx @modelcontextprotocol/inspector node d:/projects/expertizeme/planfix-mcp-ser
 
 Set `LOG_LEVEL=debug` to enable detailed cache logs. Logs are written to `data/mcp.log`.
 
+### Clearing Cache
+
+Run `npm run cache-clear` to remove all cached Planfix API responses stored in `data/planfix-cache.sqlite3` and delete the objects cache file `data/planfix-cache.yml`.
+
 ## Example MCP Config (NPX)
 
 ```json
