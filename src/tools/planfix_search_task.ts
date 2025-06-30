@@ -3,12 +3,16 @@ import { PLANFIX_FIELD_IDS } from "../config.js";
 import { getTaskUrl, getToolWithHandler, planfixRequest } from "../helpers.js";
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
-import { extendFiltersWithCustomFields, type PlanfixFilter } from "../lib/extendFiltersWithCustomFields.js";
+import {
+  extendFiltersWithCustomFields,
+  type PlanfixFilter,
+} from "../lib/extendFiltersWithCustomFields.js";
 
 const SearchPlanfixTaskInputSchemaBase = z.object({
   taskTitle: z.string().optional(),
   clientId: z.number().optional(),
   leadId: z.number().optional(),
+  templateId: z.number().optional(),
 });
 
 export const SearchPlanfixTaskInputSchema = extendSchemaWithCustomFields(
@@ -20,6 +24,7 @@ export const SearchPlanfixTaskOutputSchema = z.object({
   taskId: z.number().optional(),
   assignees: z.any().optional(), // Made more flexible to handle Planfix response
   description: z.string().optional(),
+  totalTasks: z.number().optional(),
   url: z.string().optional(),
   error: z.string().optional(),
   found: z.boolean(),
@@ -34,15 +39,21 @@ export async function searchPlanfixTask({
   taskTitle,
   clientId,
   leadId,
+  templateId,
 }: {
   taskTitle?: string;
   clientId?: number;
   leadId?: number;
+  templateId?: number;
 }): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
   let taskId: number | undefined = undefined;
   let assignees: { users: Assignee[] } | undefined;
+  let totalTasks = 0;
 
-  const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
+  const TEMPLATE_ID =
+    typeof templateId === "number"
+      ? templateId
+      : Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
 
   const postBody = {
     offset: 0,
@@ -104,6 +115,7 @@ export async function searchPlanfixTask({
           description?: string;
         }>;
       };
+      const totalTasks = result.tasks?.length ?? 0;
       if (result.tasks?.[0]) {
         const task = result.tasks[0];
         return {
@@ -111,11 +123,13 @@ export async function searchPlanfixTask({
           assignees: task.assignees,
           description: task.description,
           found: true,
+          totalTasks,
         };
       }
       return {
         taskId: 0,
         found: false,
+        totalTasks,
       };
     } catch (error) {
       const errorMessage =
@@ -124,6 +138,7 @@ export async function searchPlanfixTask({
         taskId: 0,
         error: `Error searching for tasks: ${errorMessage}`,
         found: false,
+        totalTasks: 0,
       };
     }
   }
@@ -133,11 +148,13 @@ export async function searchPlanfixTask({
       const result = await searchWithFilter([filters.byLeadId]);
       taskId = result.taskId;
       assignees = result.assignees;
+      totalTasks = result.totalTasks ?? totalTasks;
     }
     if (clientId && !taskId) {
       const result = await searchWithFilter([filters.byClient]);
       taskId = result.taskId;
       assignees = result.assignees;
+      totalTasks = result.totalTasks ?? totalTasks;
     }
     if (!taskId && taskTitle) {
       const result = await searchWithFilter([
@@ -145,11 +162,13 @@ export async function searchPlanfixTask({
       ]);
       taskId = result.taskId;
       assignees = result.assignees;
+      totalTasks = result.totalTasks ?? totalTasks;
     }
     if (!taskId && customFilters.length) {
       const result = await searchWithFilter(customFilters);
       taskId = result.taskId;
       assignees = result.assignees;
+      totalTasks = result.totalTasks ?? totalTasks;
     }
     const url = getTaskUrl(taskId);
     return {
@@ -157,6 +176,7 @@ export async function searchPlanfixTask({
       assignees,
       url,
       found: !!taskId,
+      totalTasks,
     };
   } catch (error) {
     const errorMessage =
@@ -167,6 +187,7 @@ export async function searchPlanfixTask({
       url: undefined,
       error: `Error searching for tasks: ${errorMessage}`,
       found: false,
+      totalTasks: 0,
     };
   }
 }
