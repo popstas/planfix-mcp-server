@@ -7,13 +7,13 @@ describe("planfix_create_task tool prod", () => {
     const args = {
       name: "Stanislav Popov",
       email: "pop.stas@gmail.com",
-      phone: "+79222229531",
+      phone: "+79222222222",
       agency: "Тестовое агентство",
       object: "Задача",
       leadSource: "agent",
       tags: ["инвесткомитет10.06"],
       title: "Test task title",
-      telegram: "popstas",
+      telegram: "pop.stas",
       project: "Тестирование интеграции с Планфикс",
     };
     const { valid, content } = await runTool<{

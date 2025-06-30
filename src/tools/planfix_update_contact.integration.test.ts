@@ -7,8 +7,8 @@ describe("planfix_update_contact tool prod", () => {
     const args = {
       contactId: 11,
       email: "pop..stas@gmail.com",
-      telegram: "popstas",
-      phone: "+79222229531",
+      telegram: "pop.stas",
+      phone: "+79222222222",
       name: "Stanislav Popov",
       // resident: "В процессе",
     };
