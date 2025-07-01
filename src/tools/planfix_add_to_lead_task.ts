@@ -173,9 +173,8 @@ export async function addToLeadTask(
       if (createResult.error) {
         errors.push(createResult.error);
       }
-    }
+    } else if (clientId) {
     // 3. Update contact with provided data
-    if (clientId) {
       await updatePlanfixContact({
         contactId: clientId,
         name: userData.name,
