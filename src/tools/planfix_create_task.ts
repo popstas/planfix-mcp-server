@@ -9,7 +9,7 @@ import {
 
 const PlanfixCreateTaskInputSchemaBase = z.object({
   object: z.string().optional(),
-  title: z.string().describe("Task title"),
+  title: z.string().optional(),
   description: z.string().optional(),
   name: z.string().optional(),
   nameTranslated: z.string().optional(),
