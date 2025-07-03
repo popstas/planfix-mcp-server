@@ -33,12 +33,19 @@ The server requires the following environment variables for Planfix API access:
 - `PLANFIX_FIELD_ID_TAGS` – Custom field ID for task tags
   - Missing tag names will be added automatically to the directory
 - `PLANFIX_FIELD_ID_LEAD_ID` – Custom field ID for external lead ID
+- `PLANFIX_LEAD_TEMPLATE_ID` – ID of the lead task template
 
 ### config.yml
 
 Custom fields can also be configured via `config.yml`. The default path is
 `./data/config.yml`. Override it with the `--config=/abs/path/config.yml` CLI
-flag or the `PLANFIX_CONFIG` environment variable.
+flag or the `PLANFIX_CONFIG` environment variable. You can also specify a
+different Planfix account when using a custom config:
+
+```sh
+PLANFIX_CONFIG=/etc/planfix-mcp.yml PLANFIX_ACCOUNT=demo \
+npx @popstas/planfix-mcp-server
+```
 
 ```yaml
 leadTaskFields:
@@ -93,7 +100,8 @@ Run `npm run cache-clear` to remove all cached Planfix API responses stored in `
         "PLANFIX_FIELD_ID_MANAGER": "127",
         "PLANFIX_FIELD_ID_AGENCY": "128",
         "PLANFIX_FIELD_ID_TAGS": "129",
-        "PLANFIX_FIELD_ID_LEAD_ID": "130"
+        "PLANFIX_FIELD_ID_LEAD_ID": "130",
+        "PLANFIX_LEAD_TEMPLATE_ID": "42"
       }
     }
   }
@@ -121,6 +129,7 @@ PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE=130 \
 PLANFIX_FIELD_ID_PIPELINE=131 \
 PLANFIX_FIELD_ID_LEAD_ID=132 \
 PLANFIX_FIELD_ID_TAGS=133 \
+PLANFIX_LEAD_TEMPLATE_ID=42 \
 npx @popstas/planfix-mcp-server
 ```
 
