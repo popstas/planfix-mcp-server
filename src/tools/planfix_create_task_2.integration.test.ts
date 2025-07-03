@@ -5,15 +5,12 @@ import { runTool } from "../helpers.js";
 describe("planfix_create_task tool prod", () => {
   it("creates task", async () => {
     const args = {
-      "title": "Автосделка: Ирина США Jet",
+      "title": "Автосделка: Ирина Jet",
       "leadId": 36969059,
       "name": "Ирина",
-      "telegram": "@golmgrein",
-      "phone": "+17868368058",
-      "email": "riana.talks@gmail.com",
+      "phone": "+17855555555",
       "fields": {
         "Актуальный этап (Основная воронка)": "В работе",
-        "Переход в &quot;Новый лид&quot;": "1748965132",
         "Источник": "Реклама в Facebook",
         "utm_source": "fb",
         "utm_medium": "eva",
@@ -24,8 +21,8 @@ describe("planfix_create_task tool prod", () => {
         "Причина отказа": "Партнёрство (франшиза)"
       },
       "leadSource": "fb",
-      "tags": ["merged", "ФБ Евгения", "fb1357103122232251", "инвесткомитет10.06"],
-      "description": "\nТеги:\nmerged, ФБ Евгения, fb1357103122232251, инвесткомитет10.06\n\nПоля:\nАктуальный этап (Основная воронка): В работе\nПереход в &quot;Новый лид&quot;: 1748965132\nИсточник: Реклама в Facebook\nutm_source: fb\nutm_medium: eva\nutm_campaign: {{company__name}}\nutm_content: {{adset_name}}\nutm_term: {{ad_name}}\nПереход в &quot;В работе&quot;: 1749211991\nПричина отказа: Партнёрство (франшиза)\n\nURL: https://impactcapital.amocrm.ru/leads/detail/36969059",
+      "tags": ["merged"],
+      "description": "\nТеги:\nmerged, ",
       "managerEmail": "popstas@gmail.com",
       "pipeline": "Академия Система"
     };

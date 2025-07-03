@@ -204,6 +204,7 @@ export async function addToLeadTask(
         managerId = managerResult.managerId;
       }
       const createLeadTaskResult = await createLeadTask({
+        ...(args as Record<string, unknown>),
         name: finalTaskTitle,
         description: descriptionText,
         clientId,
@@ -214,7 +215,6 @@ export async function addToLeadTask(
         pipeline,
         leadId,
         tags,
-        ...(args as Record<string, unknown>),
       });
       if (createLeadTaskResult.error) {
         return { taskId: 0, clientId: 0, error: createLeadTaskResult.error };
