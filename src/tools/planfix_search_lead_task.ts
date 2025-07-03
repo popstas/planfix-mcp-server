@@ -40,7 +40,7 @@ export const SearchLeadTaskOutputSchema = z.object({
 export async function searchLeadTask(
   userData: z.infer<typeof SearchLeadTaskInputSchema>,
 ): Promise<z.infer<typeof SearchLeadTaskOutputSchema>> {
-  console.log(
+  log(
     `[searchLeadTask] Searching for lead task by userData: ${JSON.stringify(userData)}`,
   );
 

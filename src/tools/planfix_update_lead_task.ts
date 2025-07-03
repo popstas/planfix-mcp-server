@@ -75,8 +75,8 @@ export async function updateLeadTask(
     // If we have no updates to make and forceUpdate is false, return early
 
     // Log any fields that won't be updated (for debugging)
-    if (name) console.log("name is not updated");
-    if (description) console.log("description is not updated");
+    if (name) log("name is not updated");
+    if (description) log("description is not updated");
 
     let managerId = 0;
     if (managerEmail) {
