@@ -20,7 +20,7 @@ import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomField
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
 
 const CreateLeadTaskInputSchemaBase = z.object({
-  name: z.string(),
+  name: z.string().optional().describe("Name of the task"),
   description: z.string(),
   clientId: z.number(),
   managerId: z.number().optional(),

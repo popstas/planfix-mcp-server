@@ -34,7 +34,7 @@ The server requires the following environment variables for Planfix API access:
   - Missing tag names will be added automatically to the directory
 - `PLANFIX_FIELD_ID_LEAD_ID` – Custom field ID for external lead ID
 - `PLANFIX_LEAD_TEMPLATE_ID` – ID of the lead task template
-- `PLANFIX_TASK_TITLE_TEMPLATE` – Template for the default lead task title (e.g., `{name} - работа с клиентом`)
+- `PLANFIX_TASK_TITLE_TEMPLATE` – Template for the default lead task title (e.g., `{name} - client's task`)
 
 ### config.yml
 

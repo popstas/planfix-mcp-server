@@ -184,7 +184,7 @@ export async function addToLeadTask(
       });
     }
     // 4. If task not found and name has space, search by name
-    if (clientId && !taskId && userData.name && userData.name.includes(" ")) {
+    if (clientId && !taskId && userData.name && userData.name.includes(" ") && finalTaskTitle) {
       // console.log('[leadToTask] Searching for task by name...');
       const result = await searchPlanfixTask({
         taskTitle: finalTaskTitle,
