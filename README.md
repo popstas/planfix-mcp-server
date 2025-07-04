@@ -34,6 +34,7 @@ The server requires the following environment variables for Planfix API access:
   - Missing tag names will be added automatically to the directory
 - `PLANFIX_FIELD_ID_LEAD_ID` – Custom field ID for external lead ID
 - `PLANFIX_LEAD_TEMPLATE_ID` – ID of the lead task template
+- `PLANFIX_TASK_TITLE_TEMPLATE` – Template for the default lead task title (e.g., `{name} - client's task`)
 
 ### config.yml
 
@@ -101,7 +102,8 @@ Run `npm run cache-clear` to remove all cached Planfix API responses stored in `
         "PLANFIX_FIELD_ID_AGENCY": "128",
         "PLANFIX_FIELD_ID_TAGS": "129",
         "PLANFIX_FIELD_ID_LEAD_ID": "130",
-        "PLANFIX_LEAD_TEMPLATE_ID": "42"
+        "PLANFIX_LEAD_TEMPLATE_ID": "42",
+        "PLANFIX_TASK_TITLE_TEMPLATE": "{name} - работа с клиентом"
       }
     }
   }
@@ -130,6 +132,7 @@ PLANFIX_FIELD_ID_PIPELINE=131 \
 PLANFIX_FIELD_ID_LEAD_ID=132 \
 PLANFIX_FIELD_ID_TAGS=133 \
 PLANFIX_LEAD_TEMPLATE_ID=42 \
+PLANFIX_TASK_TITLE_TEMPLATE="{name} - работа с клиентом" \
 npx @popstas/planfix-mcp-server
 ```
 

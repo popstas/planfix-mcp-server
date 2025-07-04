@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PLANFIX_DRY_RUN } from "../config.js";
+import { PLANFIX_DRY_RUN, PLANFIX_TASK_TITLE_TEMPLATE } from "../config.js";
 import {
   log,
   getToolWithHandler,
@@ -106,13 +106,12 @@ export async function addToLeadTask(
   // Helper: template string replacement
   function replaceTemplateVars(
     template: string,
-    vars: Record<string, string | undefined>,
+    vars: Record<string, unknown>,
   ): string {
-    let result = template;
-    for (const [key, value] of Object.entries(vars)) {
-      result = result.replace(new RegExp(`{${key}}`, "g"), value ?? "");
-    }
-    return result;
+    return template.replace(/\{([^}]+)\}/g, (_, key) => {
+      const value = vars[key];
+      return value !== undefined && value !== null ? String(value) : "";
+    });
   }
 
   // Main logic
@@ -139,12 +138,12 @@ export async function addToLeadTask(
     let { taskId, clientId, url, clientUrl, assignees } = searchResult;
     // Variables that won't be reassigned
     const { firstName, lastName, agencyId } = searchResult;
-    const taskTitleTemplate = "{clientName} - работа с клиентом";
     const finalTaskTitle = title
       ? title
-      : replaceTemplateVars(taskTitleTemplate, {
-          clientName: userData.name,
-        });
+      : replaceTemplateVars(
+          PLANFIX_TASK_TITLE_TEMPLATE,
+          args as Record<string, unknown>,
+        );
 
     const descriptionText = generateDescription(
       userData,
@@ -174,7 +173,7 @@ export async function addToLeadTask(
         errors.push(createResult.error);
       }
     } else if (clientId) {
-    // 3. Update contact with provided data
+      // 3. Update contact with provided data
       await updatePlanfixContact({
         contactId: clientId,
         name: userData.name,
@@ -185,7 +184,7 @@ export async function addToLeadTask(
       });
     }
     // 4. If task not found and name has space, search by name
-    if (clientId && !taskId && userData.name && userData.name.includes(" ")) {
+    if (clientId && !taskId && userData.name && userData.name.includes(" ") && finalTaskTitle) {
       // console.log('[leadToTask] Searching for task by name...');
       const result = await searchPlanfixTask({
         taskTitle: finalTaskTitle,
