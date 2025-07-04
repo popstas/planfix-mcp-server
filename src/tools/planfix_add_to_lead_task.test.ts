@@ -41,9 +41,11 @@ vi.mock("./planfix_search_manager.js", () => ({
 }));
 
 import { updatePlanfixContact } from "./planfix_update_contact.js";
+import { createLeadTask } from "./planfix_create_lead_task.js";
 import { addToLeadTask } from "./planfix_add_to_lead_task.js";
 
 const mockUpdate = vi.mocked(updatePlanfixContact);
+const mockCreateLeadTask = vi.mocked(createLeadTask);
 
 describe("planfix_add_to_lead_task", () => {
   afterEach(() => {
@@ -57,5 +59,26 @@ describe("planfix_add_to_lead_task", () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ contactId: 2 }),
     );
+  });
+
+  it("uses template from config when title is missing", async () => {
+    const original = await import("../config.js");
+    vi.resetModules();
+    vi.doMock("../config.js", () => ({
+      ...original,
+      PLANFIX_TASK_TITLE_TEMPLATE: "Lead {email}",
+    }));
+    const { addToLeadTask: addWithTemplate } = await import(
+      "./planfix_add_to_lead_task.js"
+    );
+
+    await addWithTemplate({
+      email: "test@example.com",
+      description: "d",
+    } as any);
+    expect(mockCreateLeadTask).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Lead test@example.com" }),
+    );
+    vi.resetModules();
   });
 });
