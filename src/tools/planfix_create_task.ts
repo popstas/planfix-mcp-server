@@ -8,12 +8,12 @@ import {
 } from "./planfix_add_to_lead_task.js";
 
 const PlanfixCreateTaskInputSchemaBase = z.object({
-  object: z.string().optional(),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  name: z.string().optional(),
-  nameTranslated: z.string().optional(),
-  phone: z.string().optional(),
+  object: z.string().optional().describe("Object of the task"),
+  title: z.string().optional().describe("Title of the task"),
+  description: z.string().optional().describe("Description of the task"),
+  name: z.string().optional().describe("Name of the client"),
+  nameTranslated: z.string().optional().describe("Translated name of the client"),
+  phone: z.string().optional().describe("Phone of the client"),
   email: z.string().optional(),
   telegram: z.string().optional(),
   leadSource: z.string().optional(),
@@ -23,7 +23,7 @@ const PlanfixCreateTaskInputSchemaBase = z.object({
   referral: z.string().optional(),
   managerEmail: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  leadId: z.number().optional(),
+  leadId: z.number().optional().describe("ID of the lead at leadSource"),
 });
 
 export const PlanfixCreateTaskInputSchema = extendSchemaWithCustomFields(
