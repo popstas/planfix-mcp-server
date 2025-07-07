@@ -24,6 +24,7 @@ const UpdatePlanfixContactInputSchemaBase = z.object({
   contactId: z.number(),
   name: z.string().optional(),
   telegram: z.string().optional(),
+  instagram: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
   forceUpdate: z.boolean().optional(),
@@ -43,14 +44,17 @@ export const UpdatePlanfixContactOutputSchema = z.object({
 export async function updatePlanfixContact(
   args: z.infer<typeof UpdatePlanfixContactInputSchema>,
 ): Promise<z.infer<typeof UpdatePlanfixContactOutputSchema>> {
-  const { contactId, name, telegram, email, phone, forceUpdate } = args;
+  const { contactId, name, telegram, instagram, email, phone, forceUpdate } =
+    args;
   try {
     if (PLANFIX_DRY_RUN) {
       log(`[DRY RUN] Would update contact ${contactId}`);
       return { contactId, url: getContactUrl(contactId) };
     }
 
-    const customContactFieldsIds = customFieldsConfig.contactFields.map((f) => f.id);
+    const customContactFieldsIds = customFieldsConfig.contactFields.map(
+      (f) => f.id,
+    );
     const fieldsBase = `id,name,lastname,email,phones,${customContactFieldsIds.join(",")}`;
     const fields = PLANFIX_FIELD_IDS.telegramCustom
       ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
@@ -114,6 +118,10 @@ export async function updatePlanfixContact(
           postBody.telegram = normalized;
         }
       }
+    }
+
+    if (instagram !== undefined) {
+      postBody.instagram = instagram.replace(/^@/, "");
     }
 
     const cleanPhone = (phone: string) => phone.replace(/[^0-9]/g, "");

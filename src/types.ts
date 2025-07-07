@@ -20,6 +20,7 @@ export const UserDataInputSchemaBase = z.object({
   phone: z.string().optional(),
   email: z.string().optional(),
   telegram: z.string().optional(),
+  instagram: z.string().optional(),
   company: z.string().optional(),
 });
 
