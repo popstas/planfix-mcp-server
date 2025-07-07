@@ -14,6 +14,7 @@ const PlanfixCreateTaskInputSchemaBase = z.object({
   name: z.string().optional().describe("Name of the client"),
   nameTranslated: z.string().optional().describe("Translated name of the client"),
   phone: z.string().optional().describe("Phone of the client"),
+  instagram: z.string().optional(),
   email: z.string().optional(),
   telegram: z.string().optional(),
   leadSource: z.string().optional(),
