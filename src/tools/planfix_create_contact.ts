@@ -23,6 +23,7 @@ interface ContactRequestBody {
     number: string;
   }>;
   telegram?: string;
+  instagram?: string;
   customFieldData: CustomFieldDataType[];
 }
 
@@ -31,11 +32,12 @@ const CreatePlanfixContactInputSchemaBase = z.object({
   phone: z.string().optional(),
   email: z.string().optional(),
   telegram: z.string().optional(),
+  instagram: z.string().optional(),
 });
 
 export const CreatePlanfixContactInputSchema = extendSchemaWithCustomFields(
   CreatePlanfixContactInputSchemaBase,
-  customFieldsConfig.contactFields
+  customFieldsConfig.contactFields,
 );
 
 export const CreatePlanfixContactOutputSchema = z.object({
@@ -62,13 +64,13 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
  * @returns Promise with the created contact ID and URL
  */
 export async function createPlanfixContact(
-  userData: z.infer<typeof CreatePlanfixContactInputSchema>
+  userData: z.infer<typeof CreatePlanfixContactInputSchema>,
 ): Promise<z.infer<typeof CreatePlanfixContactOutputSchema>> {
   try {
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
       log(
-        `[DRY RUN] Would create contact with name: ${userData.name || "N/A"}, email: ${userData.email || "N/A"}`
+        `[DRY RUN] Would create contact with name: ${userData.name || "N/A"}, email: ${userData.email || "N/A"}`,
       );
       return {
         contactId: mockId,
@@ -110,10 +112,15 @@ export async function createPlanfixContact(
       }
     }
 
+    // Add instagram if available
+    if (userData.instagram) {
+      postBody.instagram = userData.instagram.replace(/^@/, "");
+    }
+
     extendPostBodyWithCustomFields(
       postBody,
       userData as Record<string, unknown>,
-      customFieldsConfig.contactFields
+      customFieldsConfig.contactFields,
     );
 
     const result = await planfixRequest<{ id: number }>({
@@ -133,7 +140,7 @@ export async function createPlanfixContact(
 }
 
 export async function handler(
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ): Promise<z.infer<typeof CreatePlanfixContactOutputSchema>> {
   const parsedArgs = CreatePlanfixContactInputSchema.parse(args);
   return createPlanfixContact(parsedArgs);
