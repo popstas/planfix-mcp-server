@@ -42,7 +42,7 @@ export const AddToLeadTaskOutputSchema = z.object({
       groups: z
         .array(
           z.object({
-            id: z.string(),
+            id: z.number(),
             name: z.string().optional(),
           }),
         )
