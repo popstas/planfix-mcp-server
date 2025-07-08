@@ -89,6 +89,7 @@ export async function addToLeadTask(
     phone,
     email,
     telegram,
+    instagram,
     company,
     title,
     description,
@@ -100,7 +101,7 @@ export async function addToLeadTask(
     leadId,
   } = args;
 
-  const userData = { name, nameTranslated, phone, email, telegram, company };
+  const userData = { name, nameTranslated, phone, email, telegram, instagram, company };
   const eventData = { title, description };
 
   // Helper: template string replacement
@@ -178,6 +179,7 @@ export async function addToLeadTask(
         contactId: clientId,
         name: userData.name,
         telegram: userData.telegram,
+        instagram: userData.instagram,
         email: userData.email,
         phone: userData.phone,
         ...(args as Record<string, unknown>),
