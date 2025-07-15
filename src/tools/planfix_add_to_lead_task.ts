@@ -20,6 +20,7 @@ import {
   AddToLeadTaskInputSchema,
   AddToLeadTaskOutputSchema,
 } from "./schemas/leadTaskSchemas.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
 
 export { AddToLeadTaskInputSchema, AddToLeadTaskOutputSchema };
 
@@ -101,7 +102,13 @@ export async function addToLeadTask(
     leadId,
   } = args;
 
-  const userData = { name, nameTranslated, phone, email, telegram, instagram, company };
+
+  const instagramCustomField = customFieldsConfig.contactFields.find(
+    (field) => field.argName === "instagram_custom"
+  );
+  const instagram_custom = args.instagram && instagramCustomField ? args.instagram : undefined;
+
+  const userData = { name, nameTranslated, phone, email, telegram, instagram, instagram_custom, company };
   const eventData = { title, description };
 
   // Helper: template string replacement

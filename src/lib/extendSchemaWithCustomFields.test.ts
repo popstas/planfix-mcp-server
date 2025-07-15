@@ -36,7 +36,6 @@ describe("extendSchemaWithCustomFields", () => {
     ];
     const schema = extendSchemaWithCustomFields(base, fields);
     // field with empty argName should not be present
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((schema as any).shape[""]).toBeUndefined();
     const parsed = schema.parse({ role: "admin" });
     expect(parsed).toEqual({ role: "admin" });
