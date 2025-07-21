@@ -1,6 +1,6 @@
 {
   "name": "@popstas/planfix-mcp-server",
-  "version": "1.5.9",
+  "version": "1.5.10",
   "description": "MCP server for Planfix API integration",
   "license": "MIT",
   "type": "module",
