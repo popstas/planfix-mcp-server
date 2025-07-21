@@ -7,6 +7,10 @@ import { z } from "zod";
 import { customFieldsConfig } from "./customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "./lib/extendSchemaWithCustomFields.js";
 
+// Utility function to handle null values by converting them to undefined
+const nullFix = <T extends z.ZodTypeAny>(schema: T) => 
+  z.preprocess(val => val === null ? undefined : val, schema);
+
 export type ToolInput = z.infer<typeof ToolSchema.shape.inputSchema>;
 export type ToolOutput = CallToolResult;
 
@@ -17,11 +21,11 @@ export const UserDataInputSchemaBase = z.object({
     .string()
     .optional()
     .describe("Translate name and place here"),
-  phone: z.string().optional(),
-  email: z.string().optional(),
-  telegram: z.string().optional(),
-  instagram: z.string().optional(),
-  company: z.string().optional(),
+  phone: nullFix(z.string().optional()),
+  email: nullFix(z.string().optional()),
+  telegram: nullFix(z.string().optional()),
+  instagram: nullFix(z.string().optional()),
+  company: nullFix(z.string().optional()),
 });
 
 export const UserDataInputSchema = extendSchemaWithCustomFields(
