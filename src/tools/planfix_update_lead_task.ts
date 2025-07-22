@@ -8,11 +8,9 @@ import {
 } from "../helpers.js";
 import { TaskRequestBody, TaskResponse } from "../types.js";
 import { searchProject } from "./planfix_search_project.js";
-import { getFieldDirectoryId } from "../lib/planfixObjects.js";
 import {
-  createDirectoryEntry,
-  searchDirectoryEntryById,
-  getDirectoryFields,
+  addDirectoryEntry,
+  addDirectoryEntries,
 } from "../lib/planfixDirectory.js";
 import { searchManager } from "./planfix_search_manager.js";
 import { UpdateLeadTaskInputSchema } from "./schemas/leadTaskSchemas.js";
@@ -121,60 +119,44 @@ export async function updateLeadTask(
     }
 
     if (leadSource) {
-      const directoryId = await getFieldDirectoryId({
+      const currentLeadSource = task.customFieldData?.find(
+        (f) => f.field.id === PLANFIX_FIELD_IDS.leadSource,
+      );
+      const currentId =
+        currentLeadSource && typeof currentLeadSource.value === "object"
+          ? Number((currentLeadSource.value as { id: number }).id)
+          : 0;
+      const entryId = await addDirectoryEntry({
         objectId: TEMPLATE_ID,
         fieldId: PLANFIX_FIELD_IDS.leadSource,
+        value: leadSource,
+        postBody,
       });
-      if (directoryId) {
-        const directoryFields = await getDirectoryFields(directoryId);
-        const directoryFieldId = directoryFields?.[0]?.id || 0;
-        const entryId = await searchDirectoryEntryById(
-          directoryId,
-          directoryFieldId,
-          leadSource,
-        );
-        const currentLeadSource = task.customFieldData?.find(
-          (f) => f.field.id === PLANFIX_FIELD_IDS.leadSource,
-        );
-        const currentId =
-          currentLeadSource && typeof currentLeadSource.value === "object"
-            ? Number((currentLeadSource.value as { id: number }).id)
-            : 0;
-        if (entryId && (forceUpdate || !currentId) && entryId !== currentId) {
-          postBody.customFieldData.push({
-            field: { id: PLANFIX_FIELD_IDS.leadSource },
-            value: { id: entryId },
-          });
-        }
+      if (entryId && (forceUpdate || !currentId) && entryId !== currentId) {
+        // value already added by addDirectoryEntry
+      } else {
+        postBody.customFieldData.pop();
       }
     }
 
     if (pipeline) {
-      const directoryId = await getFieldDirectoryId({
+      const currentPipeline = task.customFieldData?.find(
+        (f) => f.field.id === PLANFIX_FIELD_IDS.pipeline,
+      );
+      const currentId =
+        currentPipeline && typeof currentPipeline.value === "object"
+          ? Number((currentPipeline.value as { id: number }).id)
+          : 0;
+      const entryId = await addDirectoryEntry({
         objectId: TEMPLATE_ID,
         fieldId: PLANFIX_FIELD_IDS.pipeline,
+        value: pipeline,
+        postBody,
       });
-      if (directoryId) {
-        const directoryFields = await getDirectoryFields(directoryId);
-        const directoryFieldId = directoryFields?.[0]?.id || 0;
-        const entryId = await searchDirectoryEntryById(
-          directoryId,
-          directoryFieldId,
-          pipeline,
-        );
-        const currentPipeline = task.customFieldData?.find(
-          (f) => f.field.id === PLANFIX_FIELD_IDS.pipeline,
-        );
-        const currentId =
-          currentPipeline && typeof currentPipeline.value === "object"
-            ? Number((currentPipeline.value as { id: number }).id)
-            : 0;
-        if (entryId && (forceUpdate || !currentId) && entryId !== currentId) {
-          postBody.customFieldData.push({
-            field: { id: PLANFIX_FIELD_IDS.pipeline },
-            value: { id: entryId },
-          });
-        }
+      if (entryId && (forceUpdate || !currentId) && entryId !== currentId) {
+        // value already added by addDirectoryEntry
+      } else {
+        postBody.customFieldData.pop();
       }
     }
 
@@ -193,43 +175,30 @@ export async function updateLeadTask(
     }
 
     if (tags?.length && PLANFIX_FIELD_IDS.tags && !PLANFIX_DRY_RUN) {
-      const directoryId = await getFieldDirectoryId({
-        objectId: TEMPLATE_ID,
-        fieldId: PLANFIX_FIELD_IDS.tags,
-      });
-      if (directoryId) {
-        const directoryFields = await getDirectoryFields(directoryId);
-        const directoryFieldId = directoryFields?.[0]?.id || 0;
-        const tagIds: number[] = [];
-        const tagsField = task.customFieldData?.find(
-          (f) => f.field.id === PLANFIX_FIELD_IDS.tags,
-        );
-        const currentTagsValue = (tagsField?.value || []) as { id: number }[];
-        const hasTags = currentTagsValue.length > 0;
-        if (!forceUpdate && hasTags) {
-          // skip updating tags if already set
-        } else {
-          for (const tag of tags) {
-            let id = await searchDirectoryEntryById(
-              directoryId,
-              directoryFieldId,
-              tag,
-            );
-            if (!id) {
-              id = await createDirectoryEntry(
-                directoryId,
-                directoryFieldId,
-                tag,
-              );
-            }
-            if (id && !currentTagsValue.some((t) => t.id === id))
-              tagIds.push(id);
-          }
-          if (tagIds.length) {
-            postBody.customFieldData.push({
-              field: { id: PLANFIX_FIELD_IDS.tags },
-              value: tagIds.map((id) => ({ id })),
-            });
+      const tagsField = task.customFieldData?.find(
+        (f) => f.field.id === PLANFIX_FIELD_IDS.tags,
+      );
+      const currentTagsValue = (tagsField?.value || []) as { id: number }[];
+      const hasTags = currentTagsValue.length > 0;
+      if (!forceUpdate && hasTags) {
+        // skip updating tags if already set
+      } else {
+        const ids = await addDirectoryEntries({
+          objectId: TEMPLATE_ID,
+          fieldId: PLANFIX_FIELD_IDS.tags,
+          values: tags,
+          postBody,
+        });
+        if (ids && ids.length) {
+          const newIds = ids.filter(
+            (id) => !currentTagsValue.some((t) => t.id === id),
+          );
+          if (newIds.length) {
+            postBody.customFieldData[
+              postBody.customFieldData.length - 1
+            ].value = newIds.map((id) => ({ id }));
+          } else {
+            postBody.customFieldData.pop();
           }
         }
       }

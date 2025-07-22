@@ -7,11 +7,9 @@ import {
   planfixRequest,
 } from "../helpers.js";
 import { searchProject } from "./planfix_search_project.js";
-import { getFieldDirectoryId } from "../lib/planfixObjects.js";
 import {
-  createDirectoryEntry,
-  searchDirectoryEntryById,
-  getDirectoryFields,
+  addDirectoryEntry,
+  addDirectoryEntries,
 } from "../lib/planfixDirectory.js";
 import { getTaskCustomFieldName } from "../lib/planfixCustomFields.js";
 import { TaskRequestBody } from "../types.js";
@@ -123,33 +121,12 @@ export async function createLeadTask(
   }
 
   if (leadSource) {
-    const directoryId = await getFieldDirectoryId({
+    await addDirectoryEntry({
       objectId: TEMPLATE_ID,
       fieldId: PLANFIX_FIELD_IDS.leadSource,
+      value: leadSource,
+      postBody,
     });
-    if (directoryId) {
-      const directoryFields = await getDirectoryFields(directoryId);
-      const directoryFieldId = directoryFields?.[0]?.id || 0;
-      let entryId = await searchDirectoryEntryById(
-        directoryId,
-        directoryFieldId,
-        leadSource,
-      );
-      if (!entryId) {
-        entryId = await createDirectoryEntry(
-          directoryId,
-          directoryFieldId,
-          leadSource,
-        );
-      }
-
-      if (entryId) {
-        postBody.customFieldData.push({
-          field: { id: PLANFIX_FIELD_IDS.leadSource },
-          value: { id: entryId },
-        });
-      }
-    }
   } else {
     const leadSourceValue = Number(
       process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE,
@@ -163,33 +140,12 @@ export async function createLeadTask(
   }
 
   if (pipeline) {
-    const directoryId = await getFieldDirectoryId({
+    await addDirectoryEntry({
       objectId: TEMPLATE_ID,
       fieldId: PLANFIX_FIELD_IDS.pipeline,
+      value: pipeline,
+      postBody,
     });
-    if (directoryId) {
-      const directoryFields = await getDirectoryFields(directoryId);
-      const directoryFieldId = directoryFields?.[0]?.id || 0;
-      let entryId = await searchDirectoryEntryById(
-        directoryId,
-        directoryFieldId,
-        pipeline,
-      );
-      if (!entryId) {
-        entryId = await createDirectoryEntry(
-          directoryId,
-          directoryFieldId,
-          pipeline,
-        );
-      }
-
-      if (entryId) {
-        postBody.customFieldData.push({
-          field: { id: PLANFIX_FIELD_IDS.pipeline },
-          value: { id: entryId },
-        });
-      }
-    }
   }
 
   if (leadId && PLANFIX_FIELD_IDS.leadId) {
@@ -207,32 +163,12 @@ export async function createLeadTask(
   }
 
   if (tags?.length && PLANFIX_FIELD_IDS.tags && !PLANFIX_DRY_RUN) {
-    const directoryId = await getFieldDirectoryId({
+    await addDirectoryEntries({
       objectId: TEMPLATE_ID,
       fieldId: PLANFIX_FIELD_IDS.tags,
+      values: tags,
+      postBody,
     });
-    if (directoryId) {
-      const directoryFields = await getDirectoryFields(directoryId);
-      const directoryFieldId = directoryFields?.[0]?.id || 0;
-      const tagIds: number[] = [];
-      for (const tag of tags) {
-        let id = await searchDirectoryEntryById(
-          directoryId,
-          directoryFieldId,
-          tag,
-        );
-        if (!id) {
-          id = await createDirectoryEntry(directoryId, directoryFieldId, tag);
-        }
-        if (id) tagIds.push(id);
-      }
-      if (tagIds.length) {
-        postBody.customFieldData.push({
-          field: { id: PLANFIX_FIELD_IDS.tags },
-          value: tagIds.map((id) => ({ id })),
-        });
-      }
-    }
   }
 
   extendPostBodyWithCustomFields(

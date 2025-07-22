@@ -29,11 +29,22 @@ vi.mock("../lib/planfixObjects.js", () => ({
   getFieldDirectoryId: vi.fn().mockResolvedValue(100),
 }));
 
-vi.mock("../lib/planfixDirectory.js", () => ({
-  createDirectoryEntry: vi.fn().mockResolvedValue(5),
-  searchDirectoryEntryById: vi.fn().mockResolvedValue(5),
-  getDirectoryFields: vi.fn().mockResolvedValue([{ id: 1 }]),
-}));
+vi.mock("../lib/planfixDirectory.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/planfixDirectory.js")>();
+  return {
+    ...actual,
+    addDirectoryEntry: vi.fn(async ({ fieldId, postBody }) => {
+      if (!postBody.customFieldData) postBody.customFieldData = [];
+      postBody.customFieldData.push({ field: { id: fieldId }, value: { id: 5 } });
+      return 5;
+    }),
+    addDirectoryEntries: vi.fn(async ({ fieldId, postBody }) => {
+      if (!postBody.customFieldData) postBody.customFieldData = [];
+      postBody.customFieldData.push({ field: { id: fieldId }, value: [{ id: 5 }] });
+      return [5];
+    }),
+  };
+});
 
 vi.mock("../lib/planfixCustomFields.js", () => ({
   getTaskCustomFieldName: vi.fn().mockResolvedValue("Field name"),

@@ -1,4 +1,8 @@
-import type { ContactResponse, CustomFieldDataType, TaskResponse } from "../types.js";
+import type {
+  ContactResponse,
+  CustomFieldDataType,
+  TaskResponse,
+} from "../types.js";
 import type { CustomField } from "./extendSchemaWithCustomFields.js";
 
 export interface HasCustomFieldData {
@@ -15,7 +19,8 @@ export function extendPostBodyWithCustomFields(
 ): void {
   if (!fields.length) return;
   for (const field of fields) {
-    const value = (args[field.argName as keyof typeof args] as unknown) || field.default;
+    const value =
+      (args[field.argName as keyof typeof args] as unknown) || field.default;
     if (value === undefined || value === null || value === "") continue;
 
     const current = task || contact;
@@ -24,17 +29,25 @@ export function extendPostBodyWithCustomFields(
     );
     let currentValue;
     if (field.type === "enum") {
-      currentValue = currentField && Array.isArray(currentField.value) ? currentField?.value?.[0] : "";
+      currentValue =
+        currentField && Array.isArray(currentField.value)
+          ? currentField?.value?.[0]
+          : "";
     }
     if (field.type === "handbook_record") {
-      // TODO: createDirectoryEntry and add to postBody.customFieldData
+      // TODO: addDirectoryEntry
     }
     if (!forceUpdate && currentValue === value) continue;
 
     if (!postBody.customFieldData) postBody.customFieldData = [];
     postBody.customFieldData.push({
       field: { id: Number(field.id) },
-      value: value as string | number | string[] | { id: number } | { id: number }[],
+      value: value as
+        | string
+        | number
+        | string[]
+        | { id: number }
+        | { id: number }[],
     });
   }
 }
