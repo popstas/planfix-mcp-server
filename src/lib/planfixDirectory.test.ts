@@ -5,8 +5,12 @@ import {
   searchAllDirectoryEntries,
   searchDirectory,
   createDirectoryEntry,
+  addDirectoryEntry,
+  addDirectoryEntries,
 } from "./planfixDirectory.js";
 import { log, planfixRequest } from "../helpers.js";
+import { getFieldDirectoryId } from "./planfixObjects.js";
+import type { CustomFieldDataType } from "../types.js";
 
 vi.mock("../helpers.js", () => ({
   log: vi.fn(),
@@ -16,9 +20,13 @@ const deletePrefixMock = vi.fn();
 vi.mock("./cache.js", () => ({
   getCacheProvider: () => ({ deletePrefix: deletePrefixMock }),
 }));
+vi.mock("./planfixObjects.js", () => ({
+  getFieldDirectoryId: vi.fn(),
+}));
 
 const mockedLog = vi.mocked(log);
 const mockedPlanfixRequest = vi.mocked(planfixRequest);
+const mockedGetFieldDirectoryId = vi.mocked(getFieldDirectoryId);
 
 describe("getDirectoryFields", () => {
   const mockDirectoryId = 7458;
@@ -178,5 +186,105 @@ describe("createDirectoryEntry", () => {
     expect(result).toBeUndefined();
     expect(mockedLog).toHaveBeenCalled();
     expect(deletePrefixMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("addDirectoryEntry", () => {
+  const objectId = 1;
+  const fieldId = 2;
+  const value = "Item";
+  const postBody: { customFieldData?: CustomFieldDataType[] } = {};
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    postBody.customFieldData = [];
+  });
+
+  it("adds existing entry", async () => {
+    mockedGetFieldDirectoryId.mockResolvedValueOnce(10);
+    mockedPlanfixRequest.mockResolvedValueOnce({
+      directory: { id: 10, name: "Dir", fields: [{ id: 5 }] },
+    });
+    mockedPlanfixRequest.mockResolvedValueOnce({
+      directoryEntries: [
+        { key: 7, customFieldData: [{ field: { id: 5 }, value }] },
+      ],
+    });
+    const id = await addDirectoryEntry({ objectId, fieldId, value, postBody });
+    expect(id).toBe(7);
+    expect(postBody.customFieldData).toEqual([
+      { field: { id: fieldId }, value: { id: 7 } },
+    ]);
+  });
+
+  it("creates entry when missing", async () => {
+    mockedGetFieldDirectoryId.mockResolvedValueOnce(10);
+    mockedPlanfixRequest.mockResolvedValueOnce({
+      directory: { id: 10, name: "Dir", fields: [{ id: 5 }] },
+    });
+    mockedPlanfixRequest.mockResolvedValueOnce({ directoryEntries: [] });
+    mockedPlanfixRequest.mockResolvedValueOnce({ key: 8 });
+    const id = await addDirectoryEntry({ objectId, fieldId, value, postBody });
+    expect(id).toBe(8);
+    expect(postBody.customFieldData?.[0]).toEqual({
+      field: { id: fieldId },
+      value: { id: 8 },
+    });
+  });
+
+  it("returns undefined if directory not found", async () => {
+    mockedGetFieldDirectoryId.mockResolvedValueOnce(undefined);
+    const id = await addDirectoryEntry({ objectId, fieldId, value, postBody });
+    expect(id).toBeUndefined();
+    expect(postBody.customFieldData?.length).toBe(0);
+  });
+});
+
+describe("addDirectoryEntries", () => {
+  const objectId = 2;
+  const fieldId = 3;
+  const values = ["A", "B"];
+  const postBody: { customFieldData?: CustomFieldDataType[] } = {};
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    postBody.customFieldData = [];
+  });
+
+  it("adds ids for values", async () => {
+    mockedGetFieldDirectoryId.mockResolvedValueOnce(20);
+    mockedPlanfixRequest.mockResolvedValueOnce({
+      directory: { id: 20, name: "Dir", fields: [{ id: 6 }] },
+    });
+    mockedPlanfixRequest.mockResolvedValueOnce({
+      directoryEntries: [
+        { key: 1, customFieldData: [{ field: { id: 6 }, value: "A" }] },
+      ],
+    });
+    mockedPlanfixRequest.mockResolvedValueOnce({ directoryEntries: [] });
+    mockedPlanfixRequest.mockResolvedValueOnce({ key: 2 });
+    const ids = await addDirectoryEntries({
+      objectId,
+      fieldId,
+      values,
+      postBody,
+    });
+    expect(ids).toEqual([1, 2]);
+    expect(postBody.customFieldData?.[0]).toEqual({
+      field: { id: fieldId },
+      value: [{ id: 1 }, { id: 2 }],
+    });
+  });
+
+  it("returns undefined when directory missing", async () => {
+    mockedGetFieldDirectoryId.mockResolvedValueOnce(undefined);
+    const ids = await addDirectoryEntries({
+      objectId,
+      fieldId,
+      values,
+      postBody,
+    });
+    expect(ids).toBeUndefined();
+    expect(postBody.customFieldData?.length).toBe(0);
   });
 });

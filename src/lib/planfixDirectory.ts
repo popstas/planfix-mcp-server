@@ -1,5 +1,6 @@
 import { log, planfixRequest } from "../helpers.js";
 import { getCacheProvider } from "./cache.js";
+import { getFieldDirectoryId } from "./planfixObjects.js";
 import type { CustomFieldDataType } from "../types.js";
 
 export interface DirectoryInfo {
@@ -161,4 +162,78 @@ export async function createDirectoryEntry(
     log(`[createDirectoryEntry] ${(error as Error).message}`);
     return undefined;
   }
+}
+export interface AddDirectoryEntryArgs {
+  objectId: number;
+  fieldId: number;
+  value: string;
+  postBody: { customFieldData?: CustomFieldDataType[] };
+}
+
+export async function addDirectoryEntry({
+  objectId,
+  fieldId,
+  value,
+  postBody,
+}: AddDirectoryEntryArgs): Promise<number | undefined> {
+  const directoryId = await getFieldDirectoryId({ objectId, fieldId });
+  if (!directoryId) return undefined;
+  const directoryFields = await getDirectoryFields(directoryId);
+  const directoryFieldId = directoryFields?.[0]?.id || 0;
+  let entryId = await searchDirectoryEntryById(
+    directoryId,
+    directoryFieldId,
+    value,
+  );
+  if (!entryId) {
+    entryId = await createDirectoryEntry(directoryId, directoryFieldId, value);
+  }
+  if (entryId) {
+    if (!postBody.customFieldData) postBody.customFieldData = [];
+    postBody.customFieldData.push({
+      field: { id: fieldId },
+      value: { id: entryId },
+    });
+  }
+  return entryId;
+}
+
+export interface AddDirectoryEntriesArgs {
+  objectId: number;
+  fieldId: number;
+  values: string[];
+  postBody: { customFieldData?: CustomFieldDataType[] };
+}
+
+export async function addDirectoryEntries({
+  objectId,
+  fieldId,
+  values,
+  postBody,
+}: AddDirectoryEntriesArgs): Promise<number[] | undefined> {
+  if (!values.length) return [];
+  const directoryId = await getFieldDirectoryId({ objectId, fieldId });
+  if (!directoryId) return undefined;
+  const directoryFields = await getDirectoryFields(directoryId);
+  const directoryFieldId = directoryFields?.[0]?.id || 0;
+  const ids: number[] = [];
+  for (const value of values) {
+    let id = await searchDirectoryEntryById(
+      directoryId,
+      directoryFieldId,
+      value,
+    );
+    if (!id) {
+      id = await createDirectoryEntry(directoryId, directoryFieldId, value);
+    }
+    if (id) ids.push(id);
+  }
+  if (ids.length) {
+    if (!postBody.customFieldData) postBody.customFieldData = [];
+    postBody.customFieldData.push({
+      field: { id: fieldId },
+      value: ids.map((id) => ({ id })),
+    });
+  }
+  return ids;
 }
