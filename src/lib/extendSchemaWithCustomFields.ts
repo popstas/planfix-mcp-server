@@ -4,7 +4,7 @@ export interface CustomField {
   id: number;
   name?: string;
   argName: string;
-  type: "string" | "number" | "boolean" | "enum" | "handbook_record";
+  type: "string" | "number" | "boolean" | "enum" | "handbook_record" | "handbook_record_multiple";
   values?: string[];
   default?: string;
 }

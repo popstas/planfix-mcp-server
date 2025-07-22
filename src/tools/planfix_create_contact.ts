@@ -6,26 +6,10 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
-import type { CustomFieldDataType } from "../types.js";
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
-
-interface ContactRequestBody {
-  template: {
-    id: number;
-  };
-  name: string;
-  lastname: string;
-  email?: string;
-  phones: Array<{
-    type: number;
-    number: string;
-  }>;
-  telegram?: string;
-  instagram?: string;
-  customFieldData: CustomFieldDataType[];
-}
+import { ContactRequestBody } from "../types.js";
 
 const CreatePlanfixContactInputSchemaBase = z.object({
   name: z.string().optional(),
@@ -80,7 +64,7 @@ export async function createPlanfixContact(
     const { firstName, lastName } = splitName(userData.name || "");
     const postBody: ContactRequestBody = {
       template: {
-        id: Number(process.env.PLANFIX_CONTACT_TEMPLATE_ID || 0),
+        id: Number(process.env.PLANFIX_CONTACT_TEMPLATE_ID || 1),
       },
       name: firstName,
       lastname: lastName,
@@ -90,7 +74,7 @@ export async function createPlanfixContact(
     };
 
     // Add phone if available
-    if (userData.phone) {
+    if (userData.phone && postBody.phones) {
       postBody.phones.push({
         type: 1, // mobile
         number: userData.phone,
@@ -117,7 +101,7 @@ export async function createPlanfixContact(
       postBody.instagram = userData.instagram.replace(/^@/, "");
     }
 
-    extendPostBodyWithCustomFields(
+    await extendPostBodyWithCustomFields(
       postBody,
       userData as Record<string, unknown>,
       customFieldsConfig.contactFields,

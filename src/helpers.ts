@@ -7,7 +7,7 @@ import {
   PLANFIX_BASE_URL,
   PLANFIX_HEADERS,
 } from "./config.js";
-import { ToolInput, ToolWithHandler } from "./types.js";
+import { ContactRequestBody, TaskRequestBody, ToolInput, ToolWithHandler } from "./types.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { z } from "zod";
 import { execa } from "execa";
@@ -65,7 +65,7 @@ export function getToolWithHandler<
 
 export interface PlanfixRequestArgs {
   path: string;
-  body?: Record<string, unknown>;
+  body?: Record<string, unknown> | ContactRequestBody | TaskRequestBody;
   method?: "GET" | "POST";
   cacheTime?: number;
 }

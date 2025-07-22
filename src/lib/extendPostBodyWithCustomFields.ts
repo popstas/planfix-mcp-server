@@ -4,19 +4,23 @@ import type {
   TaskResponse,
 } from "../types.js";
 import type { CustomField } from "./extendSchemaWithCustomFields.js";
+import { addDirectoryEntries, addDirectoryEntry } from "../lib/planfixDirectory.js"
 
 export interface HasCustomFieldData {
   customFieldData?: CustomFieldDataType[];
+  template: {
+    id: number,
+  }
 }
 
-export function extendPostBodyWithCustomFields(
+export async function extendPostBodyWithCustomFields(
   postBody: HasCustomFieldData,
   args: Record<string, unknown>,
   fields: CustomField[],
   task?: TaskResponse,
   contact?: ContactResponse,
   forceUpdate?: boolean,
-): void {
+): Promise<void> {
   if (!fields.length) return;
   for (const field of fields) {
     const value =
@@ -35,7 +39,22 @@ export function extendPostBodyWithCustomFields(
           : "";
     }
     if (field.type === "handbook_record") {
-      // TODO: addDirectoryEntry
+      await addDirectoryEntry({
+        objectId: postBody.template.id,
+        fieldId: field.id,
+        value: value as string,
+        postBody,
+      });
+      continue;
+    }
+    if (field.type === "handbook_record_multiple") {
+      await addDirectoryEntries({
+        objectId: postBody.template.id,
+        fieldId: field.id,
+        values: value as string[],
+        postBody,
+      });
+      continue;
     }
     if (!forceUpdate && currentValue === value) continue;
 
