@@ -171,7 +171,7 @@ export async function createLeadTask(
     });
   }
 
-  extendPostBodyWithCustomFields(
+  await extendPostBodyWithCustomFields(
     postBody,
     args as Record<string, unknown>,
     customFieldsConfig.leadTaskFields,

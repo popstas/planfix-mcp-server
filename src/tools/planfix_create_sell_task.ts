@@ -161,7 +161,7 @@ export async function createSellTask(
       });
     }
 
-    extendPostBodyWithCustomFields(
+    await extendPostBodyWithCustomFields(
       postBody,
       args as Record<string, unknown>,
       customFieldsConfig.leadTaskFields,

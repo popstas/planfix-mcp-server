@@ -9,7 +9,7 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
-import { ContactResponse } from "../types.js";
+import { ContactRequestBody, ContactResponse } from "../types.js";
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
   if (!fullName) return { firstName: "", lastName: "" };
@@ -67,7 +67,12 @@ export async function updatePlanfixContact(
       method: "GET",
     });
 
-    const postBody: Record<string, unknown> = {};
+    const postBody: ContactRequestBody = {
+      template: {
+        id: Number(process.env.PLANFIX_CONTACT_TEMPLATE_ID || 1),
+      },
+      customFieldData: [],
+    };
 
     const { firstName, lastName } = name
       ? splitName(name)
@@ -133,7 +138,7 @@ export async function updatePlanfixContact(
       }
     }
 
-    extendPostBodyWithCustomFields(
+    await extendPostBodyWithCustomFields(
       postBody,
       args,
       customFieldsConfig.contactFields,

@@ -204,7 +204,7 @@ export async function updateLeadTask(
       }
     }
 
-    extendPostBodyWithCustomFields(
+    await extendPostBodyWithCustomFields(
       postBody,
       args as Record<string, unknown>,
       customFieldsConfig.leadTaskFields,

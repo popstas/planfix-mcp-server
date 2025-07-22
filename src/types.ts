@@ -70,13 +70,28 @@ export interface TaskRequestBody {
   };
   assignees?: UsersListType;
 }
+export interface ContactRequestBody {
+  template: {
+    id: number;
+  };
+  name?: string;
+  lastname?: string;
+  email?: string;
+  phones?: Array<{
+    type: number;
+    number: string;
+  }>;
+  telegram?: string;
+  instagram?: string;
+  customFieldData: CustomFieldDataType[];
+}
 
 export interface ContactResponse {
   id: number;
   name?: string;
   lastname?: string;
   email?: string;
-  phones?: Array<{ number: string; type?: number }>;
+  phones?: Array<{ number: string; type: number }>;
   telegram?: string;
   customFieldData?: CustomFieldDataType[];
 }
