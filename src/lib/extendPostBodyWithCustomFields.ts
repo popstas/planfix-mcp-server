@@ -26,6 +26,9 @@ export function extendPostBodyWithCustomFields(
     if (field.type === "enum") {
       currentValue = currentField && Array.isArray(currentField.value) ? currentField?.value?.[0] : "";
     }
+    if (field.type === "handbook_record") {
+      // TODO: createDirectoryEntry and add to postBody.customFieldData
+    }
     if (!forceUpdate && currentValue === value) continue;
 
     if (!postBody.customFieldData) postBody.customFieldData = [];
