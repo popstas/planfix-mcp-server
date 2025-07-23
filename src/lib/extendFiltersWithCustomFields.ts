@@ -29,7 +29,7 @@ export function extendFiltersWithCustomFields(
   target: "task" | "contact",
 ): void {
   for (const field of fields) {
-    const type = (typeCodeMap as any)[target][field.type as string];
+    const type = (typeCodeMap as Record<string, Record<string, number>>)[target][field.type as string];
     if (!type) {
       log(`[extendFiltersWithCustomFields] Unknown type: ${field.type}, field: ${field.id}`);
       continue;
