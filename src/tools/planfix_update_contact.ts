@@ -145,7 +145,11 @@ export async function updatePlanfixContact(
       contact,
     );
 
-    if (Object.keys(postBody).length === 0) {
+    const hasUpdates =
+      Object.keys(postBody).some(
+        (k) => k !== "template" && k !== "customFieldData",
+      ) || postBody.customFieldData.length > 0;
+    if (!hasUpdates) {
       return { contactId, url: getContactUrl(contactId) };
     }
 
