@@ -232,9 +232,11 @@ const objects = await planfixClient.post('object/list', {
 
 ### Task Management
 
- - `searchPlanfixTask`: Search for tasks by title, client ID and optional `templateId`
+- `searchPlanfixTask`: Search for tasks by title, client ID and optional `templateId`
 - `createSellTask`: Create a new sell task with template
-- `createLeadTask`: Create a new lead task
+- `createLeadTask`: Create a new lead task. Supports Chat API when
+  `chatApi.useChatApi` is enabled in config, accepting `message` and
+  `contactName` fields.
 - `addToLeadTask`: Create or update a lead task and update contact details
 - `createTask`: Create a task using text fields
 - `createComment`: Add a comment to a task

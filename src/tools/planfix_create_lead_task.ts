@@ -13,9 +13,16 @@ import {
 } from "../lib/planfixDirectory.js";
 import { getTaskCustomFieldName } from "../lib/planfixCustomFields.js";
 import { TaskRequestBody } from "../types.js";
-import { customFieldsConfig } from "../customFieldsConfig.js";
+import { customFieldsConfig, chatApiConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import {
+  chatApiRequest,
+  ChatApiChatResponse,
+  ChatApiNumberResponse,
+} from "../chatApi.js";
+import { updateLeadTask } from "./planfix_update_lead_task.js";
+import { updatePlanfixContact } from "./planfix_update_contact.js";
 
 const CreateLeadTaskInputSchemaBase = z.object({
   name: z.string().optional().describe("Name of the task"),
@@ -28,6 +35,12 @@ const CreateLeadTaskInputSchemaBase = z.object({
   pipeline: z.string().optional(),
   tags: z.array(z.string()).optional(),
   leadId: z.number().optional(),
+  message: z.string().optional().describe("Initial message text for chat"),
+  contactName: z.string().optional().describe("Name of the contact"),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  telegram: z.string().optional(),
+  instagram: z.string().optional(),
 });
 
 export const CreateLeadTaskInputSchema = extendSchemaWithCustomFields(
@@ -71,7 +84,37 @@ export async function createLeadTask(
     pipeline,
     leadId,
     tags,
+    message,
+    contactName,
   } = args;
+  if (chatApiConfig.useChatApi) {
+    try {
+      const { chatId, contactId } = await chatApiRequest<ChatApiChatResponse>(
+        "newMessage",
+        { text: message, name: contactName },
+      );
+      const { data } = await chatApiRequest<ChatApiNumberResponse>("getTask", {
+        chatId,
+      });
+      const taskId = data.number;
+      await updateLeadTask({ ...(args as Record<string, unknown>), taskId });
+      const contactArgs: Record<string, unknown> = {
+        ...(args as Record<string, unknown>),
+        contactId,
+        name: contactName,
+      };
+      delete contactArgs.contactName;
+      delete contactArgs.message;
+      await updatePlanfixContact(
+        contactArgs as Parameters<typeof updatePlanfixContact>[0],
+      );
+      return { taskId, url: getTaskUrl(taskId) };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return { taskId: 0, error: errorMessage };
+    }
+  }
   const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
   let finalDescription = description;
   let finalProjectId = 0;
