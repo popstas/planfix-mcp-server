@@ -65,6 +65,26 @@ contactFields:
 Values from `config.yml` override matching entries from the legacy environment
 variables when merged by `id`.
 
+#### Chat API
+
+To create tasks from chat messages, add a `chatApi` block to `config.yml`:
+
+```yaml
+chatApi:
+  useChatApi: true
+  chatApiToken: "<token>"
+  providerId: "<id>"
+  baseUrl: "https://<account>.planfix.com/webchat/api"
+```
+
+- `chatApiToken` – token for Planfix Chat API requests.
+- `providerId` – identifier of the chat provider configured in Planfix.
+- `useChatApi` – enable Chat API integration. When `true`, task creation proceeds as:
+  1. A chat is created via Chat API with the initial message.
+  2. `getTask` retrieves the new task's `taskId`.
+  3. Subsequent updates are made through the REST API.
+- `baseUrl` – base URL for Chat API calls. Defaults to `https://<account>.planfix.com/webchat/api`.
+
 ## Debug
 
 ```
@@ -234,9 +254,10 @@ const objects = await planfixClient.post('object/list', {
 
 - `searchPlanfixTask`: Search for tasks by title, client ID and optional `templateId`
 - `createSellTask`: Create a new sell task with template
-- `createLeadTask`: Create a new lead task. Supports Chat API when
-  `chatApi.useChatApi` is enabled in config, accepting `message` and
-  `contactName` fields.
+- `createLeadTask`: Create a new lead task. When `chatApi.useChatApi`
+  is enabled, it sends the initial message through the Chat API, gets
+  the resulting `taskId` via `getTask`, and then updates the task using
+  the REST API. Accepts `message` and `contactName` fields.
 - `addToLeadTask`: Create or update a lead task and update contact details
 - `createTask`: Create a task using text fields
 - `createComment`: Add a comment to a task
