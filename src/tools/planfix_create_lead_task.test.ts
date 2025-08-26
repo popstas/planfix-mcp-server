@@ -171,9 +171,11 @@ describe("planfix_create_lead_task", () => {
     expect(mockUpdateLeadTask).toHaveBeenCalledWith(
       expect.objectContaining({ taskId: 33 }),
     );
+    expect(mockUpdateLeadTask).toHaveBeenCalledTimes(1);
     expect(mockUpdatePlanfixContact).toHaveBeenCalledWith(
       expect.objectContaining({ contactId: 22, email: "a@b.c" }),
     );
+    expect(mockUpdatePlanfixContact).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ taskId: 33, url: "https://example.com/task/33" });
     expect(mockPlanfixRequest).not.toHaveBeenCalled();
   });
