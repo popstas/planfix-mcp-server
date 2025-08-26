@@ -2,9 +2,17 @@ import fs from "fs";
 import yaml from "js-yaml";
 import { CustomField } from "./lib/extendSchemaWithCustomFields.js";
 
-export interface CustomFieldsConfig {
+export interface ChatApiConfig {
+  chatApiToken: string;
+  providerId: string;
+  useChatApi: boolean;
+  baseUrl: string;
+}
+
+export interface AppConfig {
   leadTaskFields: CustomField[];
   contactFields: CustomField[];
+  chatApi: ChatApiConfig;
 }
 
 const DEFAULT_PATH = "./data/config.yml";
@@ -45,32 +53,50 @@ function mergeFields(
   return Array.from(map.values());
 }
 
-export function loadCustomFieldsConfig(): CustomFieldsConfig {
+export function loadCustomFieldsConfig(): AppConfig {
   const envLead = parseEnv("PLANFIX_LEAD_TASK_FIELDS");
   const envContact = parseEnv("PLANFIX_CONTACT_FIELDS");
   let fileLead: CustomField[] = [];
   let fileContact: CustomField[] = [];
+  let fileChatApi: Partial<ChatApiConfig> = {};
 
   const path = getConfigPath();
   if (fs.existsSync(path)) {
     try {
       const content = fs.readFileSync(path, "utf8");
-      const parsed = yaml.load(content) as CustomFieldsConfig | undefined;
+      const parsed = yaml.load(content) as Partial<AppConfig> | undefined;
       fileLead = Array.isArray(parsed?.leadTaskFields)
         ? (parsed!.leadTaskFields as CustomField[])
         : [];
       fileContact = Array.isArray(parsed?.contactFields)
         ? (parsed!.contactFields as CustomField[])
         : [];
+      if (parsed?.chatApi && typeof parsed.chatApi === "object") {
+        fileChatApi = parsed.chatApi as ChatApiConfig;
+      }
     } catch {
       // ignore
     }
   }
 
+  const chatApi: ChatApiConfig = {
+    chatApiToken: "",
+    providerId: "",
+    useChatApi: false,
+    baseUrl: "",
+    ...fileChatApi,
+  };
+
   return {
     leadTaskFields: mergeFields(envLead, fileLead),
     contactFields: mergeFields(envContact, fileContact),
+    chatApi,
   };
 }
 
-export const customFieldsConfig = loadCustomFieldsConfig();
+const cfg = loadCustomFieldsConfig();
+export const customFieldsConfig = {
+  leadTaskFields: cfg.leadTaskFields,
+  contactFields: cfg.contactFields,
+};
+export const chatApiConfig = cfg.chatApi;

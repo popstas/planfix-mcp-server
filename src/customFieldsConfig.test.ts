@@ -46,4 +46,30 @@ describe("customFieldsConfig", () => {
     const cfg = loadCustomFieldsConfig();
     expect(cfg.contactFields[0].values).toEqual(["one", "two"]);
   });
+
+  it("loads chatApi from yaml", () => {
+    const file = tmpFile(
+      "chatApi:\n  chatApiToken: t\n  providerId: p\n  useChatApi: true\n  baseUrl: https://a.planfix.com/webchat/api",
+    );
+    process.env.PLANFIX_CONFIG = file;
+    const cfg = loadCustomFieldsConfig();
+    expect(cfg.chatApi).toEqual({
+      chatApiToken: "t",
+      providerId: "p",
+      useChatApi: true,
+      baseUrl: "https://a.planfix.com/webchat/api",
+    });
+  });
+
+  it("chatApi defaults when missing", () => {
+    const file = tmpFile("leadTaskFields: []\ncontactFields: []");
+    process.env.PLANFIX_CONFIG = file;
+    const cfg = loadCustomFieldsConfig();
+    expect(cfg.chatApi).toEqual({
+      chatApiToken: "",
+      providerId: "",
+      useChatApi: false,
+      baseUrl: "",
+    });
+  });
 });
