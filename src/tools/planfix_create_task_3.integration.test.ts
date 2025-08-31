@@ -27,8 +27,11 @@ describe("planfix_create_task tool prod", () => {
       firstName: string;
       lastName: string;
       agencyId: number;
+      error?: string;
     }>("planfix_create_task", args);
     expect(valid).toBe(true);
+
+    expect(content.error).toBeUndefined();
 
     // Check response structure and types
     expect(content).toMatchObject({

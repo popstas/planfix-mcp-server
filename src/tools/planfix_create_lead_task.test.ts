@@ -72,6 +72,8 @@ vi.mock("../customFieldsConfig.js", () => {
 
 vi.mock("../chatApi.js", () => ({
   chatApiRequest: vi.fn(),
+  getChatId: (args: { clientId?: number; phone?: string; email?: string; telegram?: string }) =>
+    (typeof args?.clientId === "number" ? `chat${args.clientId}` : args?.phone || args?.email || args?.telegram || "chat_test"),
 }));
 
 vi.mock("./planfix_update_lead_task.js", () => ({
@@ -161,19 +163,24 @@ describe("planfix_create_lead_task", () => {
       contactName: "User",
       email: "a@b.c",
     });
-    expect(mockChatApiRequest).toHaveBeenNthCalledWith(1, "newMessage", {
-      text: "hello",
-      name: "User",
-    });
+    expect(mockChatApiRequest).toHaveBeenNthCalledWith(
+      1,
+      "newMessage",
+      expect.objectContaining({
+        chatId: "chat1",
+        contactId: 1,
+        message: "Hi",
+      }),
+    );
     expect(mockChatApiRequest).toHaveBeenNthCalledWith(2, "getTask", {
-      chatId: 11,
+      chatId: "chat1",
     });
     expect(mockUpdateLeadTask).toHaveBeenCalledWith(
       expect.objectContaining({ taskId: 33 }),
     );
     expect(mockUpdateLeadTask).toHaveBeenCalledTimes(1);
     expect(mockUpdatePlanfixContact).toHaveBeenCalledWith(
-      expect.objectContaining({ contactId: 22, email: "a@b.c" }),
+      expect.objectContaining({ contactId: 1, email: "a@b.c" }),
     );
     expect(mockUpdatePlanfixContact).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ taskId: 33, url: "https://example.com/task/33" });
