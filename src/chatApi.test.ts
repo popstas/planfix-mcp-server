@@ -29,17 +29,22 @@ describe("chatApiRequest", () => {
     const { chatApiRequest } = await import("./chatApi.js");
     const res = await chatApiRequest("init", { a: 1 });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://acc.planfix.com/webchat/api?planfix_token=tkn&providerId=pid",
-      {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ cmd: "init", params: { a: 1 } }),
-      },
-    );
+    // Verify fetch was called with correct URL and form-encoded body
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [calledUrl, options] = (fetchMock as any).mock.calls[0];
+    expect(calledUrl).toBe("https://acc.planfix.com/webchat/api");
+    expect(options).toMatchObject({ method: "POST" });
+    expect(options.headers).toMatchObject({
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    });
+
+    const usp = new URLSearchParams(options.body as string);
+    expect(usp.get("cmd")).toBe("init");
+    expect(usp.get("providerId")).toBe("pid");
+    expect(usp.get("planfix_token")).toBe("tkn");
+    expect(usp.get("a")).toBe("1");
+
     expect(res).toEqual({ chatId: 1, contactId: 2 });
   });
 });

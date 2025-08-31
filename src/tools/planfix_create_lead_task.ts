@@ -20,6 +20,7 @@ import {
   chatApiRequest,
   ChatApiChatResponse,
   ChatApiNumberResponse,
+  getChatId,
 } from "../chatApi.js";
 import { updateLeadTask } from "./planfix_update_lead_task.js";
 import { updatePlanfixContact } from "./planfix_update_contact.js";
@@ -85,25 +86,31 @@ export async function createLeadTask(
     leadId,
     tags,
     message,
-    contactName,
   } = args;
   if (chatApiConfig.useChatApi) {
+    const chatId = getChatId(args);
+    const chatParams = {
+      chatId,
+      contactId: clientId,
+      title: name,
+      message: description || message,
+    };
     try {
-      const { chatId, contactId } = await chatApiRequest<ChatApiChatResponse>(
+      await chatApiRequest<ChatApiChatResponse>(
         "newMessage",
-        { text: message, name: contactName },
+        chatParams,
       );
-      const { data } = await chatApiRequest<ChatApiNumberResponse>("getTask", {
+      const data = await chatApiRequest<ChatApiNumberResponse>("getTask", {
         chatId,
       });
       const taskId = data.number;
       await updateLeadTask({ ...(args as Record<string, unknown>), taskId });
       const contactArgs: Record<string, unknown> = {
         ...(args as Record<string, unknown>),
-        contactId,
-        name: contactName,
+        contactId: clientId,
+        name,
       };
-      delete contactArgs.contactName;
+      delete contactArgs.name;
       delete contactArgs.message;
       await updatePlanfixContact(
         contactArgs as Parameters<typeof updatePlanfixContact>[0],
