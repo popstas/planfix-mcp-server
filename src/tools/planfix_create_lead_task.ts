@@ -96,14 +96,21 @@ export async function createLeadTask(
       message: description || message,
     };
     try {
-      await chatApiRequest<ChatApiChatResponse>(
-        "newMessage",
-        chatParams,
-      );
-      const data = await chatApiRequest<ChatApiNumberResponse>("getTask", {
+      await chatApiRequest<ChatApiChatResponse>("newMessage", chatParams);
+      const data = await chatApiRequest<
+        ChatApiNumberResponse & { data?: { number?: number } }
+      >("getTask", {
         chatId,
       });
-      const taskId = data.number;
+      const taskId =
+        typeof data.number === "number"
+          ? data.number
+          : typeof data.data?.number === "number"
+            ? data.data.number
+            : undefined;
+      if (typeof taskId !== "number") {
+        throw new Error("Chat API response does not contain task number");
+      }
       await updateLeadTask({ ...(args as Record<string, unknown>), taskId });
       const contactArgs: Record<string, unknown> = {
         ...(args as Record<string, unknown>),

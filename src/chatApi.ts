@@ -55,7 +55,9 @@ export async function chatApiRequest<
   usp.set("providerId", chatApiConfig.providerId);
   usp.set("planfix_token", chatApiConfig.chatApiToken);
   // chatId is commonly used by Chat API, but may be absent for some commands
-  const maybeChatId = (params as Record<string, unknown> | undefined)?.["chatId"];
+  const maybeChatId = (params as Record<string, unknown> | undefined)?.[
+    "chatId"
+  ];
   if (maybeChatId !== undefined && maybeChatId !== null) {
     usp.set("chatId", String(maybeChatId));
   }
@@ -74,7 +76,9 @@ export async function chatApiRequest<
     if (Array.isArray(value)) {
       for (const item of value) {
         if (item && typeof item === "object") {
-          for (const [k, v] of Object.entries(item as Record<string, unknown>)) {
+          for (const [k, v] of Object.entries(
+            item as Record<string, unknown>,
+          )) {
             appendValue(`${key}[${k}]`, v);
           }
         } else {
@@ -111,15 +115,31 @@ export async function chatApiRequest<
   }
 
   try {
-    const data = await response.json() as { data: string };
-    const json = JSON.parse(data.data);
-    return json as TResponse;
+    const raw = await response.json();
+
+    if (raw && typeof raw === "object" && "data" in raw) {
+      const data = (raw as { data: unknown }).data;
+
+      if (typeof data === "string") {
+        try {
+          return JSON.parse(data) as TResponse;
+        } catch (error) {
+          log(`Expected: error, got: ${String(error)}`);
+          return raw as TResponse;
+        }
+      }
+
+      if (data && typeof data === "object") {
+        return data as TResponse;
+      }
+    }
+
+    return raw as TResponse;
   } catch (error) {
     log(`Expected: error, got: ${String(error)}`);
-    return {} as TResponse;
+    throw error;
   }
 }
-
 
 // Build a curl command that replicates a given HTTP request.
 // Useful for debugging and reproducing Planfix Chat API calls.
@@ -137,7 +157,7 @@ export function getCurlRequest(
     "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
     ...Object.fromEntries(
       Object.entries(options.headers ?? {}).flatMap(([k, v]) =>
-        v === undefined ? [] : [[k, String(v)]] as [string, string][]
+        v === undefined ? [] : ([[k, String(v)]] as [string, string][]),
       ),
     ),
   };
@@ -155,4 +175,3 @@ export function getCurlRequest(
 
   return parts.join(" ");
 }
-
