@@ -199,6 +199,13 @@ PLANFIX_TOKEN=your-api-token
    npm run planfix post object/list --data '{"filters":[{"type":1,"operator":"equal","value":"Продажа"}]}'
    ```
 
+## Tool Reference
+
+### `planfix_create_sell_task`
+
+- Creates a sell task using the Planfix template defined by `PLANFIX_SELL_TEMPLATE_ID`.
+- `leadTaskId` is optional; when omitted, the sell task is created without a parent lead task.
+
 5. **Update an object (PUT request)**
    ```bash
    npm run planfix put task/123 --data '{"name":"Updated Task Name"}'

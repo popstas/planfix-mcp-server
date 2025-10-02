@@ -88,6 +88,19 @@ describe("createSellTask", () => {
     expect(body.description).toContain("Проект: Missing");
   });
 
+  it("omits parent when leadTaskId is not provided", async () => {
+    process.env.PLANFIX_SELL_TEMPLATE_ID = "11";
+
+    await createSellTask({
+      clientId: 1,
+      name: "Name",
+      description: "Desc",
+    });
+
+    const body = mockRequest.mock.calls[0][0].body as any;
+    expect(body.parent).toBeUndefined();
+  });
+
   it("handles dry run", async () => {
     const original = await import("../config.js");
     vi.resetModules();
@@ -100,7 +113,6 @@ describe("createSellTask", () => {
     );
     const res = await createDry({
       clientId: 1,
-      leadTaskId: 2,
       name: "",
       description: "",
     });

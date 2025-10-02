@@ -18,7 +18,7 @@ interface TaskRequestBody {
   };
   name: string;
   description: string;
-  parent: {
+  parent?: {
     id: number;
   };
   customFieldData: CustomFieldDataType[];
@@ -32,7 +32,7 @@ interface TaskRequestBody {
 
 const CreateSellTaskInputSchemaBase = z.object({
   clientId: z.number(),
-  leadTaskId: z.number(),
+  leadTaskId: z.number().optional(),
   agencyId: z.number().optional(),
   assignees: z.array(z.number()).optional(),
   name: z.string(),
@@ -53,20 +53,17 @@ export const CreateSellTaskOutputSchema = z.object({
 export async function createSellTask(
   args: z.infer<typeof CreateSellTaskInputSchema>,
 ): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
-  const {
-    clientId,
-    leadTaskId,
-    agencyId,
-    assignees,
-    project,
-  } = args;
+  const { clientId, leadTaskId, agencyId, assignees, project } = args;
   let { name, description } = args;
 
   try {
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
+      const leadTaskLogPart = leadTaskId
+        ? ` under lead task ${leadTaskId}`
+        : "";
       log(
-        `[DRY RUN] Would create sell task for client ${clientId} under lead task ${leadTaskId}`,
+        `[DRY RUN] Would create sell task for client ${clientId}${leadTaskLogPart}`,
       );
       return { taskId: mockId, url: `https://example.com/task/${mockId}` };
     }
@@ -95,9 +92,6 @@ export async function createSellTask(
       },
       name,
       description: finalDescription,
-      parent: {
-        id: leadTaskId,
-      },
       customFieldData: [
         {
           field: {
@@ -109,6 +103,12 @@ export async function createSellTask(
         },
       ],
     };
+
+    if (typeof leadTaskId === "number") {
+      postBody.parent = {
+        id: leadTaskId,
+      };
+    }
 
     if (finalProjectId) {
       postBody.project = { id: finalProjectId };
