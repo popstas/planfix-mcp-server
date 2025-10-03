@@ -1,122 +1,110 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { z } from "zod";
 
-vi.mock("../config.js", () => ({
-  PLANFIX_DRY_RUN: false,
-  PLANFIX_FIELD_IDS: {
-    client: 1,
-    agency: 2,
-    leadSource: 3,
-    serviceMatrix: 4,
-  },
+vi.mock("./planfix_create_sell_task_ids.js", () => ({
+  createSellTaskIds: vi.fn().mockResolvedValue({ taskId: 321, url: "url" }),
+  CreateSellTaskOutputSchema: z.object({
+    taskId: z.number(),
+    url: z.string(),
+  }),
 }));
 
-vi.mock("../helpers.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../helpers.js")>();
-  return {
-    ...actual,
-    planfixRequest: vi.fn().mockResolvedValue({ id: 123 }),
-    getTaskUrl: (id: number) => `https://example.com/task/${id}`,
-    log: vi.fn(),
-  };
-});
-
-vi.mock("./planfix_search_project.js", () => ({
-  searchProject: vi.fn().mockResolvedValue({ projectId: 10, found: true }),
+vi.mock("./planfix_search_lead_task.js", () => ({
+  searchLeadTask: vi.fn(),
 }));
 
-vi.mock("../lib/extendPostBodyWithCustomFields.js", () => ({
-  extendPostBodyWithCustomFields: vi.fn(),
+vi.mock("./planfix_search_company.js", () => ({
+  planfixSearchCompany: vi.fn(),
 }));
 
-import { planfixRequest } from "../helpers.js";
-import { searchProject } from "./planfix_search_project.js";
 import { createSellTask } from "./planfix_create_sell_task.js";
+import { createSellTaskIds } from "./planfix_create_sell_task_ids.js";
+import { searchLeadTask } from "./planfix_search_lead_task.js";
+import { planfixSearchCompany } from "./planfix_search_company.js";
 
-const mockRequest = vi.mocked(planfixRequest);
-const mockSearchProject = vi.mocked(searchProject);
+const mockCreateSellTaskIds = vi.mocked(createSellTaskIds);
+const mockSearchLeadTask = vi.mocked(searchLeadTask);
+const mockSearchCompany = vi.mocked(planfixSearchCompany);
 
 describe("createSellTask", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("sends request with found project", async () => {
-    process.env.PLANFIX_SELL_TEMPLATE_ID = "11";
-    process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE = "9";
-    process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX_VALUE = "8";
+  it("resolves identifiers and calls createSellTaskIds", async () => {
+    mockSearchLeadTask.mockResolvedValue({
+      clientId: 42,
+      taskId: 77,
+      agencyId: 99,
+      assignees: { users: [{ id: "user:5" }, { id: "user:8" }] },
+    } as any);
 
     const result = await createSellTask({
-      clientId: 1,
-      leadTaskId: 2,
-      agencyId: 3,
-      assignees: [5],
-      name: "Name",
-      description: "Line1\nLine2",
+      name: "Продажа товара",
+      agency: "Жууу",
+      email: "agency@example.com",
+      employeeName: "Имя Сотрудника",
+      telegram: "agency_telegram",
+      description: "список товаров",
+    });
+
+    expect(mockCreateSellTaskIds).toHaveBeenCalledWith({
+      clientId: 42,
+      leadTaskId: 77,
+      agencyId: 99,
+      assignees: [5, 8],
+      name: "Продажа товара",
+      description: "список товаров",
+      project: undefined,
+    });
+    expect(result).toEqual({ taskId: 321, url: "url" });
+    expect(mockSearchCompany).not.toHaveBeenCalled();
+  });
+
+  it("fetches agency id when not provided by search", async () => {
+    mockSearchLeadTask.mockResolvedValue({
+      clientId: 10,
+      taskId: 0,
+      assignees: { users: [] },
+    } as any);
+    mockSearchCompany.mockResolvedValue({ contactId: 555 });
+
+    await createSellTask({
+      name: "Продажа",
+      agency: "Новая",
+      email: "email@example.com",
+      contactName: "Имя",
+      description: "описание",
       project: "Proj",
     });
 
-    expect(mockSearchProject).toHaveBeenCalledWith({ name: "Proj" });
-    const call = mockRequest.mock.calls[0][0];
-    const body = call.body as any;
-    expect(body.project).toEqual({ id: 10 });
-    expect(body.assignees.users[0].id).toBe("user:5");
-    expect(body.description).toContain("Line1<br>Line2");
-    expect(body.customFieldData).toEqual(
-      expect.arrayContaining([
-        { field: { id: 1 }, value: { id: 1 } },
-        { field: { id: 2 }, value: { id: 3 } },
-        { field: { id: 3 }, value: { id: 9 } },
-        { field: { id: 4 }, value: { id: 8 } },
-      ]),
+    expect(mockSearchCompany).toHaveBeenCalledWith({ name: "Новая" });
+    expect(mockCreateSellTaskIds).toHaveBeenCalledWith({
+      clientId: 10,
+      leadTaskId: undefined,
+      agencyId: 555,
+      assignees: undefined,
+      name: "Продажа",
+      description: "описание",
+      project: "Proj",
+    });
+  });
+
+  it("throws when contact cannot be resolved", async () => {
+    mockSearchLeadTask.mockResolvedValue({
+      clientId: 0,
+      taskId: 0,
+    } as any);
+
+    await expect(
+      createSellTask({
+        name: "Продажа",
+        email: "missing@example.com",
+        description: "описание",
+      }),
+    ).rejects.toThrow(
+      "Unable to find a Planfix contact for the provided email/telegram",
     );
-    expect(result.taskId).toBe(123);
-    expect(result.url).toBe("https://example.com/task/123");
-  });
-
-  it("adds project name to description when not found", async () => {
-    mockSearchProject.mockResolvedValueOnce({ found: false, projectId: 0 });
-
-    await createSellTask({
-      clientId: 1,
-      leadTaskId: 2,
-      name: "N",
-      description: "Desc",
-      project: "Missing",
-    });
-
-    const body = mockRequest.mock.calls[0][0].body as any;
-    expect(body.description).toContain("Проект: Missing");
-  });
-
-  it("omits parent when leadTaskId is not provided", async () => {
-    process.env.PLANFIX_SELL_TEMPLATE_ID = "11";
-
-    await createSellTask({
-      clientId: 1,
-      name: "Name",
-      description: "Desc",
-    });
-
-    const body = mockRequest.mock.calls[0][0].body as any;
-    expect(body.parent).toBeUndefined();
-  });
-
-  it("handles dry run", async () => {
-    const original = await import("../config.js");
-    vi.resetModules();
-    vi.doMock("../config.js", () => ({
-      ...original,
-      PLANFIX_DRY_RUN: true,
-    }));
-    const { createSellTask: createDry } = await import(
-      "./planfix_create_sell_task.js"
-    );
-    const res = await createDry({
-      clientId: 1,
-      name: "",
-      description: "",
-    });
-    expect(res.taskId).toBeGreaterThan(0);
-    vi.resetModules();
+    expect(mockCreateSellTaskIds).not.toHaveBeenCalled();
   });
 });

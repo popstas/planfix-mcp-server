@@ -13,18 +13,16 @@ describe("planfix_create_sell_task tool", () => {
         "Заказ № 99, Сумма: 690.00, Способ оплаты: Phone ordering, Ссылка на заказ: [ORDER_LINK]Заказ № 99, Сумма: 690.00, Способ оплаты: Phone ordering, Ссылка на заказ: [ORDER_LINK]",
     };
 
-    const args = {
-      clientId: taskData.clientId,
-      leadTaskId: taskData.leadTaskId,
-      agencyId: taskData.agencyId,
-      assignees: taskData.assignees,
-      name: taskData.name,
-      description: taskData.description,
-    };
-
     const { valid, content } = await runTool<{ taskId: number }>(
-      "planfix_create_sell_task",
-      args,
+      "planfix_create_sell_task_ids",
+      {
+        clientId: taskData.clientId,
+        leadTaskId: taskData.leadTaskId,
+        agencyId: taskData.agencyId,
+        assignees: taskData.assignees,
+        name: taskData.name,
+        description: taskData.description,
+      },
     );
     expect(valid).toBe(true);
 
