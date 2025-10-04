@@ -90,21 +90,27 @@ describe("createSellTask", () => {
     });
   });
 
-  it("throws when contact cannot be resolved", async () => {
+  it("continues when contact cannot be resolved", async () => {
     mockSearchLeadTask.mockResolvedValue({
       clientId: 0,
       taskId: 0,
     } as any);
 
-    await expect(
-      createSellTask({
-        name: "Продажа",
-        email: "missing@example.com",
-        description: "описание",
-      }),
-    ).rejects.toThrow(
-      "Unable to find a Planfix contact for the provided email/telegram",
-    );
-    expect(mockCreateSellTaskIds).not.toHaveBeenCalled();
+    const result = await createSellTask({
+      name: "Продажа",
+      email: "missing@example.com",
+      description: "описание",
+    });
+
+    expect(result).toEqual({ taskId: 321, url: "url" });
+    expect(mockCreateSellTaskIds).toHaveBeenCalledWith({
+      clientId: 0,
+      leadTaskId: undefined,
+      agencyId: undefined,
+      assignees: undefined,
+      name: "Продажа",
+      description: "описание",
+      project: undefined,
+    });
   });
 });

@@ -68,10 +68,6 @@ export async function createSellTask(
   } = searchResult;
   let resolvedAgencyId = initialAgencyId;
 
-  if (!clientId) {
-    log("Unable to find a Planfix contact for the provided email/telegram");
-  }
-
   if (!resolvedAgencyId && agency) {
     try {
       const companyResult = await planfixSearchCompany({ name: agency });
