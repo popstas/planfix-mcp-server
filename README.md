@@ -203,8 +203,23 @@ PLANFIX_TOKEN=your-api-token
 
 ### `planfix_create_sell_task`
 
-- Creates a sell task using the Planfix template defined by `PLANFIX_SELL_TEMPLATE_ID`.
-- `leadTaskId` is optional; when omitted, the sell task is created without a parent lead task.
+- Creates a sell task using textual information about the agency and employee.
+- Resolves the client, parent lead task, assignees, and agency IDs automatically based on the provided strings.
+- Input fields (all strings):
+  - `name`: Task title, e.g. `"Продажа {{ название товара }} на pressfinity.com"`.
+  - `agency`: Agency/company name (optional).
+  - `email`: Employee email used to locate the Planfix contact.
+  - `contactName`/`employeeName`: Employee full name (optional).
+  - `telegram`: Employee telegram username (optional).
+  - `description`: Description with the list of ordered products.
+  - `project`: Project name to associate with the sell task (optional).
+- Returns `{ taskId, url }`.
+
+### `planfix_create_sell_task_ids`
+
+- Creates a sell task when Planfix identifiers are already known.
+- Requires numeric `clientId` and optional `leadTaskId`, `agencyId`, and `assignees` (user IDs).
+- Accepts `name`, `description`, and optional `project` string values.
 
 5. **Update an object (PUT request)**
    ```bash
@@ -260,7 +275,8 @@ const objects = await planfixClient.post('object/list', {
 ### Task Management
 
 - `searchPlanfixTask`: Search for tasks by title, client ID and optional `templateId`
-- `createSellTask`: Create a new sell task with template
+- `createSellTask`: Resolve contact/agency IDs and create a sell task
+- `createSellTaskIds`: Create a sell task when IDs are already known
 - `createLeadTask`: Create a new lead task. When `chatApi.useChatApi`
   is enabled, it sends the initial message through the Chat API, gets
   the resulting `taskId` via `getTask`, and then updates the task using

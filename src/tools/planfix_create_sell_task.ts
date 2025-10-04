@@ -1,197 +1,112 @@
 import { z } from "zod";
-import { PLANFIX_DRY_RUN, PLANFIX_FIELD_IDS } from "../config.js";
+import { getToolWithHandler, log } from "../helpers.js";
 import {
-  getTaskUrl,
-  getToolWithHandler,
-  log,
-  planfixRequest,
-} from "../helpers.js";
-import type { CustomFieldDataType } from "../types.js";
-import { searchProject } from "./planfix_search_project.js";
-import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
-import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
-import { customFieldsConfig } from "../customFieldsConfig.js";
+  createSellTaskIds,
+  CreateSellTaskOutputSchema,
+} from "./planfix_create_sell_task_ids.js";
+import { searchLeadTask } from "./planfix_search_lead_task.js";
+import { planfixSearchCompany } from "./planfix_search_company.js";
+import type { UsersListType } from "../types.js";
 
-interface TaskRequestBody {
-  template: {
-    id: number;
-  };
-  name: string;
-  description: string;
-  parent?: {
-    id: number;
-  };
-  customFieldData: CustomFieldDataType[];
-  assignees?: {
-    users: Array<{ id: string }>;
-  };
-  project?: {
-    id: number;
-  };
-}
-
-const CreateSellTaskInputSchemaBase = z.object({
-  clientId: z.number(),
-  leadTaskId: z.number().optional(),
-  agencyId: z.number().optional(),
-  assignees: z.array(z.number()).optional(),
-  name: z.string(),
-  description: z.string(),
+export const CreateSellTaskInputSchema = z.object({
+  name: z.string().min(1, "Task name is required"),
+  agency: z.string().optional(),
+  email: z.string().min(1, "Email is required"),
+  contactName: z.string().optional(),
+  employeeName: z.string().optional(),
+  telegram: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
   project: z.string().optional(),
 });
 
-export const CreateSellTaskInputSchema = extendSchemaWithCustomFields(
-  CreateSellTaskInputSchemaBase,
-  [],
-);
+function extractAssigneeIds(assignees?: UsersListType): number[] | undefined {
+  if (!assignees?.users?.length) {
+    return undefined;
+  }
 
-export const CreateSellTaskOutputSchema = z.object({
-  taskId: z.number(),
-  url: z.string(),
-});
+  const ids = assignees.users
+    .map((user) => {
+      if (!user?.id) return undefined;
+      const match = user.id.match(/(?:user:)?(\d+)/);
+      if (!match) return undefined;
+      const parsed = Number(match[1]);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    })
+    .filter((value): value is number => typeof value === "number");
+
+  return ids.length ? ids : undefined;
+}
 
 export async function createSellTask(
   args: z.infer<typeof CreateSellTaskInputSchema>,
 ): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
-  const { clientId, leadTaskId, agencyId, assignees, project } = args;
-  let { name, description } = args;
+  const {
+    name,
+    agency,
+    email,
+    contactName,
+    employeeName,
+    telegram,
+    description,
+    project,
+  } = args;
 
-  try {
-    if (PLANFIX_DRY_RUN) {
-      const mockId = 55500000 + Math.floor(Math.random() * 10000);
-      const leadTaskLogPart = leadTaskId
-        ? ` under lead task ${leadTaskId}`
-        : "";
-      log(
-        `[DRY RUN] Would create sell task for client ${clientId}${leadTaskLogPart}`,
-      );
-      return { taskId: mockId, url: `https://example.com/task/${mockId}` };
-    }
+  const resolvedContactName = contactName ?? employeeName;
 
-    const TEMPLATE_ID = Number(process.env.PLANFIX_SELL_TEMPLATE_ID);
-    if (!name) name = "Продажа из бота";
-    if (!description) description = "Задача продажи для клиента";
+  const searchResult = await searchLeadTask({
+    name: resolvedContactName,
+    email,
+    telegram,
+    company: agency,
+  });
 
-    let finalDescription = description;
-    let finalProjectId = 0;
+  const {
+    clientId,
+    taskId: leadTaskId,
+    agencyId: initialAgencyId,
+    assignees,
+  } = searchResult;
+  let resolvedAgencyId = initialAgencyId;
 
-    if (project) {
-      const projectResult = await searchProject({ name: project });
-      if (projectResult.found) {
-        finalProjectId = projectResult.projectId;
-      } else {
-        finalDescription = `${finalDescription}\nПроект: ${project}`;
-      }
-    }
-
-    finalDescription = finalDescription.replace(/\n/g, "<br>");
-
-    const postBody: TaskRequestBody = {
-      template: {
-        id: TEMPLATE_ID,
-      },
-      name,
-      description: finalDescription,
-      customFieldData: [
-        {
-          field: {
-            id: PLANFIX_FIELD_IDS.client,
-          },
-          value: {
-            id: clientId,
-          },
-        },
-      ],
-    };
-
-    if (typeof leadTaskId === "number") {
-      postBody.parent = {
-        id: leadTaskId,
-      };
-    }
-
-    if (finalProjectId) {
-      postBody.project = { id: finalProjectId };
-    }
-
-    if (assignees) {
-      postBody.assignees = {
-        users: assignees.map((assignee) => ({
-          id: `user:${assignee}`,
-        })),
-      };
-    }
-
-    if (agencyId) {
-      postBody.customFieldData.push({
-        field: {
-          id: PLANFIX_FIELD_IDS.agency,
-        },
-        value: {
-          id: agencyId,
-        },
-      });
-    }
-
-    const leadSourceValue = Number(
-      process.env.PLANFIX_FIELD_ID_LEAD_SOURCE_VALUE,
-    );
-    if (leadSourceValue) {
-      postBody.customFieldData.push({
-        field: {
-          id: PLANFIX_FIELD_IDS.leadSource,
-        },
-        value: {
-          id: leadSourceValue,
-        },
-      });
-    }
-
-    const serviceMatrixValue = Number(
-      process.env.PLANFIX_FIELD_ID_SERVICE_MATRIX_VALUE,
-    );
-    if (serviceMatrixValue) {
-      postBody.customFieldData.push({
-        field: {
-          id: PLANFIX_FIELD_IDS.serviceMatrix,
-        },
-        value: {
-          id: serviceMatrixValue,
-        },
-      });
-    }
-
-    await extendPostBodyWithCustomFields(
-      postBody,
-      args as Record<string, unknown>,
-      customFieldsConfig.leadTaskFields,
-    );
-
-    const result = await planfixRequest<{ id: number }>({
-      path: `task/`,
-      body: postBody as unknown as Record<string, unknown>,
-    });
-    const taskId = result.id;
-    const url = getTaskUrl(taskId);
-    return { taskId, url };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    log(`[createSellTask] Error: ${errorMessage}`);
-    throw error;
+  if (!clientId) {
+    log("Unable to find a Planfix contact for the provided email/telegram");
   }
+
+  if (!resolvedAgencyId && agency) {
+    try {
+      const companyResult = await planfixSearchCompany({ name: agency });
+      if ("contactId" in companyResult && companyResult.contactId) {
+        resolvedAgencyId = companyResult.contactId;
+      }
+    } catch (error) {
+      log(
+        `[createSellTask] Failed to resolve agency '${agency}': ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  const assigneeIds = extractAssigneeIds(assignees);
+
+  return createSellTaskIds({
+    clientId,
+    leadTaskId: leadTaskId || undefined,
+    agencyId: resolvedAgencyId,
+    assignees: assigneeIds,
+    name,
+    description,
+    project,
+  });
 }
 
-async function handler(
-  args?: Record<string, unknown>,
-): Promise<z.infer<typeof CreateSellTaskOutputSchema>> {
+async function handler(args?: Record<string, unknown>) {
   const parsedArgs = CreateSellTaskInputSchema.parse(args);
   return createSellTask(parsedArgs);
 }
 
 export const planfixCreateSellTaskTool = getToolWithHandler({
   name: "planfix_create_sell_task",
-  description: "Create a sell task in Planfix",
+  description:
+    "Create a sell task in Planfix using textual data for agency and contact",
   inputSchema: CreateSellTaskInputSchema,
   outputSchema: CreateSellTaskOutputSchema,
   handler,
