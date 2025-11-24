@@ -20,7 +20,10 @@ vi.mock("../helpers.js", async (importOriginal) => {
 });
 
 import { planfixRequest } from "../helpers.js";
-import { searchManager } from "./planfix_search_manager.js";
+import {
+  SearchManagerInputSchema,
+  searchManager,
+} from "./planfix_search_manager.js";
 
 const mockPlanfixRequest = vi.mocked(planfixRequest);
 
@@ -65,5 +68,34 @@ describe("searchManager", () => {
       department: "sales",
       active: true,
     });
+  });
+
+  it("searches by id without requiring email", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      users: [
+        {
+          id: 7,
+          name: "Ida",
+        },
+      ],
+    });
+
+    const result = await searchManager({ id: 7 } as any);
+
+    const body = (mockPlanfixRequest.mock.calls[0][0] as any).body;
+    expect(body.filters).toEqual([{ type: 9001, operator: "equal", value: 7 }]);
+    expect(result).toEqual({
+      managerId: 7,
+      url: "https://example.com/user/7",
+      firstName: "Ida",
+      lastName: undefined,
+      found: true,
+    });
+  });
+
+  it("requires either email or id", () => {
+    expect(() =>
+      SearchManagerInputSchema.parse({ department: "sales" }),
+    ).toThrow("Either email or id must be provided");
   });
 });
