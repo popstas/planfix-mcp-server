@@ -12,6 +12,7 @@ export interface ChatApiConfig {
 export interface AppConfig {
   leadTaskFields: CustomField[];
   contactFields: CustomField[];
+  userFields: CustomField[];
   chatApi: ChatApiConfig;
 }
 
@@ -56,8 +57,10 @@ function mergeFields(
 export function loadCustomFieldsConfig(): AppConfig {
   const envLead = parseEnv("PLANFIX_LEAD_TASK_FIELDS");
   const envContact = parseEnv("PLANFIX_CONTACT_FIELDS");
+  const envUser = parseEnv("PLANFIX_USER_FIELDS");
   let fileLead: CustomField[] = [];
   let fileContact: CustomField[] = [];
+  let fileUser: CustomField[] = [];
   let fileChatApi: Partial<ChatApiConfig> = {};
 
   const path = getConfigPath();
@@ -70,6 +73,9 @@ export function loadCustomFieldsConfig(): AppConfig {
         : [];
       fileContact = Array.isArray(parsed?.contactFields)
         ? (parsed!.contactFields as CustomField[])
+        : [];
+      fileUser = Array.isArray(parsed?.userFields)
+        ? (parsed!.userFields as CustomField[])
         : [];
       if (parsed?.chatApi && typeof parsed.chatApi === "object") {
         fileChatApi = parsed.chatApi as ChatApiConfig;
@@ -90,6 +96,7 @@ export function loadCustomFieldsConfig(): AppConfig {
   return {
     leadTaskFields: mergeFields(envLead, fileLead),
     contactFields: mergeFields(envContact, fileContact),
+    userFields: mergeFields(envUser, fileUser),
     chatApi,
   };
 }
@@ -98,5 +105,6 @@ const cfg = loadCustomFieldsConfig();
 export const customFieldsConfig = {
   leadTaskFields: cfg.leadTaskFields,
   contactFields: cfg.contactFields,
+  userFields: cfg.userFields,
 };
 export const chatApiConfig = cfg.chatApi;

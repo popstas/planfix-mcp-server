@@ -16,3 +16,9 @@ contactFields:
     argName: resident
     type: enum
     values: ["резидент", "нерезидент", "иное"]
+
+userFields:
+  - id: "789"
+    name: "Департамент"
+    argName: department
+    type: string

@@ -60,10 +60,17 @@ contactFields:
     argName: resident
     type: enum
     values: ["резидент", "нерезидент", "иное"]
+userFields:
+  - id: "789"
+    name: "Департамент"
+    argName: department
+    type: string
 ```
 
 Values from `config.yml` override matching entries from the legacy environment
-variables when merged by `id`.
+variables when merged by `id`. User custom fields from this list are requested
+individually by the `planfix_search_manager` tool so their values are available
+in responses.
 
 #### Chat API
 

@@ -40,4 +40,15 @@ describe("extendFiltersWithCustomFields", () => {
     expect(mockedLog).toHaveBeenCalled();
     expect(filters.length).toBe(0);
   });
+
+  it("adds filters for user custom fields", () => {
+    const fields: CustomField[] = [
+      { id: 5, argName: "dept", type: "enum", values: ["a"] },
+    ];
+    const filters: PlanfixFilter[] = [];
+    extendFiltersWithCustomFields(filters, { dept: "a" }, fields, "user");
+    expect(filters).toEqual([
+      { type: 9111, field: 5, operator: "equal", value: "a" },
+    ]);
+  });
 });

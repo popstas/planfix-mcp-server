@@ -21,17 +21,27 @@ const typeCodeMap = {
     boolean: 105,
     enum: 111,
   },
+  user: {
+    string: 9101,
+    number: 9102,
+    boolean: 9103,
+    enum: 9111,
+  },
 };
 export function extendFiltersWithCustomFields(
   filters: PlanfixFilter[],
   args: Record<string, unknown>,
   fields: CustomField[],
-  target: "task" | "contact",
+  target: "task" | "contact" | "user",
 ): void {
   for (const field of fields) {
-    const type = (typeCodeMap as Record<string, Record<string, number>>)[target][field.type as string];
+    const type = (typeCodeMap as Record<string, Record<string, number>>)[
+      target
+    ][field.type as string];
     if (!type) {
-      log(`[extendFiltersWithCustomFields] Unknown type: ${field.type}, field: ${field.id}`);
+      log(
+        `[extendFiltersWithCustomFields] Unknown type: ${field.type}, field: ${field.id}`,
+      );
       continue;
     }
     const value = args[field.argName as keyof typeof args];
