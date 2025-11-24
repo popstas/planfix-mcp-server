@@ -81,7 +81,7 @@ export async function searchManager({
     const identifierFilter =
       id !== undefined
         ? {
-            type: 9001, // Filter by id
+            type: 9008, // Filter by id
             operator: "equal",
             value: id,
           }
