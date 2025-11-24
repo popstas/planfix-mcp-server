@@ -70,7 +70,8 @@ userFields:
 Values from `config.yml` override matching entries from the legacy environment
 variables when merged by `id`. User custom fields from this list are requested
 individually by the `planfix_search_manager` tool so their values are available
-in responses.
+in responses. Managers can be searched either by `email` or by numeric `id`
+through this tool, enabling lookups when only an identifier is available.
 
 #### Chat API
 

@@ -10,13 +10,22 @@ import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomField
 import { extendFiltersWithCustomFields } from "../lib/extendFiltersWithCustomFields.js";
 
 const SearchManagerInputSchemaBase = z.object({
-  email: z.string(),
+  email: z.string().optional(),
+  id: z.number().optional(),
 });
 
 export const SearchManagerInputSchema = extendSchemaWithCustomFields(
   SearchManagerInputSchemaBase,
   customFieldsConfig.userFields,
-);
+).superRefine((data, ctx) => {
+  if (!data.email && data.id === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Either email or id must be provided",
+      path: ["email"],
+    });
+  }
+});
 
 const SearchManagerOutputSchemaBase = z.object({
   managerId: z.number(),
@@ -33,12 +42,14 @@ export const SearchManagerOutputSchema = extendSchemaWithCustomFields(
 );
 
 /**
- * Search for a manager in Planfix by email
+ * Search for a manager in Planfix by email or id
  * @param email - The email address to search for
+ * @param id - The Planfix user id to search for
  * @returns Promise with the manager's ID, URL, and name if found
  */
 export async function searchManager({
   email,
+  id,
   ...args
 }: z.infer<typeof SearchManagerInputSchema>): Promise<
   z.infer<typeof SearchManagerOutputSchema>
@@ -67,18 +78,24 @@ export async function searchManager({
       ...customFieldsConfig.userFields.map((field) => `${field.id}`),
     ].join(",");
 
+    const identifierFilter =
+      id !== undefined
+        ? {
+            type: 9001, // Filter by id
+            operator: "equal",
+            value: id,
+          }
+        : {
+            type: 9003, // Filter by email
+            operator: "equal",
+            value: email,
+          };
+
     const postBody = {
       offset: 0,
       pageSize: 100,
       fields,
-      filters: [
-        {
-          type: 9003, // Filter by email
-          operator: "equal",
-          value: email,
-        },
-        ...customFilters,
-      ],
+      filters: [identifierFilter, ...customFilters],
     };
 
     const result = (await planfixRequest({
@@ -122,7 +139,9 @@ export async function searchManager({
 
     return {
       managerId: 0,
-      error: `No manager found with email: ${email}`,
+      error: `No manager found with ${
+        id !== undefined ? `id: ${id}` : `email: ${email}`
+      }`,
       found: false,
     };
   } catch (error) {
@@ -146,7 +165,7 @@ export async function handler(
 
 export const planfixSearchManagerTool = getToolWithHandler({
   name: "planfix_search_manager",
-  description: "Search for a manager in Planfix by email",
+  description: "Search for a manager in Planfix by email or id",
   inputSchema: SearchManagerInputSchema,
   outputSchema: SearchManagerOutputSchema,
   handler,
