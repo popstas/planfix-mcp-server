@@ -17,13 +17,24 @@ export const ChildTaskSchema = z.object({
   description: z.string().optional(),
   status: z.string().optional(),
   assignees: z
-    .array(
-      z.object({
-        id: z.number(),
-        name: z.string(),
-        isActive: z.boolean(),
-      }),
-    )
+    .object({
+      users: z
+        .array(
+          z.object({
+            id: z.string(),
+            name: z.string().optional(),
+          }),
+        )
+        .optional(),
+      groups: z
+        .array(
+          z.object({
+            id: z.number(),
+            name: z.string().optional(),
+          }),
+        )
+        .optional(),
+    })
     .optional(),
   url: z.string().optional(),
   parent_task_id: z.number(),
@@ -113,10 +124,15 @@ async function fetchChildTasks(parentTaskId: number) {
         isActive: boolean;
       };
       assignees: {
-        id: number;
-        name: string;
-        isActive: boolean;
-      }[];
+        users?: {
+          id: string;
+          name: string;
+        }[];
+        groups?: {
+          id: number;
+          name: string;
+        }[];
+      };
     }>;
     pagination?: {
       count: number;
