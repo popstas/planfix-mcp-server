@@ -284,7 +284,9 @@ const objects = await planfixClient.post('object/list', {
 - `addToLeadTask`: Create or update a lead task and update contact details
 - `createTask`: Create a task using text fields
 - `createComment`: Add a comment to a task
-- `getChildTasks`: Retrieve all child tasks of a parent task
+- `getChildTasks`: Retrieve child tasks of a parent task. Use `recursive` to
+  fetch all descendant tasks as a flat list; returned tasks include
+  `parent_task_id`.
 - `updateLeadTask`: Update an existing lead task (only empty fields are updated unless `forceUpdate` is true)
 
 ### Directory Management
