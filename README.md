@@ -60,6 +60,11 @@ contactFields:
     argName: resident
     type: enum
     values: ["резидент", "нерезидент", "иное"]
+userFields:
+  - id: "789"
+    name: "Департамент"
+    argName: department
+    type: string
 ```
 
 Values from `config.yml` override matching entries from the legacy environment

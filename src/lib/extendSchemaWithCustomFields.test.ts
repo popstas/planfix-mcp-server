@@ -12,6 +12,7 @@ describe("extendSchemaWithCustomFields", () => {
       { id: 1, argName: "age", type: "number" },
       { id: 2, argName: "status", type: "enum", values: ["new", "old"] },
       { id: 3, argName: "note", type: "string" },
+      { id: 4, argName: "active", type: "boolean" },
     ];
     const schema = extendSchemaWithCustomFields(base, fields);
     const parsed = schema.parse({
@@ -19,12 +20,14 @@ describe("extendSchemaWithCustomFields", () => {
       age: 30,
       status: "new",
       note: "hi",
+      active: true,
     });
     expect(parsed).toEqual({
       name: "John",
       age: 30,
       status: "new",
       note: "hi",
+      active: true,
     });
   });
 

@@ -15,6 +15,7 @@ afterEach(() => {
   delete process.env.PLANFIX_CONFIG;
   delete process.env.PLANFIX_LEAD_TASK_FIELDS;
   delete process.env.PLANFIX_CONTACT_FIELDS;
+  delete process.env.PLANFIX_USER_FIELDS;
   process.argv = process.argv.filter((a) => !a.startsWith("--config="));
 });
 
@@ -71,5 +72,20 @@ describe("customFieldsConfig", () => {
       useChatApi: false,
       baseUrl: "",
     });
+  });
+
+  it("merges user fields from env and yaml", () => {
+    process.env.PLANFIX_USER_FIELDS = "- id: 3\n  argName: env\n  type: string";
+    const file = tmpFile(
+      "userFields:\n  - id: 3\n    argName: file\n    type: string\n  - id: 4\n    argName: onlyFile\n    type: number",
+    );
+    process.env.PLANFIX_CONFIG = file;
+
+    const cfg = loadCustomFieldsConfig();
+
+    expect(cfg.userFields).toEqual([
+      { id: 3, argName: "file", type: "string" },
+      { id: 4, argName: "onlyFile", type: "number" },
+    ]);
   });
 });

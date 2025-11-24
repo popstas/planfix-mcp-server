@@ -4,7 +4,13 @@ export interface CustomField {
   id: number;
   name?: string;
   argName: string;
-  type: "string" | "number" | "boolean" | "enum" | "handbook_record" | "handbook_record_multiple";
+  type:
+    | "string"
+    | "number"
+    | "boolean"
+    | "enum"
+    | "handbook_record"
+    | "handbook_record_multiple";
   values?: string[];
   default?: string;
 }
@@ -19,6 +25,8 @@ export function extendSchemaWithCustomFields<T extends z.ZodRawShape>(
     let fieldSchema: z.ZodTypeAny;
     if (f.type === "number") {
       fieldSchema = z.number().optional();
+    } else if (f.type === "boolean") {
+      fieldSchema = z.boolean().optional();
     } else if (
       f.type === "enum" &&
       Array.isArray(f.values) &&

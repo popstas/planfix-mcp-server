@@ -5,12 +5,20 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
+import { extendFiltersWithCustomFields } from "../lib/extendFiltersWithCustomFields.js";
 
-export const SearchManagerInputSchema = z.object({
+const SearchManagerInputSchemaBase = z.object({
   email: z.string(),
 });
 
-export const SearchManagerOutputSchema = z.object({
+export const SearchManagerInputSchema = extendSchemaWithCustomFields(
+  SearchManagerInputSchemaBase,
+  customFieldsConfig.userFields,
+);
+
+const SearchManagerOutputSchemaBase = z.object({
   managerId: z.number(),
   url: z.string().optional(),
   firstName: z.string().optional(),
@@ -19,6 +27,11 @@ export const SearchManagerOutputSchema = z.object({
   found: z.boolean(),
 });
 
+export const SearchManagerOutputSchema = extendSchemaWithCustomFields(
+  SearchManagerOutputSchemaBase,
+  customFieldsConfig.userFields,
+);
+
 /**
  * Search for a manager in Planfix by email
  * @param email - The email address to search for
@@ -26,20 +39,36 @@ export const SearchManagerOutputSchema = z.object({
  */
 export async function searchManager({
   email,
+  ...args
 }: z.infer<typeof SearchManagerInputSchema>): Promise<
   z.infer<typeof SearchManagerOutputSchema>
 > {
   try {
+    const customFilters: Array<{
+      type: number;
+      field?: number;
+      operator: string;
+      value?: unknown;
+    }> = [];
+
+    extendFiltersWithCustomFields(
+      customFilters,
+      args,
+      customFieldsConfig.userFields,
+      "user",
+    );
+
     const postBody = {
       offset: 0,
       pageSize: 100,
-      fields: "id,name,midname,lastname,email",
+      fields: "id,name,midname,lastname,email,customFieldData",
       filters: [
         {
           type: 9003, // Filter by email
           operator: "equal",
           value: email,
         },
+        ...customFilters,
       ],
     };
 
@@ -51,18 +80,34 @@ export async function searchManager({
         id: number;
         name?: string;
         lastname?: string;
+        customFieldData?: Array<{
+          field: { id: number };
+          value?: unknown;
+        }>;
       }>;
     };
     if (result.users?.[0]?.id) {
       const manager = result.users[0];
       const managerId = manager.id;
       const url = getUserUrl(managerId);
+      const customFields: Record<string, unknown> = {};
+
+      for (const field of customFieldsConfig.userFields) {
+        const match = manager.customFieldData?.find(
+          (cf) => cf.field?.id === Number(field.id),
+        );
+        if (match && match.value !== undefined) {
+          customFields[field.argName] = match.value;
+        }
+      }
+
       return {
         managerId,
         url,
         firstName: manager.name,
         lastName: manager.lastname,
         found: true,
+        ...customFields,
       };
     }
 
