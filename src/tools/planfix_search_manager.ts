@@ -64,9 +64,7 @@ export async function searchManager({
       "midname",
       "lastname",
       "email",
-      ...customFieldsConfig.userFields.map(
-        (field) => `customFieldData:${field.id}`,
-      ),
+      ...customFieldsConfig.userFields.map((field) => `${field.id}`),
     ].join(",");
 
     const postBody = {

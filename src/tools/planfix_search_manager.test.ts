@@ -51,9 +51,7 @@ describe("searchManager", () => {
 
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
     const body = (mockPlanfixRequest.mock.calls[0][0] as any).body;
-    expect(body.fields).toBe(
-      "id,name,midname,lastname,email,customFieldData:10,customFieldData:11",
-    );
+    expect(body.fields).toBe("id,name,midname,lastname,email,10,11");
     expect(body.filters).toEqual([
       { type: 9003, operator: "equal", value: "ann@example.com" },
       { field: 10, operator: "equal", type: 9111, value: "sales" },
