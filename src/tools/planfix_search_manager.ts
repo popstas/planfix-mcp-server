@@ -58,10 +58,21 @@ export async function searchManager({
       "user",
     );
 
+    const fields = [
+      "id",
+      "name",
+      "midname",
+      "lastname",
+      "email",
+      ...customFieldsConfig.userFields.map(
+        (field) => `customFieldData:${field.id}`,
+      ),
+    ].join(",");
+
     const postBody = {
       offset: 0,
       pageSize: 100,
-      fields: "id,name,midname,lastname,email,customFieldData",
+      fields,
       filters: [
         {
           type: 9003, // Filter by email

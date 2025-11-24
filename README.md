@@ -68,7 +68,9 @@ userFields:
 ```
 
 Values from `config.yml` override matching entries from the legacy environment
-variables when merged by `id`.
+variables when merged by `id`. User custom fields from this list are requested
+individually by the `planfix_search_manager` tool so their values are available
+in responses.
 
 #### Chat API
 
