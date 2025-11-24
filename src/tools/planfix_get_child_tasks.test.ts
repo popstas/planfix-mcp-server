@@ -58,9 +58,85 @@ describe("getChildTasks", () => {
           description: "desc",
           assignees: [{ id: 3, name: "Assignee", isActive: true }],
           status: "open",
+          parent_task_id: 42,
         },
       ],
       totalCount: 1,
+    });
+  });
+
+  it("recursively fetches and flattens all subtasks", async () => {
+    mockPlanfixRequest
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            id: 1,
+            name: "Child task",
+            status: { id: 2, name: "open", isActive: true },
+            assignees: [],
+          },
+        ],
+        pagination: { count: 1, pageNumber: 1, pageSize: 100 },
+      })
+      .mockResolvedValueOnce({
+        tasks: [
+          {
+            id: 2,
+            name: "Grandchild task",
+            status: { id: 2, name: "open", isActive: true },
+            assignees: [],
+          },
+        ],
+        pagination: { count: 1, pageNumber: 1, pageSize: 100 },
+      })
+      .mockResolvedValueOnce({
+        tasks: [],
+        pagination: { count: 0, pageNumber: 1, pageSize: 100 },
+      });
+
+    const result = await getChildTasks({ parentTaskId: 42, recursive: true });
+
+    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        body: expect.objectContaining({ parent: { id: 42 } }),
+      }),
+    );
+    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        body: expect.objectContaining({ parent: { id: 1 } }),
+      }),
+    );
+    expect(mockPlanfixRequest).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        body: expect.objectContaining({ parent: { id: 2 } }),
+      }),
+    );
+
+    expect(result).toEqual({
+      tasks: [
+        {
+          id: 1,
+          name: "Child task",
+          url: "https://example.com/task/1",
+          description: undefined,
+          assignees: [],
+          status: "open",
+          parent_task_id: 42,
+        },
+        {
+          id: 2,
+          name: "Grandchild task",
+          url: "https://example.com/task/2",
+          description: undefined,
+          assignees: [],
+          status: "open",
+          parent_task_id: 1,
+        },
+      ],
+      totalCount: 2,
     });
   });
 
@@ -82,7 +158,7 @@ describe("getChildTasks", () => {
 describe("planfixGetChildTasksTool handler", () => {
   it("validates input", async () => {
     await expect(
-      planfixGetChildTasksTool.handler({ parentTaskId: "1" } as any)
+      planfixGetChildTasksTool.handler({ parentTaskId: "1" } as any),
     ).rejects.toThrow();
   });
 });

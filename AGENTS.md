@@ -13,6 +13,10 @@ This repository contains a Model Context Protocol (MCP) server written in TypeSc
 - Run `npm run format` before commit.
 - Update `README.md` when tools change.
 
+# Pull request naming
+Create name using angular commit message format.
+`feat:` and `fix:` are using in CHANGELOG.md. It's a release notes for developers. Name your PRs in a way that it's easy to understand what was changed. Forbidden to use `feat:` and `fix:` prefixes for chore tasks that don't add new features or fix bugs.
+
 ## Development commands
 
 - **Build**: `npm run build`
