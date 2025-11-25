@@ -15,7 +15,9 @@ import {
 const TEMPLATE_ID = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
 
 export const SearchLeadTaskInputSchema = extendSchemaWithCustomFields(
-  UserDataInputSchema,
+  UserDataInputSchema.extend({
+    clientId: z.number().optional(),
+  }),
   customFieldsConfig.contactFields,
 );
 
@@ -45,8 +47,16 @@ export async function searchLeadTask(
   );
 
   try {
-    // 1. Search for contact
-    const contactResult = await planfixSearchContact(userData);
+    // 1. Determine client ID
+    const shouldSearchContact = userData.clientId === undefined;
+    const contactResult = shouldSearchContact
+      ? await planfixSearchContact(userData)
+      : {
+          contactId: userData.clientId ?? 0,
+          firstName: undefined,
+          lastName: undefined,
+          found: Boolean(userData.clientId),
+        };
     const clientId = contactResult.contactId || 0;
     log(`[searchLeadTask] Contact found: ${clientId}`);
 

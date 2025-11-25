@@ -8,6 +8,7 @@ with Planfix CRM and task management system.
 ## Features
 
 - Lead management (create, search, convert to tasks)
+- Lead searches can reuse a known `clientId` to skip contact lookups
 - Contact and company management
 - Task management (create, search, comment)
 - Report generation and management
