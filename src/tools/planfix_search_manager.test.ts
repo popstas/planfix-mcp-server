@@ -83,7 +83,7 @@ describe("searchManager", () => {
     const result = await searchManager({ id: 7 } as any);
 
     const body = (mockPlanfixRequest.mock.calls[0][0] as any).body;
-    expect(body.filters).toEqual([{ type: 9001, operator: "equal", value: 7 }]);
+    expect(body.filters).toEqual([{ type: 9008, operator: "equal", value: 7 }]);
     expect(result).toEqual({
       managerId: 7,
       url: "https://example.com/user/7",
