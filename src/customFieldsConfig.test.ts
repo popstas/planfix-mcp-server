@@ -62,6 +62,15 @@ describe("customFieldsConfig", () => {
     });
   });
 
+  it("loads proxyUrl from yaml", () => {
+    const file = tmpFile("proxyUrl: http://localhost:8080");
+    process.env.PLANFIX_CONFIG = file;
+
+    const cfg = loadCustomFieldsConfig();
+
+    expect(cfg.proxyUrl).toBe("http://localhost:8080");
+  });
+
   it("chatApi defaults when missing", () => {
     const file = tmpFile("leadTaskFields: []\ncontactFields: []");
     process.env.PLANFIX_CONFIG = file;

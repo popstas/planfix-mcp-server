@@ -50,6 +50,8 @@ npx @popstas/planfix-mcp-server
 ```
 
 ```yaml
+proxyUrl: "http://localhost:8080"
+
 leadTaskFields:
   - id: "456"
     name: "id сделки"
@@ -67,6 +69,9 @@ userFields:
     argName: department
     type: string
 ```
+
+`proxyUrl` routes all Planfix REST API calls (including tool requests) through
+the specified HTTP proxy.
 
 Values from `config.yml` override matching entries from the legacy environment
 variables when merged by `id`. User custom fields from this list are requested

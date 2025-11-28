@@ -10,6 +10,7 @@ vi.mock("../config.js", () => ({
 
 vi.mock("../customFieldsConfig.js", () => ({
   customFieldsConfig: { contactFields: [] },
+  proxyUrl: "",
 }));
 
 vi.mock("../lib/extendPostBodyWithCustomFields.js", () => ({
@@ -55,7 +56,7 @@ describe("createPlanfixContact", () => {
     const call = mockRequest.mock.calls[0][0];
     const body = call.body as any;
     expect(body.customFieldData).toEqual(
-      expect.arrayContaining([{ field: { id: 1001 }, value: "@john" }])
+      expect.arrayContaining([{ field: { id: 1001 }, value: "@john" }]),
     );
   });
 

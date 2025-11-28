@@ -67,13 +67,21 @@ vi.mock("../customFieldsConfig.js", () => {
   return {
     customFieldsConfig: { leadTaskFields: [], contactFields: [] },
     chatApiConfig,
+    proxyUrl: "",
   };
 });
 
 vi.mock("../chatApi.js", () => ({
   chatApiRequest: vi.fn(),
-  getChatId: (args: { clientId?: number; phone?: string; email?: string; telegram?: string }) =>
-    (typeof args?.clientId === "number" ? `chat${args.clientId}` : args?.phone || args?.email || args?.telegram || "chat_test"),
+  getChatId: (args: {
+    clientId?: number;
+    phone?: string;
+    email?: string;
+    telegram?: string;
+  }) =>
+    typeof args?.clientId === "number"
+      ? `chat${args.clientId}`
+      : args?.phone || args?.email || args?.telegram || "chat_test",
 }));
 
 vi.mock("./planfix_update_lead_task.js", () => ({
