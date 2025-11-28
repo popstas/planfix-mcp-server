@@ -9,6 +9,7 @@ vi.mock("../config.js", () => ({
 
 vi.mock("../customFieldsConfig.js", () => ({
   customFieldsConfig: { contactFields: [] },
+  proxyUrl: "",
 }));
 
 vi.mock("../helpers.js", async (importOriginal) => {

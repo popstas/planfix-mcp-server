@@ -12,10 +12,9 @@ vi.mock("../config.js", () => ({
 // Mock custom fields config
 vi.mock("../customFieldsConfig.js", () => ({
   customFieldsConfig: {
-    contactFields: [
-      { id: 37612, name: "status", type: "string" },
-    ],
+    contactFields: [{ id: 37612, name: "status", type: "string" }],
   },
+  proxyUrl: "",
 }));
 
 // Mock the helpers module
@@ -56,16 +55,16 @@ describe("planfix_update_contact tool", () => {
       }
       throw new Error(`Unexpected path: ${args.path}`);
     });
-    
+
     // Mock the custom fields extension
     vi.mock("../lib/extendPostBodyWithCustomFields.js", () => ({
-      extendPostBodyWithCustomFields: vi.fn((postBody) => postBody)
+      extendPostBodyWithCustomFields: vi.fn((postBody) => postBody),
     }));
   };
 
   it("updates email when forceUpdate is true", async () => {
     setupMocks();
-    
+
     const result = await updatePlanfixContact({
       contactId: 1,
       email: "new@example.com",
@@ -73,13 +72,13 @@ describe("planfix_update_contact tool", () => {
     });
 
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
-    
+
     // Verify GET request
     const getCall = mockPlanfixRequest.mock.calls[0][0];
     expect(getCall.path).toBe("contact/1");
     expect(getCall.method).toBe("GET");
     // Check for required fields in the fields string
-    const fields = (getCall.body as { fields: string }).fields.split(',');
+    const fields = (getCall.body as { fields: string }).fields.split(",");
     expect(fields).toContain("id");
     expect(fields).toContain("name");
     expect(fields).toContain("lastname");
@@ -87,21 +86,23 @@ describe("planfix_update_contact tool", () => {
     expect(fields).toContain("phones");
     // Custom fields should be included as numeric IDs
     expect(fields).toContain("37612");
-    
+
     // Verify UPDATE request
     const updateCall = mockPlanfixRequest.mock.calls[1][0];
     expect(updateCall.path).toBe("contact/1");
-    expect(updateCall.body).toEqual(expect.objectContaining({
-      email: "new@example.com"
-    }));
-    
+    expect(updateCall.body).toEqual(
+      expect.objectContaining({
+        email: "new@example.com",
+      }),
+    );
+
     expect(result.contactId).toBe(1);
     expect(result.url).toBe("https://example.com/contact/1");
   });
 
   it("does not update email when value is the same and forceUpdate is false", async () => {
     setupMocks();
-    
+
     const result = await updatePlanfixContact({
       contactId: 1,
       email: mockContact.email,
@@ -111,9 +112,9 @@ describe("planfix_update_contact tool", () => {
     const getCall = mockPlanfixRequest.mock.calls[0][0];
     expect(getCall.path).toBe("contact/1");
     expect(getCall.method).toBe("GET");
-    
+
     // Check for required fields in the fields string
-    const fields = (getCall.body as { fields: string }).fields.split(',');
+    const fields = (getCall.body as { fields: string }).fields.split(",");
     expect(fields).toContain("id");
     expect(fields).toContain("name");
     expect(fields).toContain("lastname");
@@ -121,7 +122,7 @@ describe("planfix_update_contact tool", () => {
     expect(fields).toContain("phones");
     // Custom fields should be included as numeric IDs
     expect(fields).toContain("37612");
-    
+
     expect(result.contactId).toBe(1);
   });
 
@@ -138,7 +139,7 @@ describe("planfix_update_contact tool", () => {
     expect(updateCall.path).toBe("contact/1");
     expect(updateCall.body).toMatchObject({
       name: "John",
-      lastname: "Smith"
+      lastname: "Smith",
     });
     expect(result.contactId).toBe(1);
   });
@@ -156,7 +157,7 @@ describe("planfix_update_contact tool", () => {
     expect(updateCall.path).toBe("contact/1");
     // The implementation only includes the name field when lastname is empty
     expect(updateCall.body).toMatchObject({
-      name: "John"
+      name: "John",
     });
     // Verify lastname is not included in the update
     expect((updateCall.body as any)?.lastname).toBeUndefined();
@@ -177,17 +178,17 @@ describe("planfix_update_contact tool", () => {
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
     const updateCall = mockPlanfixRequest.mock.calls[1][0];
     expect(updateCall.path).toBe("contact/1");
-    
+
     // Check that the customFieldData contains the updated telegram username
     const body = updateCall.body as {
       customFieldData?: Array<{ field: { id: number }; value: string }>;
     };
     const telegramField = body.customFieldData?.find(
-      (f) => f.field.id === 1001
+      (f) => f.field.id === 1001,
     );
     expect(telegramField).toBeDefined();
     expect(telegramField?.value).toBe("@new_username");
-    
+
     expect(result.contactId).toBe(1);
   });
 
@@ -195,7 +196,7 @@ describe("planfix_update_contact tool", () => {
     setupMocks({
       customFieldData: [
         { field: { id: 1001 }, value: "@existing_username" },
-        { field: { id: 37612 }, value: "В процессе" }
+        { field: { id: 37612 }, value: "В процессе" },
       ],
     });
 
@@ -220,7 +221,7 @@ describe("planfix_update_contact tool", () => {
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
     const updateCall = mockPlanfixRequest.mock.calls[1][0];
     expect(updateCall.path).toBe("contact/1");
-    
+
     // Check that the phone number was normalized
     const body = updateCall.body as {
       phones?: Array<{ number: string; type: number }>;
@@ -228,9 +229,9 @@ describe("planfix_update_contact tool", () => {
     expect(body.phones).toBeDefined();
     expect(body.phones?.[0]).toEqual({
       number: "12345678901",
-      type: 1
+      type: 1,
     });
-    
+
     expect(result.contactId).toBe(1);
   });
 
@@ -238,9 +239,7 @@ describe("planfix_update_contact tool", () => {
     const existingPhone = "1234567890";
     setupMocks({
       phones: [{ number: existingPhone, type: 1 }],
-      customFieldData: [
-        { field: { id: 37612 }, value: "В процессе" }
-      ]
+      customFieldData: [{ field: { id: 37612 }, value: "В процессе" }],
     });
 
     const result = await updatePlanfixContact({
