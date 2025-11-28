@@ -12,6 +12,15 @@ const getCacheProvider = vi.fn(() => ({ get: getMock, set: setMock }));
 
 vi.mock("./lib/cache.js", () => ({ getCacheProvider }));
 
+// Mock customFieldsConfig to return empty proxyUrl by default
+vi.mock("./customFieldsConfig.js", async () => {
+  const actual = await vi.importActual("./customFieldsConfig.js");
+  return {
+    ...actual,
+    proxyUrl: "",
+  };
+});
+
 const createFetchMock = (response: any) =>
   vi.fn().mockResolvedValue({
     ok: response.ok !== false,
@@ -107,6 +116,12 @@ describe("planfixRequest", () => {
     const proxyAgentInstance = {};
     const ProxyAgent = vi.fn().mockReturnValue(proxyAgentInstance);
     vi.doMock("undici", () => ({ ProxyAgent }));
+    
+    // Override the customFieldsConfig mock to load from the config file
+    vi.doMock("./customFieldsConfig.js", async () => {
+      const actual = await vi.importActual("./customFieldsConfig.js");
+      return actual;
+    });
 
     const fetchMock = createFetchMock({ body: { ok: true } });
     vi.stubGlobal("fetch", fetchMock);
