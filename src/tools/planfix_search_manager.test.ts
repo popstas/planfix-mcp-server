@@ -7,6 +7,7 @@ vi.mock("../customFieldsConfig.js", () => ({
       { id: 11, argName: "active", type: "boolean" },
     ],
   },
+  proxyUrl: "",
 }));
 
 vi.mock("../helpers.js", async (importOriginal) => {

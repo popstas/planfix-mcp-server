@@ -7,16 +7,25 @@ import {
   PLANFIX_BASE_URL,
   PLANFIX_HEADERS,
 } from "./config.js";
-import { ContactRequestBody, TaskRequestBody, ToolInput, ToolWithHandler } from "./types.js";
+import { ProxyAgent, type Dispatcher } from "undici";
+import {
+  ContactRequestBody,
+  TaskRequestBody,
+  ToolInput,
+  ToolWithHandler,
+} from "./types.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { z } from "zod";
 import { execa } from "execa";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { getCacheProvider } from "./lib/cache.js";
+import { proxyUrl } from "./customFieldsConfig.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const proxyAgent = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
+type FetchOptions = RequestInit & { dispatcher?: Dispatcher };
 
 export function log(message: string) {
   // write to data/mcp.log, format [date time] message
@@ -108,11 +117,20 @@ export async function planfixRequest<T = unknown>({
     requestBody = JSON.stringify(body);
   }
 
-  const response = await fetch(`${PLANFIX_BASE_URL}${requestUrl}`, {
+  const fetchOptions: FetchOptions = {
     method,
     headers: PLANFIX_HEADERS,
     body: requestBody,
-  });
+  };
+
+  if (proxyAgent) {
+    fetchOptions.dispatcher = proxyAgent;
+  }
+
+  const response = await fetch(
+    `${PLANFIX_BASE_URL}${requestUrl}`,
+    fetchOptions,
+  );
 
   const result = await response.json();
 

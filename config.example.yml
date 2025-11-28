@@ -4,6 +4,8 @@ chatApi:
   useChatApi: true
   baseUrl: "https://<account>.planfix.com/webchat/api"
 
+proxyUrl: "http://localhost:8080"
+
 leadTaskFields:
   - id: "456"
     name: "id сделки"

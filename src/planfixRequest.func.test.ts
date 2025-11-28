@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
 const cacheMap = new Map<string, any>();
 const getMock = vi.fn(async (key: string) => cacheMap.get(key));
@@ -25,6 +28,15 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete process.env.PLANFIX_CONFIG;
+  try {
+    vi.doUnmock("undici");
+  } catch (error) {
+    // ignore when module wasn't mocked
+    if (error instanceof Error && !/is not mocked/.test(error.message)) {
+      throw error;
+    }
+  }
 });
 
 describe("planfixRequest", () => {
@@ -82,5 +94,34 @@ describe("planfixRequest", () => {
     expect(second).toEqual({ ok: true });
     expect(getMock).toHaveBeenCalled();
     expect(setMock).toHaveBeenCalled();
+  });
+
+  it("uses proxy dispatcher when proxyUrl is configured", async () => {
+    process.env.PLANFIX_ACCOUNT = "acc";
+    process.env.PLANFIX_TOKEN = "tok";
+    const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "pf-proxy-"));
+    const configPath = path.join(configDir, "config.yml");
+    fs.writeFileSync(configPath, "proxyUrl: http://localhost:8080");
+    process.env.PLANFIX_CONFIG = configPath;
+
+    const proxyAgentInstance = {};
+    const ProxyAgent = vi.fn().mockReturnValue(proxyAgentInstance);
+    vi.doMock("undici", () => ({ ProxyAgent }));
+
+    const fetchMock = createFetchMock({ body: { ok: true } });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { planfixRequest } = await import("./helpers.js");
+    const { PLANFIX_BASE_URL, PLANFIX_HEADERS } = await import("./config.js");
+
+    await planfixRequest({ path: "task/list" });
+
+    expect(ProxyAgent).toHaveBeenCalledWith("http://localhost:8080");
+    expect(fetchMock).toHaveBeenCalledWith(`${PLANFIX_BASE_URL}task/list`, {
+      method: "POST",
+      headers: PLANFIX_HEADERS,
+      body: undefined,
+      dispatcher: proxyAgentInstance,
+    });
   });
 });

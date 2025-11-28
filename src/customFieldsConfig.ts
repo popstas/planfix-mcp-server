@@ -14,6 +14,7 @@ export interface AppConfig {
   contactFields: CustomField[];
   userFields: CustomField[];
   chatApi: ChatApiConfig;
+  proxyUrl?: string;
 }
 
 const DEFAULT_PATH = "./data/config.yml";
@@ -62,6 +63,7 @@ export function loadCustomFieldsConfig(): AppConfig {
   let fileContact: CustomField[] = [];
   let fileUser: CustomField[] = [];
   let fileChatApi: Partial<ChatApiConfig> = {};
+  let proxyUrl = "";
 
   const path = getConfigPath();
   if (fs.existsSync(path)) {
@@ -79,6 +81,9 @@ export function loadCustomFieldsConfig(): AppConfig {
         : [];
       if (parsed?.chatApi && typeof parsed.chatApi === "object") {
         fileChatApi = parsed.chatApi as ChatApiConfig;
+      }
+      if (typeof parsed?.proxyUrl === "string") {
+        proxyUrl = parsed.proxyUrl;
       }
     } catch {
       // ignore
@@ -98,6 +103,7 @@ export function loadCustomFieldsConfig(): AppConfig {
     contactFields: mergeFields(envContact, fileContact),
     userFields: mergeFields(envUser, fileUser),
     chatApi,
+    proxyUrl,
   };
 }
 
@@ -108,3 +114,4 @@ export const customFieldsConfig = {
   userFields: cfg.userFields,
 };
 export const chatApiConfig = cfg.chatApi;
+export const proxyUrl = cfg.proxyUrl || "";
