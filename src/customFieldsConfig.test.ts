@@ -62,6 +62,20 @@ describe("customFieldsConfig", () => {
     });
   });
 
+  it("loads webhook from yaml", () => {
+    const file = tmpFile(
+      "webhook:\n  enabled: true\n  url: https://example.com/hook\n  token: secret\n  skipPlanfixApi: true",
+    );
+    process.env.PLANFIX_CONFIG = file;
+    const cfg = loadCustomFieldsConfig();
+    expect(cfg.webhook).toEqual({
+      enabled: true,
+      url: "https://example.com/hook",
+      token: "secret",
+      skipPlanfixApi: true,
+    });
+  });
+
   it("loads proxyUrl from yaml", () => {
     const file = tmpFile("proxyUrl: http://localhost:8080");
     process.env.PLANFIX_CONFIG = file;
@@ -80,6 +94,18 @@ describe("customFieldsConfig", () => {
       providerId: "",
       useChatApi: false,
       baseUrl: "",
+    });
+  });
+
+  it("webhook defaults when missing", () => {
+    const file = tmpFile("leadTaskFields: []\ncontactFields: []");
+    process.env.PLANFIX_CONFIG = file;
+    const cfg = loadCustomFieldsConfig();
+    expect(cfg.webhook).toEqual({
+      enabled: false,
+      url: "",
+      token: "",
+      skipPlanfixApi: false,
     });
   });
 

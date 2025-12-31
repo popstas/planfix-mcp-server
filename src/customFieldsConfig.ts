@@ -9,11 +9,19 @@ export interface ChatApiConfig {
   baseUrl: string;
 }
 
+export interface WebhookConfig {
+  enabled: boolean;
+  url: string;
+  token: string;
+  skipPlanfixApi: boolean;
+}
+
 export interface AppConfig {
   leadTaskFields: CustomField[];
   contactFields: CustomField[];
   userFields: CustomField[];
   chatApi: ChatApiConfig;
+  webhook: WebhookConfig;
   proxyUrl?: string;
 }
 
@@ -63,6 +71,7 @@ export function loadCustomFieldsConfig(): AppConfig {
   let fileContact: CustomField[] = [];
   let fileUser: CustomField[] = [];
   let fileChatApi: Partial<ChatApiConfig> = {};
+  let fileWebhook: Partial<WebhookConfig> = {};
   let proxyUrl = "";
 
   const path = getConfigPath();
@@ -82,6 +91,9 @@ export function loadCustomFieldsConfig(): AppConfig {
       if (parsed?.chatApi && typeof parsed.chatApi === "object") {
         fileChatApi = parsed.chatApi as ChatApiConfig;
       }
+      if (parsed?.webhook && typeof parsed.webhook === "object") {
+        fileWebhook = parsed.webhook as WebhookConfig;
+      }
       if (typeof parsed?.proxyUrl === "string") {
         proxyUrl = parsed.proxyUrl;
       }
@@ -97,12 +109,20 @@ export function loadCustomFieldsConfig(): AppConfig {
     baseUrl: "",
     ...fileChatApi,
   };
+  const webhook: WebhookConfig = {
+    enabled: false,
+    url: "",
+    token: "",
+    skipPlanfixApi: false,
+    ...fileWebhook,
+  };
 
   return {
     leadTaskFields: mergeFields(envLead, fileLead),
     contactFields: mergeFields(envContact, fileContact),
     userFields: mergeFields(envUser, fileUser),
     chatApi,
+    webhook,
     proxyUrl,
   };
 }
@@ -114,4 +134,5 @@ export const customFieldsConfig = {
   userFields: cfg.userFields,
 };
 export const chatApiConfig = cfg.chatApi;
+export const webhookConfig = cfg.webhook;
 export const proxyUrl = cfg.proxyUrl || "";
