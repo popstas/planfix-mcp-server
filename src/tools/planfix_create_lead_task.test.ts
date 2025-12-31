@@ -64,9 +64,16 @@ vi.mock("../customFieldsConfig.js", () => {
     useChatApi: false,
     baseUrl: "",
   };
+  const webhookConfig = {
+    enabled: false,
+    url: "",
+    token: "",
+    skipPlanfixApi: false,
+  };
   return {
     customFieldsConfig: { leadTaskFields: [], contactFields: [] },
     chatApiConfig,
+    webhookConfig,
     proxyUrl: "",
   };
 });
@@ -96,7 +103,7 @@ import { planfixRequest } from "../helpers.js";
 import { chatApiRequest } from "../chatApi.js";
 import { updateLeadTask } from "./planfix_update_lead_task.js";
 import { updatePlanfixContact } from "./planfix_update_contact.js";
-import { chatApiConfig } from "../customFieldsConfig.js";
+import { chatApiConfig, webhookConfig } from "../customFieldsConfig.js";
 
 const mockPlanfixRequest = vi.mocked(planfixRequest);
 const mockChatApiRequest = vi.mocked(chatApiRequest);
@@ -106,7 +113,12 @@ const mockUpdatePlanfixContact = vi.mocked(updatePlanfixContact);
 describe("planfix_create_lead_task", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
     chatApiConfig.useChatApi = false;
+    webhookConfig.enabled = false;
+    webhookConfig.url = "";
+    webhookConfig.token = "";
+    webhookConfig.skipPlanfixApi = false;
   });
 
   it("creates task with pipeline", async () => {
@@ -193,5 +205,67 @@ describe("planfix_create_lead_task", () => {
     expect(mockUpdatePlanfixContact).toHaveBeenCalledTimes(1);
     expect(result).toEqual({ taskId: 33, url: "https://example.com/task/33" });
     expect(mockPlanfixRequest).not.toHaveBeenCalled();
+  });
+
+  it("sends webhook payload before planfix request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ taskId: 999 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    webhookConfig.enabled = true;
+    webhookConfig.url = "https://example.com/hook";
+    webhookConfig.token = "secret";
+    webhookConfig.skipPlanfixApi = false;
+
+    const { createLeadTask } = await import("./planfix_create_lead_task.js");
+    await createLeadTask({
+      name: "Test",
+      description: "Desc",
+      clientId: 1,
+      message: "hello",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("https://example.com/hook", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Test",
+        description: "Desc",
+        clientId: 1,
+        message: "hello",
+        token: "secret",
+      }),
+    });
+    expect(mockPlanfixRequest).toHaveBeenCalled();
+  });
+
+  it("skips planfix request when webhook skipPlanfixApi is enabled", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ taskId: 321 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    webhookConfig.enabled = true;
+    webhookConfig.url = "https://example.com/hook";
+    webhookConfig.token = "secret";
+    webhookConfig.skipPlanfixApi = true;
+
+    const { createLeadTask } = await import("./planfix_create_lead_task.js");
+    const result = await createLeadTask({
+      name: "Test",
+      description: "Desc",
+      clientId: 1,
+    });
+
+    expect(result).toEqual({
+      taskId: 321,
+      url: "https://example.com/task/321",
+    });
+    expect(mockPlanfixRequest).not.toHaveBeenCalled();
+    expect(mockChatApiRequest).not.toHaveBeenCalled();
   });
 });

@@ -13,7 +13,11 @@ import {
 } from "../lib/planfixDirectory.js";
 import { getTaskCustomFieldName } from "../lib/planfixCustomFields.js";
 import { TaskRequestBody } from "../types.js";
-import { customFieldsConfig, chatApiConfig } from "../customFieldsConfig.js";
+import {
+  customFieldsConfig,
+  chatApiConfig,
+  webhookConfig,
+} from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
 import {
@@ -87,6 +91,46 @@ export async function createLeadTask(
     tags,
     message,
   } = args;
+  const sendWebhook = async (): Promise<{ taskId?: number } | undefined> => {
+    if (!webhookConfig.enabled) return undefined;
+    if (!webhookConfig.url) {
+      throw new Error("Webhook URL is not defined");
+    }
+    const payload = {
+      ...args,
+      token: webhookConfig.token,
+    };
+    const response = await fetch(webhookConfig.url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error(`Webhook request failed with status ${response.status}`);
+    }
+    try {
+      return (await response.json()) as { taskId?: number };
+    } catch {
+      return undefined;
+    }
+  };
+  try {
+    const webhookResponse = await sendWebhook();
+    if (webhookConfig.enabled && webhookConfig.skipPlanfixApi) {
+      const taskId = webhookResponse?.taskId;
+      if (typeof taskId !== "number") {
+        throw new Error("Webhook response does not contain taskId");
+      }
+      return { taskId, url: getTaskUrl(taskId) };
+    }
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return { taskId: 0, error: errorMessage };
+  }
   if (chatApiConfig.useChatApi) {
     const chatId = getChatId(args);
     const chatParams = {

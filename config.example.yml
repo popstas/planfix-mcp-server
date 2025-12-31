@@ -4,6 +4,12 @@ chatApi:
   useChatApi: true
   baseUrl: "https://<account>.planfix.com/webchat/api"
 
+webhook:
+  enabled: false
+  url: "https://example.com/hook"
+  token: "<token>"
+  skipPlanfixApi: false
+
 proxyUrl: "http://localhost:8080"
 
 leadTaskFields:

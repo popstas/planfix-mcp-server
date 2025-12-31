@@ -52,6 +52,12 @@ npx @popstas/planfix-mcp-server
 ```yaml
 proxyUrl: "http://localhost:8080"
 
+webhook:
+  enabled: false
+  url: "https://example.com/hook"
+  token: "<token>"
+  skipPlanfixApi: false
+
 leadTaskFields:
   - id: "456"
     name: "id сделки"
@@ -98,6 +104,25 @@ chatApi:
   2. `getTask` retrieves the new task's `taskId`.
   3. Subsequent updates are made through the REST API.
 - `baseUrl` – base URL for Chat API calls. Defaults to `https://<account>.planfix.com/webchat/api`.
+
+#### Webhook
+
+To post lead task payloads to a webhook before creating a task, add a `webhook`
+block to `config.yml`:
+
+```yaml
+webhook:
+  enabled: true
+  url: "https://example.com/hook"
+  token: "<token>"
+  skipPlanfixApi: false
+```
+
+- `enabled` – whether to send the lead task payload to the webhook URL.
+- `url` – webhook endpoint URL.
+- `token` – shared secret appended to the JSON payload as `token`.
+- `skipPlanfixApi` – when `true`, the webhook response must include `taskId`, and
+  the Planfix REST API call is skipped.
 
 ## Debug
 
@@ -294,7 +319,9 @@ const objects = await planfixClient.post('object/list', {
 - `createLeadTask`: Create a new lead task. When `chatApi.useChatApi`
   is enabled, it sends the initial message through the Chat API, gets
   the resulting `taskId` via `getTask`, and then updates the task using
-  the REST API. Accepts `message` and `contactName` fields.
+  the REST API. Accepts `message` and `contactName` fields. When
+  `webhook.enabled` is true, it posts the input payload to the webhook
+  endpoint, optionally skipping the Planfix API if `skipPlanfixApi` is set.
 - `addToLeadTask`: Create or update a lead task and update contact details
 - `createTask`: Create a task using text fields
 - `createComment`: Add a comment to a task
