@@ -1,5 +1,5 @@
-import { readFileSync, existsSync } from 'fs';
-import path from 'path';
+import { readFileSync, existsSync } from "fs";
+import path from "path";
 
 interface CoverageMetrics {
   total: number;
@@ -33,23 +33,25 @@ export interface FileCoverageInfo {
 }
 
 function toRelativePath(filePath: string): string {
-  return filePath.replace(process.cwd(), '').replace(/\\/g, '/');
+  return filePath.replace(process.cwd(), "").replace(/\\/g, "/");
 }
 
-export function parseCoverage(coveragePath = 'coverage/coverage-summary.json'): FileCoverageInfo[] {
+export function parseCoverage(
+  coveragePath = "coverage/coverage-summary.json",
+): FileCoverageInfo[] {
   const absolutePath = path.resolve(process.cwd(), coveragePath);
-  
+
   if (!existsSync(absolutePath)) {
     return [];
   }
 
   try {
     const coverageData: CoverageSummary = JSON.parse(
-      readFileSync(absolutePath, 'utf-8')
+      readFileSync(absolutePath, "utf-8"),
     );
 
     return Object.entries(coverageData)
-      .filter(([key]) => key !== 'total')
+      .filter(([key]) => key !== "total")
       .map(([filePath, fileCoverage]) => ({
         path: toRelativePath(filePath),
         lines_total: fileCoverage.lines.total,
@@ -58,25 +60,28 @@ export function parseCoverage(coveragePath = 'coverage/coverage-summary.json'): 
         lines_coverage: fileCoverage.lines.pct,
         functions_total: fileCoverage.functions.total,
         functions_covered: fileCoverage.functions.covered,
-        functions_uncovered: fileCoverage.functions.total - fileCoverage.functions.covered,
+        functions_uncovered:
+          fileCoverage.functions.total - fileCoverage.functions.covered,
         functions_coverage: fileCoverage.functions.pct,
       }))
       .sort((a, b) => b.lines_uncovered - a.lines_uncovered);
   } catch (error) {
-    console.error('Error parsing coverage file:', error);
+    console.error("Error parsing coverage file:", error);
     return [];
   }
 }
 
-export function coverageInfo(coveragePath = 'coverage/coverage-summary.json'): void {
+export function coverageInfo(
+  coveragePath = "coverage/coverage-summary.json",
+): void {
   const coverage = parseCoverage(coveragePath);
   console.log(JSON.stringify(coverage, null, 2));
 }
 
 // Convert file path to URL format for comparison
 function toFileUrl(filePath: string): string {
-  const pathName = path.resolve(filePath).replace(/\\/g, '/');
-  return `file://${pathName.startsWith('/') ? '' : '/'}${pathName}`;
+  const pathName = path.resolve(filePath).replace(/\\/g, "/");
+  return `file://${pathName.startsWith("/") ? "" : "/"}${pathName}`;
 }
 
 // Run if this file is executed directly

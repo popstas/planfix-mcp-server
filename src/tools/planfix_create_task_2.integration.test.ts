@@ -5,26 +5,26 @@ import { runTool } from "../helpers.js";
 describe("planfix_create_task tool prod", () => {
   it("creates task", async () => {
     const args = {
-      "title": "Автосделка: Ирина Jet",
-      "leadId": 36969059,
-      "name": "Ирина",
-      "phone": "+17855555555",
-      "fields": {
+      title: "Автосделка: Ирина Jet",
+      leadId: 36969059,
+      name: "Ирина",
+      phone: "+17855555555",
+      fields: {
         "Актуальный этап (Основная воронка)": "В работе",
-        "Источник": "Реклама в Facebook",
-        "utm_source": "fb",
-        "utm_medium": "eva",
-        "utm_campaign": "{{company__name}}",
-        "utm_content": "{{adset_name}}",
-        "utm_term": "{{ad_name}}",
+        Источник: "Реклама в Facebook",
+        utm_source: "fb",
+        utm_medium: "eva",
+        utm_campaign: "{{company__name}}",
+        utm_content: "{{adset_name}}",
+        utm_term: "{{ad_name}}",
         "Переход в &quot;В работе&quot;": "1749211991",
-        "Причина отказа": "Партнёрство (франшиза)"
+        "Причина отказа": "Партнёрство (франшиза)",
       },
-      "leadSource": "fb",
-      "tags": ["merged"],
-      "description": "\nТеги:\nmerged, ",
-      "managerEmail": "popstas@gmail.com",
-      "pipeline": "Академия Система"
+      leadSource: "fb",
+      tags: ["merged"],
+      description: "\nТеги:\nmerged, ",
+      managerEmail: "popstas@gmail.com",
+      pipeline: "Академия Система",
     };
     const { valid, content } = await runTool<{
       taskId: number;
@@ -47,13 +47,13 @@ describe("planfix_create_task tool prod", () => {
       clientId: expect.any(Number),
       url: expect.stringMatching(
         new RegExp(
-          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/task/\\d+$`
-        )
+          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/task/\\d+$`,
+        ),
       ),
       clientUrl: expect.stringMatching(
         new RegExp(
-          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/contact/\\d+$`
-        )
+          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/contact/\\d+$`,
+        ),
       ),
       assignees: {
         users: expect.arrayContaining([

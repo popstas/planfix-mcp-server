@@ -116,7 +116,7 @@ describe("planfixRequest", () => {
     const proxyAgentInstance = {};
     const ProxyAgent = vi.fn().mockReturnValue(proxyAgentInstance);
     vi.doMock("undici", () => ({ ProxyAgent }));
-    
+
     // Override the customFieldsConfig mock to load from the config file
     vi.doMock("./customFieldsConfig.js", async () => {
       const actual = await vi.importActual("./customFieldsConfig.js");

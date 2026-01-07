@@ -4,13 +4,16 @@ import type {
   TaskResponse,
 } from "../types.js";
 import type { CustomField } from "./extendSchemaWithCustomFields.js";
-import { addDirectoryEntries, addDirectoryEntry } from "../lib/planfixDirectory.js"
+import {
+  addDirectoryEntries,
+  addDirectoryEntry,
+} from "../lib/planfixDirectory.js";
 
 export interface HasCustomFieldData {
   customFieldData?: CustomFieldDataType[];
   template: {
-    id: number,
-  }
+    id: number;
+  };
 }
 
 export async function extendPostBodyWithCustomFields(

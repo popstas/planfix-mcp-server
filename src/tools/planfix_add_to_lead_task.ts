@@ -109,7 +109,10 @@ export async function addToLeadTask(
     }
     const payload = {
       ...args,
-      token: webhookConfig.token,
+      api_key: webhookConfig.token,
+      Description: args.description,
+      UserName: args.name,
+      TelegramName: args.telegram,
     };
     const response = await fetch(webhookConfig.url, {
       method: "POST",
@@ -248,10 +251,10 @@ export async function addToLeadTask(
 
     const webhookResponse = await sendWebhook();
     if (webhookConfig.enabled && webhookConfig.skipPlanfixApi) {
-      const webhookTaskId = webhookResponse?.taskId;
-      if (typeof webhookTaskId !== "number") {
-        throw new Error("Webhook response does not contain taskId");
-      }
+      const webhookTaskId = webhookResponse?.taskId || 0;
+      // if (typeof webhookTaskId !== "number") {
+      // throw new Error("Webhook response does not contain taskId");
+      // }
       return { taskId: webhookTaskId, clientId };
     }
 

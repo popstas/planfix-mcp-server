@@ -17,10 +17,10 @@ describe("planfix_add_to_lead_task tool", () => {
 
     const result = await runTool("planfix_add_to_lead_task", args);
     expect(result.valid).toBe(true);
-    
+
     const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
     expect(content.error).toBeUndefined();
-    
+
     expect(typeof content.taskId).toBe("number");
     expect(content.taskId).toBeGreaterThan(0);
     expect(typeof content.clientId).toBe("number");
@@ -46,8 +46,10 @@ describe("planfix_add_to_lead_task tool", () => {
 
       const result = await runTool("planfix_add_to_lead_task", args);
       expect(result.valid).toBe(true);
-      
-      const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
+
+      const content = result.content as z.infer<
+        typeof AddToLeadTaskOutputSchema
+      >;
       expect(content.error).toBeUndefined();
       expect(content.clientId).toBeGreaterThan(0);
     }, 60000);
@@ -63,8 +65,10 @@ describe("planfix_add_to_lead_task tool", () => {
 
       const result = await runTool("planfix_add_to_lead_task", args);
       expect(result.valid).toBe(true);
-      
-      const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
+
+      const content = result.content as z.infer<
+        typeof AddToLeadTaskOutputSchema
+      >;
       expect(content.error).toBeUndefined();
       expect(content.clientId).toBeGreaterThan(0);
     }, 60000);
@@ -79,8 +83,10 @@ describe("planfix_add_to_lead_task tool", () => {
 
       const result = await runTool("planfix_add_to_lead_task", args);
       expect(result.valid).toBe(true);
-      
-      const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
+
+      const content = result.content as z.infer<
+        typeof AddToLeadTaskOutputSchema
+      >;
       expect(content.error).toBeUndefined();
       expect(content.clientId).toBeGreaterThan(0);
     }, 60000);
@@ -94,8 +100,10 @@ describe("planfix_add_to_lead_task tool", () => {
 
       const result = await runTool("planfix_add_to_lead_task", args);
       expect(result.valid).toBe(true);
-      
-      const content = result.content as z.infer<typeof AddToLeadTaskOutputSchema>;
+
+      const content = result.content as z.infer<
+        typeof AddToLeadTaskOutputSchema
+      >;
       expect(content.error).toBeUndefined();
       expect(content.clientId).toBe(0);
       expect(content.clientUrl).toBeDefined();

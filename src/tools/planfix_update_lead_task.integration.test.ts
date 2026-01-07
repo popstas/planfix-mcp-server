@@ -33,8 +33,8 @@ describe("planfix_update_lead_task tool prod", () => {
       taskId: expect.any(Number),
       url: expect.stringMatching(
         new RegExp(
-          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/task/\\d+$`
-        )
+          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/task/\\d+$`,
+        ),
       ),
       assignees: {
         users: expect.arrayContaining([

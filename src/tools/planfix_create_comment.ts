@@ -12,14 +12,14 @@ export const CreateCommentInputSchema = z.object({
         .array(
           z.object({
             id: z.string(), // "user:1"
-          })
+          }),
         )
         .optional(),
       groups: z
         .array(
           z.object({
             id: z.number(), // 1
-          })
+          }),
         )
         .optional(),
       roles: z.array(z.string()).optional(), // assignee, participant, auditor, assigner
@@ -55,7 +55,7 @@ export async function createComment({
     if (PLANFIX_DRY_RUN) {
       const mockId = 55500000 + Math.floor(Math.random() * 10000);
       log(
-        `[DRY RUN] Would create comment for task ${taskId} with description: ${description}`
+        `[DRY RUN] Would create comment for task ${taskId} with description: ${description}`,
       );
       return { commentId: mockId };
     }
@@ -85,7 +85,7 @@ export async function createComment({
 }
 
 export async function handler(
-  args?: Record<string, unknown>
+  args?: Record<string, unknown>,
 ): Promise<z.infer<typeof CreateCommentOutputSchema>> {
   const parsedArgs = CreateCommentInputSchema.parse(args);
   return await createComment(parsedArgs);

@@ -126,7 +126,9 @@ describe("planfix_add_to_lead_task", () => {
         name: "John Doe",
         description: "Test",
         email: "john@example.com",
-        token: "secret",
+        api_key: "secret",
+        Description: "Test",
+        UserName: "John Doe",
       }),
     });
     expect(mockCreateLeadTask).toHaveBeenCalled();
