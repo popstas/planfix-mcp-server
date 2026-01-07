@@ -8,8 +8,8 @@ import { customFieldsConfig } from "./customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "./lib/extendSchemaWithCustomFields.js";
 
 // Utility function to handle null values by converting them to undefined
-const nullFix = <T extends z.ZodTypeAny>(schema: T) => 
-  z.preprocess(val => val === null ? undefined : val, schema);
+const nullFix = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess((val) => (val === null ? undefined : val), schema);
 
 export type ToolInput = z.infer<typeof ToolSchema.shape.inputSchema>;
 export type ToolOutput = CallToolResult;

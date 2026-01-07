@@ -20,7 +20,8 @@ export const PLANFIX_HEADERS = {
 
 export const PLANFIX_DRY_RUN = Boolean(process.env.PLANFIX_DRY_RUN);
 
-export const PLANFIX_TASK_TITLE_TEMPLATE = process.env.PLANFIX_TASK_TITLE_TEMPLATE || "";
+export const PLANFIX_TASK_TITLE_TEMPLATE =
+  process.env.PLANFIX_TASK_TITLE_TEMPLATE || "";
 
 export const PLANFIX_FIELD_IDS = {
   email: Number(process.env.PLANFIX_FIELD_ID_EMAIL || 108),

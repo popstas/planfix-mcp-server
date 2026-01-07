@@ -36,15 +36,10 @@ export const PlanfixSearchContactOutputSchema = z.object({
  * Search for a contact in Planfix by name, phone, email, or telegram.
  * This is a placeholder implementation that should be replaced with actual Planfix API calls.
  */
-export async function planfixSearchContact(args: z.infer<typeof PlanfixSearchContactInputSchema>): Promise<
-  z.infer<typeof PlanfixSearchContactOutputSchema>
-> {
-  const {
-    name,
-    nameTranslated,
-    email,
-    telegram,
-  } = args;
+export async function planfixSearchContact(
+  args: z.infer<typeof PlanfixSearchContactInputSchema>,
+): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
+  const { name, nameTranslated, email, telegram } = args;
   let { phone } = args;
   // console.log('Searching Planfix contact...');
   let contactId: number | null = null;

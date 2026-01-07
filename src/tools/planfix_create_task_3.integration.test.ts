@@ -39,13 +39,13 @@ describe("planfix_create_task tool prod", () => {
       clientId: expect.any(Number),
       url: expect.stringMatching(
         new RegExp(
-          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/task/\\d+$`
-        )
+          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/task/\\d+$`,
+        ),
       ),
       clientUrl: expect.stringMatching(
         new RegExp(
-          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/contact/\\d+$`
-        )
+          `^https://${PLANFIX_ACCOUNT.replace(/\./g, "\\.")}\\.planfix\\.com/contact/\\d+$`,
+        ),
       ),
       assignees: {
         users: expect.arrayContaining([

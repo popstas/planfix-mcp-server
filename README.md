@@ -107,8 +107,8 @@ chatApi:
 
 #### Webhook
 
-To post lead task payloads to a webhook before creating a task, add a `webhook`
-block to `config.yml`:
+To post lead task payloads to a webhook before creating or updating a task,
+add a `webhook` block to `config.yml`:
 
 ```yaml
 webhook:
@@ -319,10 +319,11 @@ const objects = await planfixClient.post('object/list', {
 - `createLeadTask`: Create a new lead task. When `chatApi.useChatApi`
   is enabled, it sends the initial message through the Chat API, gets
   the resulting `taskId` via `getTask`, and then updates the task using
-  the REST API. Accepts `message` and `contactName` fields. When
-  `webhook.enabled` is true, it posts the input payload to the webhook
-  endpoint, optionally skipping the Planfix API if `skipPlanfixApi` is set.
-- `addToLeadTask`: Create or update a lead task and update contact details
+  the REST API. Accepts `message` and `contactName` fields.
+- `addToLeadTask`: Create or update a lead task and update contact details.
+  When `webhook.enabled` is true, it posts the input payload to the
+  webhook endpoint, optionally skipping the Planfix API if `skipPlanfixApi`
+  is set.
 - `createTask`: Create a task using text fields
 - `createComment`: Add a comment to a task
 - `getChildTasks`: Retrieve child tasks of a parent task. Use `recursive` to

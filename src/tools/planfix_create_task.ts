@@ -12,7 +12,10 @@ const PlanfixCreateTaskInputSchemaBase = z.object({
   title: z.string().optional().describe("Title of the task"),
   description: z.string().optional().describe("Description of the task"),
   name: z.string().optional().describe("Name of the client"),
-  nameTranslated: z.string().optional().describe("Translated name of the client"),
+  nameTranslated: z
+    .string()
+    .optional()
+    .describe("Translated name of the client"),
   phone: z.string().optional().describe("Phone of the client"),
   instagram: z.string().optional(),
   email: z.string().optional(),
@@ -37,11 +40,7 @@ export const PlanfixCreateTaskOutputSchema = AddToLeadTaskOutputSchema;
 export async function planfixCreateTask(
   args: z.infer<typeof PlanfixCreateTaskInputSchema>,
 ): Promise<z.infer<typeof PlanfixCreateTaskOutputSchema>> {
-  const {
-    agency,
-    referral,
-    managerEmail,
-  } = args;
+  const { agency, referral, managerEmail } = args;
 
   const messageParts = [];
   if (referral) {

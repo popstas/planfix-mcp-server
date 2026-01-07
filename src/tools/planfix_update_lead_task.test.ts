@@ -28,17 +28,24 @@ vi.mock("../lib/planfixObjects.js", () => ({
 }));
 
 vi.mock("../lib/planfixDirectory.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../lib/planfixDirectory.js")>();
+  const actual =
+    await importOriginal<typeof import("../lib/planfixDirectory.js")>();
   return {
     ...actual,
     addDirectoryEntry: vi.fn(async ({ fieldId, postBody }) => {
       if (!postBody.customFieldData) postBody.customFieldData = [];
-      postBody.customFieldData.push({ field: { id: fieldId }, value: { id: 5 } });
+      postBody.customFieldData.push({
+        field: { id: fieldId },
+        value: { id: 5 },
+      });
       return 5;
     }),
     addDirectoryEntries: vi.fn(async ({ fieldId, postBody }) => {
       if (!postBody.customFieldData) postBody.customFieldData = [];
-      postBody.customFieldData.push({ field: { id: fieldId }, value: [{ id: 5 }] });
+      postBody.customFieldData.push({
+        field: { id: fieldId },
+        value: [{ id: 5 }],
+      });
       return [5];
     }),
   };
