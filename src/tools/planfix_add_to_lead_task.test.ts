@@ -121,12 +121,12 @@ describe("planfix_add_to_lead_task", () => {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        api_key: "secret",
       },
       body: JSON.stringify({
         name: "John Doe",
         description: "Test",
         email: "john@example.com",
-        api_key: "secret",
         Description: "Test",
         UserName: "John Doe",
       }),
