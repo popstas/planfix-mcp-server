@@ -20,7 +20,7 @@ import {
   AddToLeadTaskInputSchema,
   AddToLeadTaskOutputSchema,
 } from "./schemas/leadTaskSchemas.js";
-import { customFieldsConfig } from "../customFieldsConfig.js";
+import { customFieldsConfig, webhookConfig } from "../customFieldsConfig.js";
 
 export { AddToLeadTaskInputSchema, AddToLeadTaskOutputSchema };
 
@@ -102,13 +102,49 @@ export async function addToLeadTask(
     leadId,
   } = args;
 
+  const sendWebhook = async (): Promise<{ taskId?: number } | undefined> => {
+    if (!webhookConfig.enabled) return undefined;
+    if (!webhookConfig.url) {
+      throw new Error("Webhook URL is not defined");
+    }
+    const payload = {
+      ...args,
+      token: webhookConfig.token,
+    };
+    const response = await fetch(webhookConfig.url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok && response.status !== 400) {
+      throw new Error(`Webhook request failed with status ${response.status}`);
+    }
+    try {
+      return (await response.json()) as { taskId?: number };
+    } catch {
+      return undefined;
+    }
+  };
 
   const instagramCustomField = customFieldsConfig.contactFields.find(
-    (field) => field.argName === "instagram_custom"
+    (field) => field.argName === "instagram_custom",
   );
-  const instagram_custom = args.instagram && instagramCustomField ? args.instagram : undefined;
+  const instagram_custom =
+    args.instagram && instagramCustomField ? args.instagram : undefined;
 
-  const userData = { name, nameTranslated, phone, email, telegram, instagram, instagram_custom, company };
+  const userData = {
+    name,
+    nameTranslated,
+    phone,
+    email,
+    telegram,
+    instagram,
+    instagram_custom,
+    company,
+  };
   const eventData = { title, description };
 
   // Helper: template string replacement
@@ -193,7 +229,13 @@ export async function addToLeadTask(
       });
     }
     // 4. If task not found and name has space, search by name
-    if (clientId && !taskId && userData.name && userData.name.includes(" ") && finalTaskTitle) {
+    if (
+      clientId &&
+      !taskId &&
+      userData.name &&
+      userData.name.includes(" ") &&
+      finalTaskTitle
+    ) {
       // console.log('[leadToTask] Searching for task by name...');
       const result = await searchPlanfixTask({
         taskTitle: finalTaskTitle,
@@ -203,6 +245,15 @@ export async function addToLeadTask(
     }
     // 5. If still no task, create it
     let commentId: number | undefined;
+
+    const webhookResponse = await sendWebhook();
+    if (webhookConfig.enabled && webhookConfig.skipPlanfixApi) {
+      const webhookTaskId = webhookResponse?.taskId;
+      if (typeof webhookTaskId !== "number") {
+        throw new Error("Webhook response does not contain taskId");
+      }
+      return { taskId: webhookTaskId, clientId };
+    }
 
     if (!taskId) {
       assignees = { users: [] };
