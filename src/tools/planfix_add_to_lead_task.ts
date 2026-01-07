@@ -109,7 +109,7 @@ export async function addToLeadTask(
     }
     const payload = {
       ...args,
-      api_key: webhookConfig.token,
+      // api_key: webhookConfig.token,
       Description: args.description,
       UserName: args.name,
       TelegramName: args.telegram,
@@ -119,6 +119,7 @@ export async function addToLeadTask(
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        api_key: webhookConfig.token,
       },
       body: JSON.stringify(payload),
     });
