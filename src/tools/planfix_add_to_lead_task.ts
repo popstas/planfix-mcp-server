@@ -183,7 +183,11 @@ export async function addToLeadTask(
     // 1. Try to get taskId and clientId
     const searchResult = await searchLeadTask(userData);
     // Variables that might be reassigned later
-    let { taskId, clientId, url, clientUrl, assignees } = searchResult;
+    let taskId: number = Number(searchResult.taskId) || 0;
+    let clientId: number = Number(searchResult.clientId) || 0;
+    let url = searchResult.url;
+    let clientUrl = searchResult.clientUrl;
+    let assignees = searchResult.assignees;
     // Variables that won't be reassigned
     const { firstName, lastName, agencyId } = searchResult;
     const finalTaskTitle = title
@@ -200,7 +204,12 @@ export async function addToLeadTask(
     );
     if (!descriptionText) {
       // console.log('[leadToTask] No description to send, skip create client or task');
-      return { taskId, clientId, url, clientUrl };
+      return {
+        taskId: Number(taskId) || 0,
+        clientId: Number(clientId) || 0,
+        url,
+        clientUrl,
+      };
     }
 
     // 2. If contact not found, create it
@@ -216,7 +225,7 @@ export async function addToLeadTask(
             : ""; //`Контакт ${nowDatetime}`;
       }
       const createResult = await createPlanfixContact(userData);
-      clientId = createResult.contactId || 0;
+      clientId = Number(createResult.contactId) || 0;
       if (createResult.error) {
         errors.push(createResult.error);
       }
@@ -244,7 +253,7 @@ export async function addToLeadTask(
       const result = await searchPlanfixTask({
         taskTitle: finalTaskTitle,
       });
-      taskId = result.taskId || 0;
+      taskId = Number(result.taskId) || 0;
       assignees = result.assignees;
     }
     // 5. If still no task, create it
@@ -252,11 +261,8 @@ export async function addToLeadTask(
 
     const webhookResponse = await sendWebhook();
     if (webhookConfig.enabled && webhookConfig.skipPlanfixApi) {
-      const webhookTaskId = webhookResponse?.taskId || 0;
-      // if (typeof webhookTaskId !== "number") {
-      // throw new Error("Webhook response does not contain taskId");
-      // }
-      return { taskId: webhookTaskId, clientId };
+      const webhookTaskId = Number(webhookResponse?.taskId) || 0;
+      return { taskId: webhookTaskId, clientId: Number(clientId) || 0 };
     }
 
     if (!taskId) {
@@ -280,9 +286,13 @@ export async function addToLeadTask(
         tags,
       });
       if (createLeadTaskResult.error) {
-        return { taskId: 0, clientId: 0, error: createLeadTaskResult.error };
+        return {
+          taskId: 0,
+          clientId: Number(clientId) || 0,
+          error: createLeadTaskResult.error,
+        };
       }
-      taskId = createLeadTaskResult.taskId || 0;
+      taskId = Number(createLeadTaskResult.taskId) || 0;
       if (managerId) {
         assignees.users = [{ id: `user:${managerId}` }];
       }
@@ -311,7 +321,11 @@ export async function addToLeadTask(
         ...(args as Record<string, unknown>),
       });
       if (updateLeadTaskResult.error) {
-        return { taskId: 0, clientId: 0, error: updateLeadTaskResult.error };
+        return {
+          taskId: Number(taskId) || 0,
+          clientId: Number(clientId) || 0,
+          error: updateLeadTaskResult.error,
+        };
       }
     }
 
@@ -319,8 +333,8 @@ export async function addToLeadTask(
     clientUrl = getContactUrl(clientId);
     const error = errors.length ? errors.join("\n") : undefined;
     return {
-      taskId,
-      clientId,
+      taskId: Number(taskId) || 0,
+      clientId: Number(clientId) || 0,
       url,
       clientUrl,
       assignees,
