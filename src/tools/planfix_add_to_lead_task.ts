@@ -114,6 +114,7 @@ export async function addToLeadTask(
       UserName: args.name,
       TelegramName: args.telegram,
     };
+    log(`[Webhook] Sending payload: ${JSON.stringify(payload)}`);
     const response = await fetch(webhookConfig.url, {
       method: "POST",
       headers: {
