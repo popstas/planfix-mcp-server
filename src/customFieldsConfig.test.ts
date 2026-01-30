@@ -76,6 +76,26 @@ describe("customFieldsConfig", () => {
     });
   });
 
+  it("loads getChildTasks from yaml", () => {
+    const file = tmpFile(
+      "getChildTasks:\n  showDescription: false",
+    );
+    process.env.PLANFIX_CONFIG = file;
+    const cfg = loadCustomFieldsConfig();
+    expect(cfg.getChildTasks).toEqual({
+      showDescription: false,
+    });
+  });
+
+  it("getChildTasks defaults when missing", () => {
+    const file = tmpFile("leadTaskFields: []\ncontactFields: []");
+    process.env.PLANFIX_CONFIG = file;
+    const cfg = loadCustomFieldsConfig();
+    expect(cfg.getChildTasks).toEqual({
+      showDescription: true,
+    });
+  });
+
   it("loads proxyUrl from yaml", () => {
     const file = tmpFile("proxyUrl: http://localhost:8080");
     process.env.PLANFIX_CONFIG = file;

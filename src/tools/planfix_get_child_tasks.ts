@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getChildTasksConfig } from "../customFieldsConfig.js";
 import {
   getTaskUrl,
   getToolWithHandler,
@@ -96,13 +97,18 @@ async function handler(
 }
 
 async function fetchChildTasks(parentTaskId: number) {
+  const baseFields = ["id", "name", "assignees", "status"];
+  const fields = [
+    ...baseFields,
+    ...(getChildTasksConfig?.showDescription !== false ? ["description"] : []),
+  ];
   const result = await planfixRequest({
     path: `task/list`,
     body: {
       parent: { id: parentTaskId },
       pageSize: 100,
       offset: 0,
-      fields: ["id", "name", "description", "assignees", "status"].join(","),
+      fields: fields.join(","),
       filters: [
         {
           type: 73,

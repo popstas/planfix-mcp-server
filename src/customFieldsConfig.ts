@@ -16,12 +16,17 @@ export interface WebhookConfig {
   skipPlanfixApi: boolean;
 }
 
+export interface GetChildTasksConfig {
+  showDescription: boolean;
+}
+
 export interface AppConfig {
   leadTaskFields: CustomField[];
   contactFields: CustomField[];
   userFields: CustomField[];
   chatApi: ChatApiConfig;
   webhook: WebhookConfig;
+  getChildTasks?: GetChildTasksConfig;
   proxyUrl?: string;
 }
 
@@ -72,6 +77,7 @@ export function loadCustomFieldsConfig(): AppConfig {
   let fileUser: CustomField[] = [];
   let fileChatApi: Partial<ChatApiConfig> = {};
   let fileWebhook: Partial<WebhookConfig> = {};
+  let fileGetChildTasks: Partial<GetChildTasksConfig> = {};
   let proxyUrl = "";
 
   const path = getConfigPath();
@@ -97,6 +103,9 @@ export function loadCustomFieldsConfig(): AppConfig {
       if (typeof parsed?.proxyUrl === "string") {
         proxyUrl = parsed.proxyUrl;
       }
+      if (parsed?.getChildTasks && typeof parsed.getChildTasks === "object") {
+        fileGetChildTasks = parsed.getChildTasks as GetChildTasksConfig;
+      }
     } catch {
       // ignore
     }
@@ -116,6 +125,10 @@ export function loadCustomFieldsConfig(): AppConfig {
     skipPlanfixApi: false,
     ...fileWebhook,
   };
+  const getChildTasks: GetChildTasksConfig = {
+    showDescription: true,
+    ...fileGetChildTasks,
+  };
 
   return {
     leadTaskFields: mergeFields(envLead, fileLead),
@@ -123,6 +136,7 @@ export function loadCustomFieldsConfig(): AppConfig {
     userFields: mergeFields(envUser, fileUser),
     chatApi,
     webhook,
+    getChildTasks,
     proxyUrl,
   };
 }
@@ -135,4 +149,5 @@ export const customFieldsConfig = {
 };
 export const chatApiConfig = cfg.chatApi;
 export const webhookConfig = cfg.webhook;
+export const getChildTasksConfig = cfg.getChildTasks;
 export const proxyUrl = cfg.proxyUrl || "";

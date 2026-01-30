@@ -10,6 +10,14 @@ vi.mock("../helpers.js", async (importOriginal) => {
   };
 });
 
+vi.mock("../customFieldsConfig.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../customFieldsConfig.js")>();
+  return {
+    ...actual,
+    getChildTasksConfig: { showDescription: true },
+  };
+});
+
 import { planfixRequest, log } from "../helpers.js";
 
 import planfixGetChildTasksTool, {
@@ -46,6 +54,7 @@ describe("getChildTasks", () => {
         parent: { id: 42 },
         pageSize: 100,
         offset: 0,
+        fields: "id,name,assignees,status,description",
       }),
     });
 
@@ -138,6 +147,33 @@ describe("getChildTasks", () => {
       ],
       totalCount: 2,
     });
+  });
+
+  it("omits description from request when showDescription is false", async () => {
+    const { getChildTasksConfig } = await import("../customFieldsConfig.js");
+    if (!getChildTasksConfig) throw new Error("getChildTasksConfig not mocked");
+    getChildTasksConfig.showDescription = false;
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        {
+          id: 1,
+          name: "Child task",
+          status: { id: 2, name: "open", isActive: true },
+          assignees: [],
+        },
+      ],
+      pagination: { count: 1, pageNumber: 1, pageSize: 100 },
+    });
+
+    await getChildTasks({ parentTaskId: 42 });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledWith({
+      path: "task/list",
+      body: expect.objectContaining({
+        fields: "id,name,assignees,status",
+      }),
+    });
+    if (getChildTasksConfig) getChildTasksConfig.showDescription = true;
   });
 
   it("returns empty result on error", async () => {
