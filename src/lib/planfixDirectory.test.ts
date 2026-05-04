@@ -238,6 +238,25 @@ describe("addDirectoryEntry", () => {
     expect(id).toBeUndefined();
     expect(postBody.customFieldData?.length).toBe(0);
   });
+
+  it("does not create entry when allowCreate is false", async () => {
+    mockedGetFieldDirectoryId.mockResolvedValueOnce(10);
+    mockedPlanfixRequest.mockResolvedValueOnce({
+      directory: { id: 10, name: "Dir", fields: [{ id: 5 }] },
+    });
+    mockedPlanfixRequest.mockResolvedValueOnce({ directoryEntries: [] });
+    const id = await addDirectoryEntry({
+      objectId,
+      fieldId,
+      value,
+      postBody,
+      allowCreate: false,
+    });
+    expect(id).toBeUndefined();
+    expect(postBody.customFieldData?.length).toBe(0);
+    expect(mockedPlanfixRequest).toHaveBeenCalledTimes(2);
+    expect(mockedLog).toHaveBeenCalled();
+  });
 });
 
 describe("addDirectoryEntries", () => {
@@ -286,5 +305,31 @@ describe("addDirectoryEntries", () => {
     });
     expect(ids).toBeUndefined();
     expect(postBody.customFieldData?.length).toBe(0);
+  });
+
+  it("skips missing entries when allowCreate is false", async () => {
+    mockedGetFieldDirectoryId.mockResolvedValueOnce(20);
+    mockedPlanfixRequest.mockResolvedValueOnce({
+      directory: { id: 20, name: "Dir", fields: [{ id: 6 }] },
+    });
+    mockedPlanfixRequest.mockResolvedValueOnce({
+      directoryEntries: [
+        { key: 1, customFieldData: [{ field: { id: 6 }, value: "A" }] },
+      ],
+    });
+    mockedPlanfixRequest.mockResolvedValueOnce({ directoryEntries: [] });
+    const ids = await addDirectoryEntries({
+      objectId,
+      fieldId,
+      values,
+      postBody,
+      allowCreate: false,
+    });
+    expect(ids).toEqual([1]);
+    expect(postBody.customFieldData?.[0]).toEqual({
+      field: { id: fieldId },
+      value: [{ id: 1 }],
+    });
+    expect(mockedLog).toHaveBeenCalled();
   });
 });

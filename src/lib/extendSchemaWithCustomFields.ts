@@ -13,6 +13,7 @@ export interface CustomField {
     | "handbook_record_multiple";
   values?: string[];
   default?: string;
+  allowCreate?: boolean;
 }
 
 export function extendSchemaWithCustomFields<T extends z.ZodRawShape>(

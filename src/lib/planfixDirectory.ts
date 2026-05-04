@@ -168,6 +168,7 @@ export interface AddDirectoryEntryArgs {
   fieldId: number;
   value: string;
   postBody: { customFieldData?: CustomFieldDataType[] };
+  allowCreate?: boolean;
 }
 
 export async function addDirectoryEntry({
@@ -175,6 +176,7 @@ export async function addDirectoryEntry({
   fieldId,
   value,
   postBody,
+  allowCreate = true,
 }: AddDirectoryEntryArgs): Promise<number | undefined> {
   const directoryId = await getFieldDirectoryId({ objectId, fieldId });
   if (!directoryId) return undefined;
@@ -186,6 +188,12 @@ export async function addDirectoryEntry({
     value,
   );
   if (!entryId) {
+    if (!allowCreate) {
+      log(
+        `[addDirectoryEntry] entry "${value}" not found in directory ${directoryId} and allowCreate=false`,
+      );
+      return undefined;
+    }
     entryId = await createDirectoryEntry(directoryId, directoryFieldId, value);
   }
   if (entryId) {
@@ -203,6 +211,7 @@ export interface AddDirectoryEntriesArgs {
   fieldId: number;
   values: string[];
   postBody: { customFieldData?: CustomFieldDataType[] };
+  allowCreate?: boolean;
 }
 
 export async function addDirectoryEntries({
@@ -210,6 +219,7 @@ export async function addDirectoryEntries({
   fieldId,
   values,
   postBody,
+  allowCreate = true,
 }: AddDirectoryEntriesArgs): Promise<number[] | undefined> {
   if (!values.length) return [];
   const directoryId = await getFieldDirectoryId({ objectId, fieldId });
@@ -224,6 +234,12 @@ export async function addDirectoryEntries({
       value,
     );
     if (!id) {
+      if (!allowCreate) {
+        log(
+          `[addDirectoryEntries] entry "${value}" not found in directory ${directoryId} and allowCreate=false`,
+        );
+        continue;
+      }
       id = await createDirectoryEntry(directoryId, directoryFieldId, value);
     }
     if (id) ids.push(id);

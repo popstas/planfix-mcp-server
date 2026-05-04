@@ -47,6 +47,7 @@ export async function extendPostBodyWithCustomFields(
         fieldId: field.id,
         value: value as string,
         postBody,
+        allowCreate: field.allowCreate,
       });
       continue;
     }
@@ -56,6 +57,7 @@ export async function extendPostBodyWithCustomFields(
         fieldId: field.id,
         values: value as string[],
         postBody,
+        allowCreate: field.allowCreate,
       });
       continue;
     }
