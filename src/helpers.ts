@@ -4,6 +4,7 @@ import fs from "fs";
 import fsp from "fs/promises";
 import {
   PLANFIX_ACCOUNT,
+  PLANFIX_ACCOUNT_URL,
   PLANFIX_BASE_URL,
   PLANFIX_HEADERS,
 } from "./config.js";
@@ -154,23 +155,21 @@ export async function planfixRequest<T = unknown>({
 }
 
 export function getTaskUrl(taskId?: number): string {
-  return taskId ? `https://${PLANFIX_ACCOUNT}.planfix.com/task/${taskId}` : "";
+  return taskId ? `${PLANFIX_ACCOUNT_URL}/task/${taskId}` : "";
 }
 
 export function getCommentUrl(taskId?: number, commentId?: number): string {
   return taskId && commentId
-    ? `https://${PLANFIX_ACCOUNT}.planfix.com/task/${taskId}?comment=${commentId}`
+    ? `${PLANFIX_ACCOUNT_URL}/task/${taskId}?comment=${commentId}`
     : "";
 }
 
 export function getContactUrl(contactId?: number): string {
-  return contactId
-    ? `https://${PLANFIX_ACCOUNT}.planfix.com/contact/${contactId}`
-    : "";
+  return contactId ? `${PLANFIX_ACCOUNT_URL}/contact/${contactId}` : "";
 }
 
 export function getUserUrl(userId?: number): string {
-  return userId ? `https://${PLANFIX_ACCOUNT}.planfix.com/user/${userId}` : "";
+  return userId ? `${PLANFIX_ACCOUNT_URL}/user/${userId}` : "";
 }
 
 export async function runCli(args: string[]) {
