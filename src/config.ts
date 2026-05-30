@@ -11,7 +11,18 @@ dotenv.config();
 // Planfix API configuration
 export const PLANFIX_ACCOUNT = process.env.PLANFIX_ACCOUNT || "";
 export const PLANFIX_TOKEN = process.env.PLANFIX_TOKEN || "";
-export const PLANFIX_BASE_URL = `https://${PLANFIX_ACCOUNT}.planfix.com/rest/`;
+// REST API base URL. Defaults to the .com TLD; override via PLANFIX_BASE_URL
+// for .ru and other regional Planfix installations
+// (e.g. "https://youraccount.planfix.ru/rest/").
+export const PLANFIX_BASE_URL =
+  process.env.PLANFIX_BASE_URL ||
+  `https://${PLANFIX_ACCOUNT}.planfix.com/rest/`;
+// Web origin for human-facing links (task/contact/user pages). Derived from
+// PLANFIX_BASE_URL by stripping the trailing "/rest/" so a single override
+// keeps API calls and generated links on the same host. Can be set explicitly
+// via PLANFIX_ACCOUNT_URL.
+export const PLANFIX_ACCOUNT_URL =
+  process.env.PLANFIX_ACCOUNT_URL || PLANFIX_BASE_URL.replace(/\/rest\/?$/, "");
 export const PLANFIX_HEADERS = {
   Authorization: `Bearer ${PLANFIX_TOKEN}`,
   Accept: "application/json",
