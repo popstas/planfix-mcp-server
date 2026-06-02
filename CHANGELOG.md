@@ -3,11 +3,15 @@
 All notable changes to this project are documented here.
 
 
-## Unreleased
+## v1.8.9 - 2026-06-02
 
 ### Features
 
 - config: Support PLANFIX_BASE_URL override for .ru/regional accounts
+
+### Miscellaneous
+
+- Generate changelog with git-cliff and add release workflow
 
 ## v1.8.8 - 2026-05-04
 
