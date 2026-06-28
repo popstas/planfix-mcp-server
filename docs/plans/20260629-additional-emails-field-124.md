@@ -156,10 +156,15 @@
       `additionalEmails` paths exercised by the added unit tests.
 
 ### Task 8: Documentation
-- [ ] document `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` (default 124) and the `additionalEmails` argument
-      in `README.md` (and `.env.example` if present).
-- [ ] check off / remove the field-124 item in `docs/TODO.md`.
-- [ ] note any new pattern in project knowledge docs if discovered.
+- [x] document `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` (default 124) and the `additionalEmails` argument
+      in `README.md` (and `.env.example` if present). Added `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` to the
+      env-var list and documented the `additionalEmails` argument on `searchPlanfixContact`,
+      `createPlanfixContact`, `updatePlanfixContact`, and `addToLeadTask`. No `.env.example` exists in
+      the repo (nothing to update there).
+- [x] check off / remove the field-124 item in `docs/TODO.md`. Marked `[x]`.
+- [x] note any new pattern in project knowledge docs if discovered. No new pattern beyond what is
+      already captured in this plan's Context section (numeric-id contact filter type 4101, multi-value
+      write `value: string[]`, read-back via `customFieldData.find`).
 
 ## Technical Details
 - **Field id**: `PLANFIX_FIELD_IDS.emailAdditional`, default `124`, override
