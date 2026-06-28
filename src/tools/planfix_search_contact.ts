@@ -9,6 +9,7 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendFiltersWithCustomFields } from "../lib/extendFiltersWithCustomFields.js";
+import { buildEmailMatchList } from "../lib/emailFields.js";
 import type { ContactResponse } from "../types.js";
 
 const PlanfixSearchContactInputSchemaBase = z.object({
@@ -16,6 +17,7 @@ const PlanfixSearchContactInputSchemaBase = z.object({
   nameTranslated: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
+  additionalEmails: z.array(z.string()).optional(),
   telegram: z.string().optional(),
 });
 
@@ -37,7 +39,7 @@ export const PlanfixSearchContactOutputSchema = z.object({
 export async function planfixSearchContact(
   args: z.infer<typeof PlanfixSearchContactInputSchema>,
 ): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
-  const { name, nameTranslated, email, telegram } = args;
+  const { name, nameTranslated, email, additionalEmails, telegram } = args;
   let { phone } = args;
   let contactId: number | null = null;
   if (phone && (phone.startsWith("@") || !/^[+\d\s\-()]{5,}$/.test(phone))) {
@@ -45,15 +47,19 @@ export async function planfixSearchContact(
   }
 
   const fieldsBase = "id,name,midname,lastname,email,phone,description,group";
+  let fields = PLANFIX_FIELD_IDS.telegramCustom
+    ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
+    : PLANFIX_FIELD_IDS.telegram
+      ? `${fieldsBase},telegram`
+      : fieldsBase;
+  if (PLANFIX_FIELD_IDS.emailAdditional) {
+    fields = `${fields},${PLANFIX_FIELD_IDS.emailAdditional}`;
+  }
   const postBody = {
     offset: 0,
     pageSize: 100,
     filters: [],
-    fields: PLANFIX_FIELD_IDS.telegramCustom
-      ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
-      : PLANFIX_FIELD_IDS.telegram
-        ? `${fieldsBase},telegram`
-        : fieldsBase,
+    fields,
   };
 
   type FilterType = {
@@ -165,6 +171,18 @@ export async function planfixSearchContact(
       : undefined,
   };
 
+  // Single source of truth for the field-124 ("additional emails") match filter.
+  // Uses the established numeric-id contact filter (type 4101). If the live API
+  // disagrees with this shape (Task 6), adjust it here only.
+  function buildEmailAdditionalFilter(value: string): FilterType {
+    return {
+      type: 4101,
+      field: PLANFIX_FIELD_IDS.emailAdditional,
+      operator: "equal",
+      value,
+    };
+  }
+
   const customFilters: FilterType[] = [];
   extendFiltersWithCustomFields(
     customFilters,
@@ -236,6 +254,35 @@ export async function planfixSearchContact(
     if (!contactId && email && filters.byEmail) {
       result = await searchWithFilter(filters.byEmail);
       contactId = result.contactId;
+    }
+    if (
+      !contactId &&
+      additionalEmails &&
+      additionalEmails.length &&
+      PLANFIX_FIELD_IDS.emailAdditional
+    ) {
+      // On a primary-email miss, try every known email (primary + additional)
+      // against the field-124 filter, and try each *additional* email against
+      // the main email field (4026) too. First match wins.
+      const emailMatchList = buildEmailMatchList(email, additionalEmails);
+      const additionalNormalized = buildEmailMatchList(
+        undefined,
+        additionalEmails,
+      );
+      for (const value of emailMatchList) {
+        if (contactId) break;
+        result = await searchWithFilter(buildEmailAdditionalFilter(value));
+        contactId = result.contactId;
+      }
+      for (const value of additionalNormalized) {
+        if (contactId) break;
+        result = await searchWithFilter({
+          type: 4026,
+          operator: "equal",
+          value,
+        });
+        contactId = result.contactId;
+      }
     }
     if (!contactId && phone && filters.byPhone) {
       result = await searchWithFilter(filters.byPhone);

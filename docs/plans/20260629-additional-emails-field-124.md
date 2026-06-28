@@ -77,19 +77,19 @@
 - [x] run `npm run test` — must pass before Task 2.
 
 ### Task 2: Match contacts via field 124 (`planfix_search_contact`)
-- [ ] add optional `additionalEmails: z.array(z.string()).optional()` to
+- [x] add optional `additionalEmails: z.array(z.string()).optional()` to
       `PlanfixSearchContactInputSchemaBase`.
-- [ ] add a field-124 filter builder using the established numeric-id contact filter
+- [x] add a field-124 filter builder using the established numeric-id contact filter
       `{ type: 4101, field: PLANFIX_FIELD_IDS.emailAdditional, operator: "equal", value }`
       (single source of truth so Task 6 can adjust it in one place).
-- [ ] extend the search sequence: keep the current primary-`email` → main field (4026) attempt; on
+- [x] extend the search sequence: keep the current primary-`email` → main field (4026) attempt; on
       miss, for each email in `buildEmailMatchList(email, additionalEmails)` try the field-124 filter,
       and try each *additional* email against the main email field (4026) too; first match wins.
-- [ ] include `PLANFIX_FIELD_IDS.emailAdditional` in the requested `fields` so the value is available.
-- [ ] write unit tests (mocked `planfixRequest`): primary still matches via main field; a contact is
+- [x] include `PLANFIX_FIELD_IDS.emailAdditional` in the requested `fields` so the value is available.
+- [x] write unit tests (mocked `planfixRequest`): primary still matches via main field; a contact is
       found via the field-124 filter when the main field misses; additional email matches via main
       field; no `additionalEmails` ⇒ behavior unchanged.
-- [ ] run `npm run test` — must pass before Task 3.
+- [x] run `npm run test` — must pass before Task 3.
 
 ### Task 3: Fill field 124 on update (`planfix_update_contact`)
 - [ ] add optional `additionalEmails` to `UpdatePlanfixContactInputSchemaBase`.
