@@ -6,6 +6,7 @@ vi.mock("../config.js", () => ({
   PLANFIX_FIELD_IDS: {
     telegram: 0,
     telegramCustom: 1001,
+    emailAdditional: 124,
   },
 }));
 
@@ -47,7 +48,11 @@ describe("planfix_update_contact tool", () => {
     vi.clearAllMocks();
   });
 
-  const setupMocks = (customContact: Partial<typeof mockContact> = {}) => {
+  const setupMocks = (
+    customContact: Partial<Omit<typeof mockContact, "customFieldData">> & {
+      customFieldData?: Array<{ field: { id: number }; value: unknown }>;
+    } = {},
+  ) => {
     mockPlanfixRequest.mockReset();
     mockPlanfixRequest.mockImplementation(async (args: any) => {
       if (args.path === `contact/${mockContact.id}`) {
@@ -249,6 +254,110 @@ describe("planfix_update_contact tool", () => {
 
     // Should only make one call (GET) since no updates are needed
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+    expect(result.contactId).toBe(1);
+  });
+
+  it("writes field 124 with genuinely-new additional emails", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: ["existing@example.com"] },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["New@Example.com", "existing@example.com"],
+    });
+
+    // GET requests field 124 so existing values can be read back.
+    const getCall = mockPlanfixRequest.mock.calls[0][0];
+    const fields = (getCall.body as { fields: string }).fields.split(",");
+    expect(fields).toContain("124");
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    expect(field124).toBeDefined();
+    // Only the new, normalized email; the duplicate of existing is dropped.
+    expect(field124?.value).toEqual(["new@example.com"]);
+
+    expect(result.contactId).toBe(1);
+  });
+
+  it("skips field 124 write when all values duplicate primary/existing", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: ["dup@example.com"] },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      email: "john.doe@example.com",
+      additionalEmails: ["dup@example.com", "John.Doe@example.com"],
+    });
+
+    // Nothing new to write -> only the GET call is made.
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+    expect(result.contactId).toBe(1);
+  });
+
+  it("rewrites field 124 with the full set when forceUpdate is true", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: ["existing@example.com"] },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["existing@example.com", "another@example.com"],
+      forceUpdate: true,
+    });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    expect(field124).toBeDefined();
+    // forceUpdate rewrites with the full provided set (existing not excluded).
+    expect(field124?.value).toEqual([
+      "existing@example.com",
+      "another@example.com",
+    ]);
+
+    expect(result.contactId).toBe(1);
+  });
+
+  it("does not touch field 124 when additionalEmails is omitted", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@old_username" },
+        { field: { id: 124 }, value: ["existing@example.com"] },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      telegram: "new_username",
+      forceUpdate: true,
+    });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: unknown }>;
+    };
+    // Only telegram field is written; field 124 is left alone.
+    expect(body.customFieldData?.some((f) => f.field.id === 124)).toBe(false);
     expect(result.contactId).toBe(1);
   });
 

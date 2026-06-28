@@ -9,6 +9,7 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import { dedupeAdditionalEmails } from "../lib/emailFields.js";
 import { ContactRequestBody, ContactResponse } from "../types.js";
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
@@ -26,6 +27,7 @@ const UpdatePlanfixContactInputSchemaBase = z.object({
   telegram: z.string().optional(),
   instagram: z.string().optional(),
   email: z.string().optional(),
+  additionalEmails: z.array(z.string()).optional(),
   phone: z.string().optional(),
   forceUpdate: z.boolean().optional(),
 });
@@ -44,8 +46,16 @@ export const UpdatePlanfixContactOutputSchema = z.object({
 export async function updatePlanfixContact(
   args: z.infer<typeof UpdatePlanfixContactInputSchema>,
 ): Promise<z.infer<typeof UpdatePlanfixContactOutputSchema>> {
-  const { contactId, name, telegram, instagram, email, phone, forceUpdate } =
-    args;
+  const {
+    contactId,
+    name,
+    telegram,
+    instagram,
+    email,
+    additionalEmails,
+    phone,
+    forceUpdate,
+  } = args;
   try {
     if (PLANFIX_DRY_RUN) {
       log(`[DRY RUN] Would update contact ${contactId}`);
@@ -56,11 +66,14 @@ export async function updatePlanfixContact(
       (f) => f.id,
     );
     const fieldsBase = `id,name,lastname,email,phones,${customContactFieldsIds.join(",")}`;
-    const fields = PLANFIX_FIELD_IDS.telegramCustom
+    let fields = PLANFIX_FIELD_IDS.telegramCustom
       ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
       : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase;
+    if (PLANFIX_FIELD_IDS.emailAdditional) {
+      fields = `${fields},${PLANFIX_FIELD_IDS.emailAdditional}`;
+    }
     const { contact } = await planfixRequest<{ contact: ContactResponse }>({
       path: `contact/${contactId}`,
       body: { fields },
@@ -144,6 +157,36 @@ export async function updatePlanfixContact(
       customFieldsConfig.contactFields,
       contact,
     );
+
+    // Fill the multi-value "additional emails" field (id 124). Placed after the
+    // telegram block and extendPostBodyWithCustomFields (both of which may set
+    // customFieldData) so the push appends instead of being overwritten.
+    if (additionalEmails !== undefined && PLANFIX_FIELD_IDS.emailAdditional) {
+      // Read existing field-124 values (string or string[]) to merge against.
+      const existingField = contact.customFieldData?.find(
+        (f) => f.field.id === PLANFIX_FIELD_IDS.emailAdditional,
+      );
+      const existing: string[] = Array.isArray(existingField?.value)
+        ? (existingField.value as unknown[]).filter(
+            (v): v is string => typeof v === "string",
+          )
+        : typeof existingField?.value === "string"
+          ? [existingField.value]
+          : [];
+
+      // Without forceUpdate add only genuinely-new values (exclude existing);
+      // with forceUpdate rewrite the field with the full provided set.
+      const extras = forceUpdate
+        ? dedupeAdditionalEmails(email, additionalEmails)
+        : dedupeAdditionalEmails(email, additionalEmails, existing);
+
+      if (extras.length) {
+        postBody.customFieldData.push({
+          field: { id: PLANFIX_FIELD_IDS.emailAdditional },
+          value: extras,
+        });
+      }
+    }
 
     const hasUpdates =
       Object.keys(postBody).some(

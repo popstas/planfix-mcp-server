@@ -92,16 +92,16 @@
 - [x] run `npm run test` — must pass before Task 3.
 
 ### Task 3: Fill field 124 on update (`planfix_update_contact`)
-- [ ] add optional `additionalEmails` to `UpdatePlanfixContactInputSchemaBase`.
-- [ ] request `PLANFIX_FIELD_IDS.emailAdditional` in the GET `fields`; read existing additional
+- [x] add optional `additionalEmails` to `UpdatePlanfixContactInputSchemaBase`.
+- [x] request `PLANFIX_FIELD_IDS.emailAdditional` in the GET `fields`; read existing additional
       emails from `contact.customFieldData`.
-- [ ] compute extras via `dedupeAdditionalEmails(email, additionalEmails, existing)`; when non-empty
+- [x] compute extras via `dedupeAdditionalEmails(email, additionalEmails, existing)`; when non-empty
       (or `forceUpdate`), push `{ field: { id: PLANFIX_FIELD_IDS.emailAdditional }, value: extras }`
       to `customFieldData`; honor `forceUpdate` (without it, only add genuinely-new values; skip the
       write entirely when nothing new). Keep the existing `hasUpdates` guard working.
-- [ ] write unit tests (mocked): writes field 124 with new extras; skips when all are duplicates of
+- [x] write unit tests (mocked): writes field 124 with new extras; skips when all are duplicates of
       primary/existing; `forceUpdate` rewrites; primary `email` path unchanged.
-- [ ] run `npm run test` — must pass before Task 4.
+- [x] run `npm run test` — must pass before Task 4.
 
 ### Task 4: Fill field 124 on create (`planfix_create_contact`)
 - [ ] add optional `additionalEmails` to the create input schema.
