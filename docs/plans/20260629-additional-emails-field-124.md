@@ -64,17 +64,17 @@
 ## Implementation Steps
 
 ### Task 1: Config + pure email helpers
-- [ ] add `emailAdditional: Number(process.env.PLANFIX_FIELD_ID_EMAIL_ADDITIONAL || 124)` to
+- [x] add `emailAdditional: Number(process.env.PLANFIX_FIELD_ID_EMAIL_ADDITIONAL || 124)` to
       `PLANFIX_FIELD_IDS` in `src/config.ts`.
-- [ ] create `src/lib/emailFields.ts` with pure functions:
+- [x] create `src/lib/emailFields.ts` with pure functions:
       `normalizeEmail(s): string` (trim + lowercase);
       `buildEmailMatchList(email?, additionalEmails?): string[]` (unique, non-empty, normalized,
       primary first);
       `dedupeAdditionalEmails(primary?, additional?, existing?): string[]` (normalized, unique, drop
       empties, exclude any equal to `primary`, exclude any already in `existing`).
-- [ ] write unit tests for `src/lib/emailFields.ts`: success cases + edges (empties, duplicates,
+- [x] write unit tests for `src/lib/emailFields.ts`: success cases + edges (empties, duplicates,
       case-insensitivity, primary/additional collision, existing-value exclusion).
-- [ ] run `npm run test` — must pass before Task 2.
+- [x] run `npm run test` — must pass before Task 2.
 
 ### Task 2: Match contacts via field 124 (`planfix_search_contact`)
 - [ ] add optional `additionalEmails: z.array(z.string()).optional()` to

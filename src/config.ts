@@ -36,6 +36,9 @@ export const PLANFIX_TASK_TITLE_TEMPLATE =
 
 export const PLANFIX_FIELD_IDS = {
   email: Number(process.env.PLANFIX_FIELD_ID_EMAIL || 108),
+  emailAdditional: Number(
+    process.env.PLANFIX_FIELD_ID_EMAIL_ADDITIONAL || 124,
+  ),
   phone: Number(process.env.PLANFIX_FIELD_ID_PHONE || 105),
   telegram: process.env.PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
     ? 0
