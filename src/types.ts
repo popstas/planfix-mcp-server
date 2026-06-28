@@ -92,6 +92,10 @@ export interface ContactResponse {
   name?: string;
   lastname?: string;
   email?: string;
+  // Planfix system field: a contact's secondary/additional email addresses.
+  // Read-only via the REST API (present on the contact response, absent from
+  // ContactRequest), and searchable via filter type 4221.
+  additionalEmailAddresses?: string[];
   phones?: Array<{ number: string; type: number }>;
   telegram?: string;
   customFieldData?: CustomFieldDataType[];

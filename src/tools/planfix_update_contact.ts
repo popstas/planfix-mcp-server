@@ -71,6 +71,8 @@ export async function updatePlanfixContact(
       : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase;
+    // System field with the contact's secondary/additional emails (read-only).
+    fields = `${fields},additionalEmailAddresses`;
     if (PLANFIX_FIELD_IDS.emailAdditional) {
       fields = `${fields},${PLANFIX_FIELD_IDS.emailAdditional}`;
     }
@@ -158,21 +160,37 @@ export async function updatePlanfixContact(
       contact,
     );
 
-    // Fill the multi-value "additional emails" field (id 124). Placed after the
-    // telegram block and extendPostBodyWithCustomFields (both of which may set
-    // customFieldData) so the push appends instead of being overwritten.
+    // Persist additional emails into the custom field (id from
+    // PLANFIX_FIELD_ID_EMAIL_ADDITIONAL). NOTE: the Planfix *system* field
+    // `additionalEmailAddresses` is read-only via the REST API (it is absent
+    // from ContactRequest), so a numeric custom field is the only programmatic
+    // way to store extras. We still read the system field below so addresses
+    // already present there are not duplicated into the custom field.
+    // Placed after the telegram block and extendPostBodyWithCustomFields (both
+    // of which may set customFieldData) so the push appends instead of being
+    // overwritten.
     if (additionalEmails !== undefined && PLANFIX_FIELD_IDS.emailAdditional) {
-      // Read existing field-124 values (string or string[]) to merge against.
+      // Read existing custom-field values (string or string[]) to merge against.
       const existingField = contact.customFieldData?.find(
         (f) => f.field.id === PLANFIX_FIELD_IDS.emailAdditional,
       );
-      const existing: string[] = Array.isArray(existingField?.value)
+      const existingCustom: string[] = Array.isArray(existingField?.value)
         ? (existingField.value as unknown[]).filter(
             (v): v is string => typeof v === "string",
           )
         : typeof existingField?.value === "string"
           ? [existingField.value]
           : [];
+      // Also treat addresses already in the system field as existing, so we do
+      // not re-add an address the contact already has.
+      const existingSystem: string[] = Array.isArray(
+        contact.additionalEmailAddresses,
+      )
+        ? contact.additionalEmailAddresses.filter(
+            (v): v is string => typeof v === "string",
+          )
+        : [];
+      const existing: string[] = [...existingCustom, ...existingSystem];
 
       // Without forceUpdate add only genuinely-new values (exclude existing);
       // with forceUpdate rewrite the field with the full provided set.

@@ -52,6 +52,9 @@ export async function planfixSearchContact(
     : PLANFIX_FIELD_IDS.telegram
       ? `${fieldsBase},telegram`
       : fieldsBase;
+  // System field holding a contact's secondary/additional email addresses.
+  // Requested unconditionally (it is a system field, not account-specific).
+  fields = `${fields},additionalEmailAddresses`;
   if (PLANFIX_FIELD_IDS.emailAdditional) {
     fields = `${fields},${PLANFIX_FIELD_IDS.emailAdditional}`;
   }
@@ -171,9 +174,25 @@ export async function planfixSearchContact(
       : undefined,
   };
 
-  // Single source of truth for the field-124 ("additional emails") match filter.
-  // Uses the established numeric-id contact filter (type 4101). If the live API
-  // disagrees with this shape (Task 6), adjust it here only.
+  // System "secondary email" match filter (type 4221, "Contact part of
+  // secondary email" in the contact swagger). This is the documented, account-
+  // agnostic way to match a contact by an address stored in its additional-
+  // emails system field. No `field` id — it is a system field, like the primary
+  // email field (4026).
+  function buildSecondaryEmailFilter(value: string): FilterType {
+    return {
+      type: 4221,
+      operator: "equal",
+      value,
+    };
+  }
+
+  // Optional custom-field fallback: some accounts mirror extra emails into a
+  // numeric custom field (id from PLANFIX_FIELD_ID_EMAIL_ADDITIONAL). Because
+  // the system additionalEmailAddresses field is NOT writable via the REST API
+  // (absent from ContactRequest), a custom field is the only programmatic way
+  // to persist extras, so we also search it when configured. Uses the
+  // established numeric-id contact filter (type 4101).
   function buildEmailAdditionalFilter(value: string): FilterType {
     return {
       type: 4101,
@@ -255,15 +274,15 @@ export async function planfixSearchContact(
       result = await searchWithFilter(filters.byEmail);
       contactId = result.contactId;
     }
-    if (
-      !contactId &&
-      additionalEmails &&
-      additionalEmails.length &&
-      PLANFIX_FIELD_IDS.emailAdditional
-    ) {
-      // On a primary-email miss, try every known email (primary + additional)
-      // against the field-124 filter, and try each *additional* email against
-      // the main email field (4026) too. First match wins.
+    if (!contactId && additionalEmails && additionalEmails.length) {
+      // On a primary-email miss, look for the contact by its additional emails.
+      // Order (first match wins):
+      //   1. System "secondary email" field via filter 4221 — the documented,
+      //      account-agnostic location for additional addresses.
+      //   2. Optional custom field via filter 4101 — only when configured, for
+      //      accounts that mirror extras into a numeric custom field.
+      //   3. The main email field (4026) — in case an "additional" address is
+      //      actually stored as that contact's primary email.
       const emailMatchList = buildEmailMatchList(email, additionalEmails);
       const additionalNormalized = buildEmailMatchList(
         undefined,
@@ -271,8 +290,15 @@ export async function planfixSearchContact(
       );
       for (const value of emailMatchList) {
         if (contactId) break;
-        result = await searchWithFilter(buildEmailAdditionalFilter(value));
+        result = await searchWithFilter(buildSecondaryEmailFilter(value));
         contactId = result.contactId;
+      }
+      if (PLANFIX_FIELD_IDS.emailAdditional) {
+        for (const value of emailMatchList) {
+          if (contactId) break;
+          result = await searchWithFilter(buildEmailAdditionalFilter(value));
+          contactId = result.contactId;
+        }
       }
       for (const value of additionalNormalized) {
         if (contactId) break;

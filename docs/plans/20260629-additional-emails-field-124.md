@@ -167,14 +167,29 @@
       write `value: string[]`, read-back via `customFieldData.find`).
 
 ## Technical Details
-- **Field id**: `PLANFIX_FIELD_IDS.emailAdditional`, default `124`, override
-  `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL`.
-- **Match filter (assumed, confirmed in Task 6)**:
-  `{ type: 4101, field: emailAdditional, operator: "equal", value: <normalized email> }`.
-- **Write (assumed, confirmed in Task 6)**:
-  `customFieldData: [{ field: { id: emailAdditional }, value: string[] }]`.
-- **Read-back**: request `emailAdditional` in `fields`; parse
-  `contact.customFieldData.find(f => f.field.id === emailAdditional).value` (string or string[]).
+> **API shape correction (verified against the official Planfix contact swagger).**
+> "Дополнительные адреса email" is exposed by Planfix as a **system** field
+> `additionalEmailAddresses`, NOT a numeric field id. Verified facts:
+> - Search: filter type **4221** ("Contact part of secondary email") — a system
+>   filter with no `field` id, like primary email (4026). This is the documented
+>   way to match by an additional address.
+> - Read: `additionalEmailAddresses` is present on `ContactResponse` (request it
+>   by that name in `fields`).
+> - Write: `additionalEmailAddresses` is **absent from `ContactRequest`** → the
+>   system field is **read-only via the REST API**. The only programmatic way to
+>   persist extras is a numeric **custom** field (`PLANFIX_FIELD_ID_EMAIL_ADDITIONAL`,
+>   default `124`), so writes go there and search also tries it as a fallback.
+- **Custom field id (write + search fallback)**: `PLANFIX_FIELD_IDS.emailAdditional`,
+  default `124`, override `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL`.
+- **Match filters**: system `{ type: 4221, operator: "equal", value }` first;
+  then custom `{ type: 4101, field: emailAdditional, operator: "equal", value }`
+  when configured; then the main email field (4026).
+- **Write**:
+  `customFieldData: [{ field: { id: emailAdditional }, value: string[] }]`
+  (system field not writable, see above).
+- **Read-back**: request both `additionalEmailAddresses` and `emailAdditional` in
+  `fields`; merge `contact.additionalEmailAddresses` (string[]) with
+  `contact.customFieldData.find(f => f.field.id === emailAdditional).value` for dedup.
 - **Dedup/normalization**: lowercase + trim; `additionalEmails` exclude empties, duplicates, the
   primary `email`, and (on update) values already present in field 124.
 - **Processing flow (addToLeadTask)**: search (primary main-field → additional via 124 / main) →

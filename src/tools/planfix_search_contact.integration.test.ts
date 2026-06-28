@@ -79,13 +79,49 @@ describe("planfix_search_contact tool", () => {
     expect(content.found).toBe(false);
   });
 
-  // Confirms the field-124 ("additional emails") API shape end-to-end:
-  // (1) the multi-value write format on create, (2) the field-124 match filter,
+  // Confirms the system "secondary email" search path is accepted by the live
+  // API: a search by an additional email must not error. The contact need not
+  // exist (we use a random address) — this exercises the filter-4221 request
+  // shape end-to-end without depending on any account-specific custom field,
+  // which is exactly the case the custom-field round-trip below cannot cover.
+  //
+  // `planfixSearchContact` swallows per-filter errors (each `searchWithFilter`
+  // catches and returns `found: false`), so going through the tool would report
+  // success even if Planfix rejected filter 4221. To actually prove the request
+  // shape is accepted, hit `contact/list` directly with the system 4221 filter
+  // and assert the call resolves (a rejected shape makes `planfixRequest` throw
+  // on the non-2xx response) with a well-formed result.
+  it("accepts a search by additional email (system filter 4221)", async () => {
+    const result = (await planfixRequest({
+      path: "contact/list",
+      body: {
+        offset: 0,
+        pageSize: 100,
+        fields: "id,name,email,additionalEmailAddresses",
+        filters: [
+          {
+            type: 4221,
+            operator: "equal",
+            value: `nonexistent-additional-${Date.now()}@example.com`,
+          },
+        ],
+      },
+    })) as { contacts?: Array<{ id: number }> };
+    // No throw above means the 4221 request shape was accepted by the API.
+    expect(Array.isArray(result.contacts ?? [])).toBe(true);
+    expect(result.contacts?.length ?? 0).toBe(0);
+  });
+
+  // Confirms the custom-field ("additional emails") write shape end-to-end:
+  // (1) the multi-value write format on create, (2) the match filter,
   // (3) the read-back. Creates a contact with a primary + additional email,
-  // searches by the additional address, and expects a match.
-  // Skipped automatically on accounts where the additional-emails field is not
-  // configured (the field id is account-specific).
-  it("matches a contact by an additional email (field 124)", async (ctx) => {
+  // searches by the additional address, and expects a match. This round-trip
+  // necessarily requires a numeric custom field because the system
+  // additionalEmailAddresses field is read-only via the REST API (not writable
+  // through ContactRequest), so a contact with system additional emails cannot
+  // be created via the API. Skipped automatically on accounts where the custom
+  // field is not configured (the field id is account-specific).
+  it("matches a contact by an additional email (custom field)", async (ctx) => {
     if (!(await emailAdditionalFieldExists())) {
       ctx.skip();
       return;

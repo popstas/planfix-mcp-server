@@ -24,7 +24,7 @@ The server requires the following environment variables for Planfix API access:
 - `PLANFIX_BASE_URL` – (optional) Override the REST API base URL. Defaults to `https://<PLANFIX_ACCOUNT>.planfix.com/rest/`. Set this for `.ru` and other regional installations, e.g. `https://yourcompany.planfix.ru/rest/`
 - `PLANFIX_ACCOUNT_URL` – (optional) Override the web origin used for human-facing links (task/contact/user pages). Defaults to `PLANFIX_BASE_URL` without the trailing `/rest/`
 - `PLANFIX_FIELD_ID_EMAIL` – Custom field ID for email
-- `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` – (optional) System field ID for additional email addresses (multi-value). Defaults to `124`. Used to match and fill contacts that own more than one email (see the `additionalEmails` argument below)
+- `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` – (optional) Numeric **custom** field ID used to store additional email addresses (multi-value). Defaults to `124`. The Planfix **system** secondary-email field (`additionalEmailAddresses`) is read-only over the REST API, so additional addresses are *written* to this custom field; *matching* uses both the system field (filter type 4221) and this custom field (see the `additionalEmails` argument below)
 - `PLANFIX_FIELD_ID_PHONE` – Custom field ID for phone
 - `PLANFIX_FIELD_ID_TELEGRAM` – Set any value to use the system Telegram field
 - `PLANFIX_FIELD_ID_TELEGRAM_CUSTOM` – Custom field ID for Telegram when using the custom field
@@ -311,14 +311,17 @@ const objects = await planfixClient.post('object/list', {
 
 - `searchPlanfixContact`: Search contacts by name, phone, email, or Telegram.
   Accepts an optional `additionalEmails: string[]` argument: when the primary
-  `email` does not match, each additional address is also matched against both
-  the main email field and the additional-emails system field (id `124`).
+  `email` does not match, each address is also matched against the system
+  secondary-email field (filter type 4221), the optional custom field
+  (`PLANFIX_FIELD_ID_EMAIL_ADDITIONAL`), and the main email field.
 - `createPlanfixContact`: Create a new contact in Planfix. Accepts an optional
   `additionalEmails: string[]` argument that is written to the additional-emails
-  system field (id `124`), deduplicated and excluding the primary `email`.
+  custom field (`PLANFIX_FIELD_ID_EMAIL_ADDITIONAL`), deduplicated and excluding
+  the primary `email`. (The system secondary-email field is read-only via the API.)
 - `updatePlanfixContact`: Update existing contact information. Accepts an optional
   `additionalEmails: string[]` argument that is merged into the additional-emails
-  system field (id `124`); only genuinely new addresses are added unless
+  custom field; only genuinely new addresses are added (addresses already in the
+  contact's custom field or system secondary-email field are skipped) unless
   `forceUpdate` is set.
 - `searchPlanfixCompany`: Search for companies by name
 
@@ -333,7 +336,9 @@ const objects = await planfixClient.post('object/list', {
   the REST API. Accepts `message` and `contactName` fields.
 - `addToLeadTask`: Create or update a lead task and update contact details.
   Accepts an optional `additionalEmails: string[]` argument that threads through
-  contact search, creation, and update (additional-emails system field id `124`).
+  contact search, creation, and update (matched against the system secondary-email
+  field and the `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` custom field; written to the
+  custom field).
   When `webhook.enabled` is true, it posts the input payload to the
   webhook endpoint, optionally skipping the Planfix API if `skipPlanfixApi`
   is set.

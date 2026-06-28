@@ -3,6 +3,13 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default [
+  // Global ignores: compiled output (dist/, gitignored) and legacy standalone
+  // scripts (Zapier code-step snippets / data fixtures) are not part of the
+  // TypeScript source that lint targets.
+  {
+    ignores: ["dist/**", "data/**", "zapier-scripts/**", "node_modules/**"],
+  },
+
   // Base ESLint recommended config
   js.configs.recommended,
 

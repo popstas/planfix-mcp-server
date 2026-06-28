@@ -103,9 +103,13 @@ export async function createPlanfixContact(
       postBody.instagram = userData.instagram.replace(/^@/, "");
     }
 
-    // Fill the multi-value "additional emails" field (id 124). The primary
-    // `email` maps to the main system email field above; extras (deduped,
-    // normalized, primary excluded) go into field 124 when any remain.
+    // Persist additional emails into the custom field (id from
+    // PLANFIX_FIELD_ID_EMAIL_ADDITIONAL). The primary `email` maps to the main
+    // system email field above; extras (deduped, normalized, primary excluded)
+    // go into the custom field when any remain. NOTE: the Planfix *system*
+    // field `additionalEmailAddresses` is read-only via the REST API (absent
+    // from ContactRequest), so a numeric custom field is the only programmatic
+    // way to store extras on create.
     if (userData.additionalEmails && PLANFIX_FIELD_IDS.emailAdditional) {
       const extras = dedupeAdditionalEmails(
         userData.email,

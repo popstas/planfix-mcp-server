@@ -101,7 +101,7 @@ describe("planfixSearchContact", () => {
     expect(result.contactId).toBe(0);
   });
 
-  it("requests the additional-emails field id in fields", async () => {
+  it("requests the additional-emails fields (system + custom id) in fields", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       contacts: [{ id: 1, name: "John", lastname: "Doe" }],
     });
@@ -110,13 +110,16 @@ describe("planfixSearchContact", () => {
 
     const call = mockPlanfixRequest.mock.calls[0][0];
     const body = call.body as any;
+    // System secondary-email field is always requested...
+    expect(String(body.fields)).toContain("additionalEmailAddresses");
+    // ...and the optional numeric custom field id when configured.
     expect(String(body.fields)).toContain("124");
   });
 
-  it("finds contact via field-124 filter when main email field misses", async () => {
+  it("finds contact via the system secondary-email filter (4221)", async () => {
     // 1: byEmail (primary) miss
-    // 2: field-124 with primary miss
-    // 3: field-124 with additional -> hit
+    // 2: 4221 with primary miss
+    // 3: 4221 with additional -> hit
     mockPlanfixRequest
       .mockResolvedValueOnce({ contacts: [] })
       .mockResolvedValueOnce({ contacts: [] })
@@ -130,7 +133,41 @@ describe("planfixSearchContact", () => {
     });
 
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(3);
-    const field124Call = mockPlanfixRequest.mock.calls[2][0];
+    const secondaryCall = mockPlanfixRequest.mock.calls[2][0];
+    const body = secondaryCall.body as any;
+    expect(body.filters[0]).toMatchObject({
+      type: 4221,
+      operator: "equal",
+      value: "second@example.com",
+    });
+    // System filter carries no numeric `field` id.
+    expect(body.filters[0].field).toBeUndefined();
+    expect(result.contactId).toBe(7);
+    expect(result.found).toBe(true);
+  });
+
+  it("falls back to the custom field (4101) when the system field misses", async () => {
+    // 1: byEmail (primary) miss
+    // 2: 4221 primary miss
+    // 3: 4221 additional miss
+    // 4: custom field (4101) primary miss
+    // 5: custom field (4101) additional -> hit
+    mockPlanfixRequest
+      .mockResolvedValueOnce({ contacts: [] })
+      .mockResolvedValueOnce({ contacts: [] })
+      .mockResolvedValueOnce({ contacts: [] })
+      .mockResolvedValueOnce({ contacts: [] })
+      .mockResolvedValueOnce({
+        contacts: [{ id: 7, name: "Multi", lastname: "Mail" }],
+      });
+
+    const result = await planfixSearchContact({
+      email: "primary@example.com",
+      additionalEmails: ["Second@Example.com"],
+    });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(5);
+    const field124Call = mockPlanfixRequest.mock.calls[4][0];
     const body = field124Call.body as any;
     expect(body.filters[0]).toMatchObject({
       type: 4101,
@@ -144,10 +181,14 @@ describe("planfixSearchContact", () => {
 
   it("matches an additional email against the main email field (4026)", async () => {
     // 1: byEmail (primary) miss
-    // 2: field-124 primary miss
-    // 3: field-124 additional miss
-    // 4: main field (4026) with additional -> hit
+    // 2: 4221 primary miss
+    // 3: 4221 additional miss
+    // 4: custom field (4101) primary miss
+    // 5: custom field (4101) additional miss
+    // 6: main field (4026) with additional -> hit
     mockPlanfixRequest
+      .mockResolvedValueOnce({ contacts: [] })
+      .mockResolvedValueOnce({ contacts: [] })
       .mockResolvedValueOnce({ contacts: [] })
       .mockResolvedValueOnce({ contacts: [] })
       .mockResolvedValueOnce({ contacts: [] })
@@ -160,8 +201,8 @@ describe("planfixSearchContact", () => {
       additionalEmails: ["alt@example.com"],
     });
 
-    expect(mockPlanfixRequest).toHaveBeenCalledTimes(4);
-    const mainFieldCall = mockPlanfixRequest.mock.calls[3][0];
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(6);
+    const mainFieldCall = mockPlanfixRequest.mock.calls[5][0];
     const body = mainFieldCall.body as any;
     expect(body.filters[0]).toMatchObject({
       type: 4026,

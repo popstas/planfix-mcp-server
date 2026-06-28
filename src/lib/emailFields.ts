@@ -1,6 +1,8 @@
 /**
  * Pure helpers for working with email values shared between the primary system
- * email field and the multi-value "additional emails" field (Planfix id 124).
+ * email field and a contact's additional/secondary email addresses (Planfix
+ * exposes these as the read-only system field `additionalEmailAddresses`,
+ * searchable via filter 4221; writes go to a configured numeric custom field).
  *
  * All functions are side-effect free so they can be unit-tested without the API.
  */
@@ -33,9 +35,9 @@ export function buildEmailMatchList(
 }
 
 /**
- * Compute the additional emails to store in field 124: normalized, unique, with
- * empties dropped, excluding any value equal to the primary `email` and any
- * value already present in `existing` (the current field-124 values).
+ * Compute the additional emails to store: normalized, unique, with empties
+ * dropped, excluding any value equal to the primary `email` and any value
+ * already present in `existing` (the contact's current additional addresses).
  */
 export function dedupeAdditionalEmails(
   primary?: string,
