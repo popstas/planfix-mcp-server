@@ -104,12 +104,12 @@
 - [x] run `npm run test` — must pass before Task 4.
 
 ### Task 4: Fill field 124 on create (`planfix_create_contact`)
-- [ ] add optional `additionalEmails` to the create input schema.
-- [ ] include `{ field: { id: PLANFIX_FIELD_IDS.emailAdditional }, value: dedupeAdditionalEmails(email, additionalEmails) }`
+- [x] add optional `additionalEmails` to the create input schema.
+- [x] include `{ field: { id: PLANFIX_FIELD_IDS.emailAdditional }, value: dedupeAdditionalEmails(email, additionalEmails) }`
       in the create body's `customFieldData` when non-empty.
-- [ ] write unit tests (mocked): create body carries field 124 with deduped extras; absent when no
+- [x] write unit tests (mocked): create body carries field 124 with deduped extras; absent when no
       `additionalEmails`; extras equal to primary are excluded.
-- [ ] run `npm run test` — must pass before Task 5.
+- [x] run `npm run test` — must pass before Task 5.
 
 ### Task 5: Thread `additionalEmails` through the lead-task pipeline
 - [ ] add optional `additionalEmails` to `AddToLeadTaskInputSchema` / `src/tools/schemas/leadTaskSchemas.ts`.

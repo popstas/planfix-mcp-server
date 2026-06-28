@@ -9,12 +9,14 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import { dedupeAdditionalEmails } from "../lib/emailFields.js";
 import { ContactRequestBody } from "../types.js";
 
 const CreatePlanfixContactInputSchemaBase = z.object({
   name: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
+  additionalEmails: z.array(z.string()).optional(),
   telegram: z.string().optional(),
   instagram: z.string().optional(),
 });
@@ -99,6 +101,22 @@ export async function createPlanfixContact(
     // Add instagram if available
     if (userData.instagram) {
       postBody.instagram = userData.instagram.replace(/^@/, "");
+    }
+
+    // Fill the multi-value "additional emails" field (id 124). The primary
+    // `email` maps to the main system email field above; extras (deduped,
+    // normalized, primary excluded) go into field 124 when any remain.
+    if (userData.additionalEmails && PLANFIX_FIELD_IDS.emailAdditional) {
+      const extras = dedupeAdditionalEmails(
+        userData.email,
+        userData.additionalEmails,
+      );
+      if (extras.length) {
+        postBody.customFieldData.push({
+          field: { id: PLANFIX_FIELD_IDS.emailAdditional },
+          value: extras,
+        });
+      }
     }
 
     await extendPostBodyWithCustomFields(

@@ -5,6 +5,7 @@ vi.mock("../config.js", () => ({
   PLANFIX_FIELD_IDS: {
     telegram: 100,
     telegramCustom: 1001,
+    emailAdditional: 124,
   },
 }));
 
@@ -58,6 +59,43 @@ describe("createPlanfixContact", () => {
     expect(body.customFieldData).toEqual(
       expect.arrayContaining([{ field: { id: 1001 }, value: "@john" }]),
     );
+  });
+
+  it("writes deduped additional emails into field 124", async () => {
+    await createPlanfixContact({
+      name: "J",
+      email: "primary@example.com",
+      additionalEmails: ["Extra@Example.com", "extra@example.com", ""],
+    });
+    const call = mockRequest.mock.calls[0][0];
+    const body = call.body as any;
+    expect(body.customFieldData).toEqual(
+      expect.arrayContaining([
+        { field: { id: 124 }, value: ["extra@example.com"] },
+      ]),
+    );
+  });
+
+  it("omits field 124 when no additionalEmails", async () => {
+    await createPlanfixContact({ name: "J", email: "primary@example.com" });
+    const call = mockRequest.mock.calls[0][0];
+    const body = call.body as any;
+    expect(
+      body.customFieldData.some((f: any) => f.field?.id === 124),
+    ).toBe(false);
+  });
+
+  it("excludes additional emails equal to primary", async () => {
+    await createPlanfixContact({
+      name: "J",
+      email: "Primary@Example.com",
+      additionalEmails: ["primary@example.com"],
+    });
+    const call = mockRequest.mock.calls[0][0];
+    const body = call.body as any;
+    expect(
+      body.customFieldData.some((f: any) => f.field?.id === 124),
+    ).toBe(false);
   });
 
   it("returns zero on request error", async () => {
