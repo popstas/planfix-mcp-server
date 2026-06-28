@@ -134,6 +134,26 @@ describe("handler", () => {
     expect(mTask).toHaveBeenCalledWith({ clientId: 1, templateId: 42 });
   });
 
+  it("forwards additionalEmails through schema parse to contact search", async () => {
+    mContact.mockResolvedValueOnce({ contactId: 1, found: true } as any);
+    mTask.mockResolvedValueOnce({
+      taskId: 2,
+      assignees: { users: [] },
+      found: true,
+      totalTasks: 1,
+    } as any);
+    const { planfixSearchLeadTaskTool } = await import(
+      "./planfix_search_lead_task.js"
+    );
+    await planfixSearchLeadTaskTool.handler({
+      email: "a@b.com",
+      additionalEmails: ["alt@b.com"],
+    });
+    expect(mContact).toHaveBeenCalledWith(
+      expect.objectContaining({ additionalEmails: ["alt@b.com"] }),
+    );
+  });
+
   it("parses clientId without contact lookup", async () => {
     mTask.mockResolvedValueOnce({
       taskId: 5,
