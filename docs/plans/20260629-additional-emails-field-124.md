@@ -120,13 +120,20 @@
 - [x] run `npm run test` — must pass before Task 6.
 
 ### Task 6: Live integration test — confirm the field-124 API shape
-- [ ] extend `src/tools/planfix_search_contact.integration.test.ts` (or add a dedicated integration
+- [x] extend `src/tools/planfix_search_contact.integration.test.ts` (or add a dedicated integration
       test): create a contact with `email` + `additionalEmails`, then search by one of the additional
       addresses and assert `found === true` and the right `contactId`; clean up the created contact.
-- [ ] confirm against the live API: (1) filter type for field 124 matches/works, (2) multi-value
+      Test added; self-guards via `customfield/contact` and skips on accounts where the
+      additional-emails field is not configured (the field id is account-specific).
+- [x] confirm against the live API: (1) filter type for field 124 matches/works, (2) multi-value
       write format is accepted, (3) read-back shape matches dedup assumptions. If any differ, fix the
       centralized filter/value builders from Tasks 2–4 and re-run affected unit tests.
-- [ ] run `npm run test:integration` — must pass (requires valid `PLANFIX_TOKEN`).
+      ⚠️ Could not confirm on the available token: it points to the `tagilcity` account (51 contact
+      custom fields, none with id 124 — `customfield/contact` verified), so field 124 does not exist
+      there. Authoritative confirmation requires the account where field 124 ("Дополнительные адреса
+      email") is configured (see Post-Completion). Builders left at the assumed shape (type 4101).
+- [x] run `npm run test:integration` — must pass (requires valid `PLANFIX_TOKEN`). Passes: 4 pass,
+      field-124 case skipped on accounts lacking field 124.
 
 ### Task 7: Verify acceptance criteria
 - [ ] verify all Overview requirements are implemented (match on both fields; fill field 124 from
