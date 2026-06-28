@@ -52,11 +52,15 @@ vi.mock("../customFieldsConfig.js", () => ({
 }));
 
 import { updatePlanfixContact } from "./planfix_update_contact.js";
+import { createPlanfixContact } from "./planfix_create_contact.js";
+import { searchLeadTask } from "./planfix_search_lead_task.js";
 import { createLeadTask } from "./planfix_create_lead_task.js";
 import { addToLeadTask } from "./planfix_add_to_lead_task.js";
 import { webhookConfig } from "../customFieldsConfig.js";
 
 const mockUpdate = vi.mocked(updatePlanfixContact);
+const mockCreate = vi.mocked(createPlanfixContact);
+const mockSearch = vi.mocked(searchLeadTask);
 const mockCreateLeadTask = vi.mocked(createLeadTask);
 
 describe("planfix_add_to_lead_task", () => {
@@ -75,6 +79,60 @@ describe("planfix_add_to_lead_task", () => {
     expect(res.clientId).toBe(2);
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ contactId: 2 }),
+    );
+  });
+
+  it("threads additionalEmails into search and update", async () => {
+    const args = {
+      name: "John Doe",
+      description: "Test",
+      email: "john@example.com",
+      additionalEmails: ["alt@example.com"],
+    };
+    await addToLeadTask(args as any);
+    expect(mockSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ additionalEmails: ["alt@example.com"] }),
+    );
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contactId: 2,
+        additionalEmails: ["alt@example.com"],
+      }),
+    );
+  });
+
+  it("threads additionalEmails into createPlanfixContact when contact is missing", async () => {
+    mockSearch.mockResolvedValueOnce({
+      taskId: 0,
+      clientId: 0,
+      url: "",
+      clientUrl: "",
+      assignees: { users: [] },
+      firstName: "",
+      lastName: "",
+      agencyId: undefined,
+      totalTasks: 0,
+      found: false,
+    });
+    mockCreate.mockResolvedValueOnce({ contactId: 7 });
+
+    await addToLeadTask({
+      name: "Jane Roe",
+      description: "Test",
+      email: "jane@example.com",
+      additionalEmails: ["second@example.com"],
+    } as any);
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ additionalEmails: ["second@example.com"] }),
+    );
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("omitting additionalEmails leaves it undefined on update", async () => {
+    await addToLeadTask({ name: "John Doe", description: "Test" } as any);
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ additionalEmails: undefined }),
     );
   });
 

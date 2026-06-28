@@ -112,12 +112,12 @@
 - [x] run `npm run test` — must pass before Task 5.
 
 ### Task 5: Thread `additionalEmails` through the lead-task pipeline
-- [ ] add optional `additionalEmails` to `AddToLeadTaskInputSchema` / `src/tools/schemas/leadTaskSchemas.ts`.
-- [ ] in `planfix_add_to_lead_task.ts`, include `additionalEmails` in `userData` and pass it into
+- [x] add optional `additionalEmails` to `AddToLeadTaskInputSchema` / `src/tools/schemas/leadTaskSchemas.ts`.
+- [x] in `planfix_add_to_lead_task.ts`, include `additionalEmails` in `userData` and pass it into
       `planfixSearchContact`, `createPlanfixContact`, and `updatePlanfixContact` calls.
-- [ ] write/update unit tests (`planfix_add_to_lead_task.test.ts`): `additionalEmails` reaches
+- [x] write/update unit tests (`planfix_add_to_lead_task.test.ts`): `additionalEmails` reaches
       search and create/update; omitting it preserves current behavior.
-- [ ] run `npm run test` — must pass before Task 6.
+- [x] run `npm run test` — must pass before Task 6.
 
 ### Task 6: Live integration test — confirm the field-124 API shape
 - [ ] extend `src/tools/planfix_search_contact.integration.test.ts` (or add a dedicated integration

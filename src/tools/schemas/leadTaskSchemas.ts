@@ -4,6 +4,7 @@ import { customFieldsConfig } from "../../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../../lib/extendSchemaWithCustomFields.js";
 
 const LeadTaskBaseSchemaBase = UserDataInputSchema.extend({
+  additionalEmails: z.array(z.string()).optional(),
   title: z.string().optional(),
   description: z.string().optional(),
   managerEmail: z.string().optional(),

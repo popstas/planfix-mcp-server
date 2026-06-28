@@ -89,6 +89,7 @@ export async function addToLeadTask(
     nameTranslated,
     phone,
     email,
+    additionalEmails,
     telegram,
     instagram,
     company,
@@ -145,6 +146,7 @@ export async function addToLeadTask(
     nameTranslated,
     phone,
     email,
+    additionalEmails,
     telegram,
     instagram,
     instagram_custom,
@@ -238,6 +240,7 @@ export async function addToLeadTask(
         telegram: userData.telegram,
         instagram: userData.instagram,
         email: userData.email,
+        additionalEmails: userData.additionalEmails,
         phone: userData.phone,
         ...(args as Record<string, unknown>),
       });
