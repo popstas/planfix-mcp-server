@@ -192,17 +192,32 @@ export async function updatePlanfixContact(
         : [];
       const existing: string[] = [...existingCustom, ...existingSystem];
 
-      // Without forceUpdate add only genuinely-new values (exclude existing);
-      // with forceUpdate rewrite the field with the full provided set.
-      const extras = forceUpdate
-        ? dedupeAdditionalEmails(email, additionalEmails)
-        : dedupeAdditionalEmails(email, additionalEmails, existing);
+      // A call carrying only `additionalEmails` must not copy the contact's
+      // current primary address into the custom field.
+      const primary = email ?? contact.email;
 
-      if (extras.length) {
+      if (forceUpdate) {
+        // Rewrite the field with the provided set, even when empty (clears it).
         postBody.customFieldData.push({
           field: { id: PLANFIX_FIELD_IDS.emailAdditional },
-          value: extras,
+          value: dedupeAdditionalEmails(primary, additionalEmails),
         });
+      } else {
+        // Add only genuinely-new values. Custom-field writes replace the whole
+        // value, so send the union with what is already stored there.
+        // Addresses that only live in the read-only system field are used for
+        // dedup but are not copied into the custom field.
+        const extras = dedupeAdditionalEmails(
+          primary,
+          additionalEmails,
+          existing,
+        );
+        if (extras.length) {
+          postBody.customFieldData.push({
+            field: { id: PLANFIX_FIELD_IDS.emailAdditional },
+            value: [...existingCustom, ...extras],
+          });
+        }
       }
     }
 
