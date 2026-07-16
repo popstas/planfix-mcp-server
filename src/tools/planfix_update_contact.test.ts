@@ -317,6 +317,34 @@ describe("planfix_update_contact tool", () => {
     expect(result.contactId).toBe(1);
   });
 
+  it("does not write the primary address back into field 124", async () => {
+    setupMocks({
+      email: "primary@example.com",
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        {
+          field: { id: 124 },
+          value: ["primary@example.com", "kept@example.com"],
+        },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["new@example.com"],
+    });
+
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    // The stored primary is stripped rather than re-sent, matching forceUpdate.
+    expect(field124?.value).toEqual(["kept@example.com", "new@example.com"]);
+
+    expect(result.contactId).toBe(1);
+  });
+
   it("skips an address stored only in the read-only system field", async () => {
     setupMocks({
       customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],

@@ -223,6 +223,16 @@ export async function addToLeadTask(
 
     // 2. If contact not found, create it
     if (!clientId) {
+      if (searchResult.error) {
+        // The search failed rather than missed, so a matching contact may well
+        // exist. Creating one now would silently duplicate it.
+        log(`[leadToTask] Contact search failed, not creating a contact`);
+        return {
+          taskId: 0,
+          clientId: 0,
+          error: joinErrors(searchResult.error),
+        };
+      }
       // console.log('[leadToTask] Creating contact...');
       if (!userData.name) {
         // const nowDatetime = new Date().toLocaleString();

@@ -59,6 +59,20 @@ describe("planfixSearchContact", () => {
     });
   });
 
+  it("queries the primary email field with a normalized address", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      contacts: [{ id: 1, name: "John", lastname: "Doe" }],
+    });
+
+    await planfixSearchContact({ email: "  John@Example.COM " });
+
+    const body = mockPlanfixRequest.mock.calls[0][0].body as any;
+    expect(body.filters[0]).toMatchObject({
+      type: 4026,
+      value: "john@example.com",
+    });
+  });
+
   it("skips phone search when phone is invalid", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       contacts: [{ id: 2, name: "Foo", lastname: "Bar" }],

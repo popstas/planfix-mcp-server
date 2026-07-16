@@ -101,6 +101,33 @@ describe("planfix_add_to_lead_task", () => {
     );
   });
 
+  it("does not create a contact when the search failed rather than missed", async () => {
+    mockSearch.mockResolvedValueOnce({
+      taskId: 0,
+      clientId: 0,
+      url: "",
+      clientUrl: "",
+      assignees: { users: [] },
+      firstName: "",
+      lastName: "",
+      agencyId: undefined,
+      totalTasks: 0,
+      error: "filter 4221 rejected",
+      found: false,
+    });
+
+    const res = await addToLeadTask({
+      name: "Jane Roe",
+      description: "Test",
+      email: "jane@example.com",
+    } as any);
+
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockCreateLeadTask).not.toHaveBeenCalled();
+    expect(res.clientId).toBe(0);
+    expect(res.error).toContain("filter 4221 rejected");
+  });
+
   it("threads additionalEmails into createPlanfixContact when contact is missing", async () => {
     mockSearch.mockResolvedValueOnce({
       taskId: 0,

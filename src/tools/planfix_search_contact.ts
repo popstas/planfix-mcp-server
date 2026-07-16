@@ -91,7 +91,9 @@ export async function planfixSearchContact(
     byEmail: {
       type: 4026,
       operator: "equal",
-      value: email,
+      // Normalized, so the tier-3 fallback below can skip this address as
+      // already-queried without leaving a padded/uppercased value untried.
+      value: email ? normalizeEmail(email) : undefined,
     },
     byTelegram: telegram
       ? PLANFIX_FIELD_IDS.telegramCustom

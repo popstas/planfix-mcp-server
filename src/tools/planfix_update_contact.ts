@@ -228,9 +228,12 @@ export async function updatePlanfixContact(
           existing,
         );
         if (extras.length) {
+          // Stored values are re-sent as-is except for the primary: writing it
+          // back here would re-introduce the address the force path strips.
+          const keptCustom = dedupeAdditionalEmails(primary, existingCustom);
           postBody.customFieldData.push({
             field: { id: PLANFIX_FIELD_IDS.emailAdditional },
-            value: [...existingCustom, ...extras],
+            value: [...keptCustom, ...extras],
           });
         }
       }
