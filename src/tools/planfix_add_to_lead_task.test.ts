@@ -136,6 +136,30 @@ describe("planfix_add_to_lead_task", () => {
     );
   });
 
+  it("surfaces updatePlanfixContact errors in the result", async () => {
+    mockUpdate.mockResolvedValueOnce({
+      contactId: 0,
+      error: "Field 124 is read-only",
+    });
+
+    const res = await addToLeadTask({
+      name: "John Doe",
+      description: "Test",
+      additionalEmails: ["alt@example.com"],
+    } as any);
+
+    expect(res.error).toBe("Field 124 is read-only");
+    expect(res.clientId).toBe(2);
+  });
+
+  it("returns no error when the contact update succeeds", async () => {
+    const res = await addToLeadTask({
+      name: "John Doe",
+      description: "Test",
+    } as any);
+    expect(res.error).toBeUndefined();
+  });
+
   it("uses template from config when title is missing", async () => {
     const original = await import("../config.js");
     vi.resetModules();

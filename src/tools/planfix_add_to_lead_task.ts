@@ -234,7 +234,7 @@ export async function addToLeadTask(
       }
     } else if (clientId) {
       // 3. Update contact with provided data
-      await updatePlanfixContact({
+      const updateResult = await updatePlanfixContact({
         contactId: clientId,
         name: userData.name,
         telegram: userData.telegram,
@@ -244,6 +244,9 @@ export async function addToLeadTask(
         phone: userData.phone,
         ...(args as Record<string, unknown>),
       });
+      if (updateResult.error) {
+        errors.push(updateResult.error);
+      }
     }
     // 4. If task not found and name has space, search by name
     if (

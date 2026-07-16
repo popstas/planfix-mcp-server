@@ -108,16 +108,17 @@ and several test/docs gaps.
 
 ### Task 2: Opt-in custom field id and surfaced update errors
 
-- [ ] change `emailAdditional` default in `src/config.ts` from `124` to `0` (feature off
+- [x] change `emailAdditional` default in `src/config.ts` from `124` to `0` (feature off
       unless `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` is explicitly set)
-- [ ] `addToLeadTask`: stop discarding the `updatePlanfixContact` result — capture its
+- [x] `addToLeadTask`: stop discarding the `updatePlanfixContact` result — capture its
       `error` into the accumulated `errors` like the create path does
-- [ ] update README: the env var has no default, must point at a real multi-value custom
+- [x] update README: the env var has no default, must point at a real multi-value custom
       field created on the account; system field id 124 is not a valid write target
-- [ ] adjust unit tests that relied on the implicit 124 default (mocks may keep setting
-      `emailAdditional: 124` explicitly)
-- [ ] write tests for new/changed functionality
-- [ ] run project tests - must pass before next task
+- [x] adjust unit tests that relied on the implicit 124 default (mocks already set
+      `emailAdditional: 124` explicitly in create/update/search contact tests — no change
+      needed)
+- [x] write tests for new/changed functionality
+- [x] run project tests - must pass before next task
 
 ### Task 3: Search by single email checks the secondary-email filter (4221)
 
