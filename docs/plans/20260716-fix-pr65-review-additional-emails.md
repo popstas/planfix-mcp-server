@@ -160,10 +160,10 @@ and several test/docs gaps.
 
 ### Task 6: Verify acceptance criteria
 
-- [ ] verify all requirements from Overview are implemented (union write, opt-in default,
+- [x] verify all requirements from Overview are implemented (union write, opt-in default,
       surfaced update errors, 4221 for single email, nullFix, `.max()`, test gaps closed)
-- [ ] run full project test suite (`npm run test-full`)
-- [ ] run project linter - all issues must be fixed
+- [x] run full project test suite (`npm run test-full`) - 43/43 test files pass, exit 0
+- [x] run project linter - all issues must be fixed (eslint clean, no issues found)
 
 ## Post-Completion
 
