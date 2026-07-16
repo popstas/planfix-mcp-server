@@ -72,6 +72,10 @@ export async function planfixSearchContact(
     field?: number;
   };
 
+  // Normalized once: a whitespace-only `email` is truthy but normalizes to "",
+  // which must not reach a filter as an `equal ""` query.
+  const normalizedEmail = email ? normalizeEmail(email) : "";
+
   const filters: Record<string, FilterType | undefined> = {
     byName: {
       type: 4001,
@@ -93,7 +97,7 @@ export async function planfixSearchContact(
       operator: "equal",
       // Normalized, so the tier-3 fallback below can skip this address as
       // already-queried without leaving a padded/uppercased value untried.
-      value: email ? normalizeEmail(email) : undefined,
+      value: normalizedEmail || undefined,
     },
     byTelegram: telegram
       ? PLANFIX_FIELD_IDS.telegramCustom
@@ -278,7 +282,7 @@ export async function planfixSearchContact(
 
   try {
     let result: z.infer<typeof PlanfixSearchContactOutputSchema> | undefined;
-    if (!contactId && email && filters.byEmail) {
+    if (!contactId && normalizedEmail && filters.byEmail) {
       result = await searchWithFilter(filters.byEmail);
       contactId = result.contactId;
     }
@@ -299,7 +303,6 @@ export async function planfixSearchContact(
       //      actually stored as that contact's primary email. The primary is
       //      skipped here: it was already queried with this filter above, which
       //      also makes this tier a no-op when no additionalEmails were passed.
-      const normalizedPrimary = email ? normalizeEmail(email) : "";
       for (const value of emailMatchList) {
         if (contactId) break;
         result = await searchWithFilter(buildSecondaryEmailFilter(value));
@@ -314,7 +317,7 @@ export async function planfixSearchContact(
       }
       for (const value of emailMatchList) {
         if (contactId) break;
-        if (value === normalizedPrimary) continue;
+        if (value === normalizedEmail) continue;
         result = await searchWithFilter({
           type: 4026,
           operator: "equal",

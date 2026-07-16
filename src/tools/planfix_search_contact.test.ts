@@ -213,6 +213,18 @@ describe("planfixSearchContact", () => {
     expect(result.found).toBe(false);
   });
 
+  it("does not query the email field for a whitespace-only email", async () => {
+    mockPlanfixRequest.mockResolvedValue({ contacts: [] });
+
+    const result = await planfixSearchContact({ email: "   " });
+
+    // An `equal ""` query could match any contact with an empty email field, so
+    // the address must be dropped entirely rather than normalized to "".
+    expect(mockPlanfixRequest).not.toHaveBeenCalled();
+    expect(result.found).toBe(false);
+    expect(result.contactId).toBe(0);
+  });
+
   it("does not request the additional-emails fields it never reads", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       contacts: [{ id: 1, name: "John", lastname: "Doe" }],

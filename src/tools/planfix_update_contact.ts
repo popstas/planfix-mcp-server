@@ -183,7 +183,7 @@ export async function updatePlanfixContact(
         (f) => f.field.id === PLANFIX_FIELD_IDS.emailAdditional,
       );
       // Empties are dropped: Planfix returns "" for an unset custom field, and
-      // the union write below re-sends these values verbatim.
+      // the union write below re-sends these values.
       const existingCustom: string[] = (
         Array.isArray(existingField?.value)
           ? (existingField.value as unknown[]).filter(
@@ -228,8 +228,9 @@ export async function updatePlanfixContact(
           existing,
         );
         if (extras.length) {
-          // Stored values are re-sent as-is except for the primary: writing it
-          // back here would re-introduce the address the force path strips.
+          // Stored values are re-sent normalized (trimmed + lowercased) and
+          // without the primary: writing it back here would re-introduce the
+          // address the force path strips.
           const keptCustom = dedupeAdditionalEmails(primary, existingCustom);
           postBody.customFieldData.push({
             field: { id: PLANFIX_FIELD_IDS.emailAdditional },
