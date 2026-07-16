@@ -16,8 +16,14 @@ async function emailAdditionalFieldExists(): Promise<boolean> {
     return Boolean(
       res.customfields?.some((f) => f.id === PLANFIX_FIELD_IDS.emailAdditional),
     );
-  } catch {
-    return false;
+  } catch (error) {
+    // A transport/auth failure is not "field absent" — surface it instead of
+    // silently skipping the only end-to-end check of the write shape.
+    throw new Error(
+      `Could not list contact custom fields: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 }
 
@@ -162,8 +168,15 @@ describe("planfix_search_contact tool", () => {
           path: `contact/${createdId}/delete`,
           body: {},
         });
-      } catch {
-        // ignore cleanup failures
+      } catch (error) {
+        // Not fatal — failing here would mask the assertions above. But it does
+        // mean a contact is now leaking into the live account on every run, so
+        // it must be visible rather than swallowed.
+        console.warn(
+          `[integration] Failed to delete test contact ${createdId}, delete it manually: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       }
     }
   }, 60000);

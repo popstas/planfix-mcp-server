@@ -182,6 +182,12 @@ export async function addToLeadTask(
     }
 
     const errors: string[] = [];
+    // Contact create/update failures are collected rather than thrown, so every
+    // exit path below has to report them or they are lost.
+    const joinErrors = (...extra: (string | undefined)[]) => {
+      const all = [...errors, ...extra.filter((e): e is string => Boolean(e))];
+      return all.length ? all.join("\n") : undefined;
+    };
 
     // 1. Try to get taskId and clientId
     const searchResult = await searchLeadTask(userData);
@@ -269,7 +275,11 @@ export async function addToLeadTask(
     const webhookResponse = await sendWebhook();
     if (webhookConfig.enabled && webhookConfig.skipPlanfixApi) {
       const webhookTaskId = Number(webhookResponse?.taskId) || 0;
-      return { taskId: webhookTaskId, clientId: Number(clientId) || 0 };
+      return {
+        taskId: webhookTaskId,
+        clientId: Number(clientId) || 0,
+        error: joinErrors(),
+      };
     }
 
     if (!taskId) {
@@ -296,7 +306,7 @@ export async function addToLeadTask(
         return {
           taskId: 0,
           clientId: Number(clientId) || 0,
-          error: createLeadTaskResult.error,
+          error: joinErrors(createLeadTaskResult.error),
         };
       }
       taskId = Number(createLeadTaskResult.taskId) || 0;
@@ -331,14 +341,14 @@ export async function addToLeadTask(
         return {
           taskId: Number(taskId) || 0,
           clientId: Number(clientId) || 0,
-          error: updateLeadTaskResult.error,
+          error: joinErrors(updateLeadTaskResult.error),
         };
       }
     }
 
     url = commentId ? getCommentUrl(taskId, commentId) : getTaskUrl(taskId);
     clientUrl = getContactUrl(clientId);
-    const error = errors.length ? errors.join("\n") : undefined;
+    const error = joinErrors();
     return {
       taskId: Number(taskId) || 0,
       clientId: Number(clientId) || 0,

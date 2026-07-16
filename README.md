@@ -24,7 +24,7 @@ The server requires the following environment variables for Planfix API access:
 - `PLANFIX_BASE_URL` – (optional) Override the REST API base URL. Defaults to `https://<PLANFIX_ACCOUNT>.planfix.com/rest/`. Set this for `.ru` and other regional installations, e.g. `https://yourcompany.planfix.ru/rest/`
 - `PLANFIX_ACCOUNT_URL` – (optional) Override the web origin used for human-facing links (task/contact/user pages). Defaults to `PLANFIX_BASE_URL` without the trailing `/rest/`
 - `PLANFIX_FIELD_ID_EMAIL` – Custom field ID for email
-- `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` – (optional, **no default**) Numeric **custom** field ID used to store additional email addresses (multi-value). Must point at a real multi-value custom field you created on your account; the system secondary-email field id `124` is *not* a valid write target. When unset, storing additional addresses is disabled (matching by the system field still works). The Planfix **system** secondary-email field (`additionalEmailAddresses`) is read-only over the REST API, so additional addresses are *written* to this custom field; *matching* uses both the system field (filter type 4221) and this custom field (see the `additionalEmails` argument below)
+- `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` – (optional, **no default**) Numeric **custom** field ID used to store additional email addresses (multi-value). Must point at a real multi-value custom field you created on your account; the system secondary-email field id `124` is *not* a valid write target. When unset, storing additional addresses is disabled (matching by the system field still works). The Planfix **system** secondary-email field (`additionalEmailAddresses`) is read-only over the REST API, so additional addresses are *written* to this custom field; *matching* uses both the system field (filter type 4221) and this custom field (filter type 4101), for any email search once this is set
 - `PLANFIX_FIELD_ID_PHONE` – Custom field ID for phone
 - `PLANFIX_FIELD_ID_TELEGRAM` – Set any value to use the system Telegram field
 - `PLANFIX_FIELD_ID_TELEGRAM_CUSTOM` – Custom field ID for Telegram when using the custom field
@@ -311,11 +311,13 @@ const objects = await planfixClient.post('object/list', {
 
 - `searchPlanfixContact`: Search contacts by name, phone, email, or Telegram.
   When the primary `email` does not match the main email field, it is also matched
-  against the system secondary-email field (filter type 4221) — this happens for a
-  plain `email` search too, no extra configuration needed. The optional
-  `additionalEmails: string[]` argument (max 10) adds each address to that same
-  fallback, plus the custom field (filter type 4101, only when
-  `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` is set) and the main email field.
+  against the system secondary-email field (filter type 4221) and, when
+  `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` is set, against that custom field (filter
+  type 4101). Both fallbacks apply to a plain `email` search — the custom field is
+  where this server writes extras, so a lone `email` has to be matched against it
+  for a contact created here to be found again. The optional
+  `additionalEmails: string[]` argument (max 10) adds each address to those same
+  fallbacks, plus the main email field.
 - `createPlanfixContact`: Create a new contact in Planfix. Accepts an optional
   `additionalEmails: string[]` argument (max 10) that is written to the
   additional-emails custom field (`PLANFIX_FIELD_ID_EMAIL_ADDITIONAL`),
@@ -342,7 +344,7 @@ const objects = await planfixClient.post('object/list', {
   the resulting `taskId` via `getTask`, and then updates the task using
   the REST API. Accepts `message` and `contactName` fields.
 - `addToLeadTask`: Create or update a lead task and update contact details.
-  Accepts an optional `additionalEmails: string[]` argument that threads through
+  Accepts an optional `additionalEmails: string[]` argument (max 10) that threads through
   contact search, creation, and update (matched against the system secondary-email
   field and the `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` custom field; written to the
   custom field).

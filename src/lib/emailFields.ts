@@ -1,11 +1,23 @@
 /**
- * Pure helpers for working with email values shared between the primary system
- * email field and a contact's additional/secondary email addresses (Planfix
- * exposes these as the read-only system field `additionalEmailAddresses`,
- * searchable via filter 4221; writes go to a configured numeric custom field).
+ * Pure helpers and the shared schema for working with email values shared
+ * between the primary system email field and a contact's additional/secondary
+ * email addresses (Planfix exposes these as the read-only system field
+ * `additionalEmailAddresses`, searchable via filter 4221; writes go to a
+ * configured numeric custom field).
  *
  * All functions are side-effect free so they can be unit-tested without the API.
  */
+import { z } from "zod";
+
+/**
+ * The `additionalEmails` argument, shared by every tool that accepts it so the
+ * cap and null handling cannot drift apart. `null` is coerced to `undefined`:
+ * MCP clients send it for an absent optional argument.
+ */
+export const additionalEmailsSchema = z.preprocess(
+  (val) => (val === null ? undefined : val),
+  z.array(z.string()).max(10).optional(),
+);
 
 /** Trim surrounding whitespace and lowercase an email for comparison/storage. */
 export function normalizeEmail(s: string): string {

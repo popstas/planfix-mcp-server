@@ -9,7 +9,11 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendFiltersWithCustomFields } from "../lib/extendFiltersWithCustomFields.js";
-import { buildEmailMatchList, normalizeEmail } from "../lib/emailFields.js";
+import {
+  additionalEmailsSchema,
+  buildEmailMatchList,
+  normalizeEmail,
+} from "../lib/emailFields.js";
 import type { ContactResponse } from "../types.js";
 
 const PlanfixSearchContactInputSchemaBase = z.object({
@@ -17,7 +21,7 @@ const PlanfixSearchContactInputSchemaBase = z.object({
   nameTranslated: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
-  additionalEmails: z.array(z.string()).max(10).optional(),
+  additionalEmails: additionalEmailsSchema,
   telegram: z.string().optional(),
 });
 
@@ -278,37 +282,37 @@ export async function planfixSearchContact(
       //      account-agnostic location for additional addresses. Tried for the
       //      primary email too: an address that is primary for us may be stored
       //      as a secondary one on the Planfix side.
-      //   2. Optional custom field via filter 4101 — only when configured and
-      //      only when additionalEmails were passed, for accounts that mirror
-      //      extras into a numeric custom field.
+      //   2. Optional custom field via filter 4101 — only when configured, for
+      //      accounts that mirror extras into a numeric custom field. Tried for
+      //      a plain `email` search too: the custom field is the only place this
+      //      server can write extras to, so a lone `email` must be matched
+      //      against it or a contact we created ourselves would not be found.
       //   3. The main email field (4026) — in case an "additional" address is
       //      actually stored as that contact's primary email. The primary is
-      //      skipped here: it was already queried with this filter above.
-      const hasAdditional = Boolean(additionalEmails?.length);
+      //      skipped here: it was already queried with this filter above, which
+      //      also makes this tier a no-op when no additionalEmails were passed.
       const normalizedPrimary = email ? normalizeEmail(email) : "";
       for (const value of emailMatchList) {
         if (contactId) break;
         result = await searchWithFilter(buildSecondaryEmailFilter(value));
         contactId = result.contactId;
       }
-      if (hasAdditional && PLANFIX_FIELD_IDS.emailAdditional) {
+      if (PLANFIX_FIELD_IDS.emailAdditional) {
         for (const value of emailMatchList) {
           if (contactId) break;
           result = await searchWithFilter(buildEmailAdditionalFilter(value));
           contactId = result.contactId;
         }
       }
-      if (hasAdditional) {
-        for (const value of emailMatchList) {
-          if (contactId) break;
-          if (value === normalizedPrimary) continue;
-          result = await searchWithFilter({
-            type: 4026,
-            operator: "equal",
-            value,
-          });
-          contactId = result.contactId;
-        }
+      for (const value of emailMatchList) {
+        if (contactId) break;
+        if (value === normalizedPrimary) continue;
+        result = await searchWithFilter({
+          type: 4026,
+          operator: "equal",
+          value,
+        });
+        contactId = result.contactId;
       }
     }
     if (!contactId && phone && filters.byPhone) {

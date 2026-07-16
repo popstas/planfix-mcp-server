@@ -9,14 +9,17 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
-import { dedupeAdditionalEmails } from "../lib/emailFields.js";
+import {
+  additionalEmailsSchema,
+  dedupeAdditionalEmails,
+} from "../lib/emailFields.js";
 import { ContactRequestBody } from "../types.js";
 
 const CreatePlanfixContactInputSchemaBase = z.object({
   name: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
-  additionalEmails: z.array(z.string()).max(10).optional(),
+  additionalEmails: additionalEmailsSchema,
   telegram: z.string().optional(),
   instagram: z.string().optional(),
 });
@@ -110,6 +113,11 @@ export async function createPlanfixContact(
     // field `additionalEmailAddresses` is read-only via the REST API (absent
     // from ContactRequest), so a numeric custom field is the only programmatic
     // way to store extras on create.
+    if (userData.additionalEmails?.length && !PLANFIX_FIELD_IDS.emailAdditional) {
+      log(
+        `[createPlanfixContact] Ignoring ${userData.additionalEmails.length} additionalEmails: PLANFIX_FIELD_ID_EMAIL_ADDITIONAL is not set`,
+      );
+    }
     if (userData.additionalEmails && PLANFIX_FIELD_IDS.emailAdditional) {
       const extras = dedupeAdditionalEmails(
         userData.email,

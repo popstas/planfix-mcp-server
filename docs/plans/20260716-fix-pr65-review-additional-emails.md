@@ -80,14 +80,19 @@ and several test/docs gaps.
 - **Search for a single email**: on a primary-email (4026) miss, try the system
   secondary-email filter 4221 with that email even when `additionalEmails` is absent —
   filter 4221 is account-agnostic and this was the intent of the original TODO item.
-  The custom-field (4101) tier stays gated on both `additionalEmails` presence and a
-  configured field id.
+  The custom-field (4101) tier is gated on a configured field id only. It was going to
+  stay gated on `additionalEmails` presence too, but that would make a contact this
+  server created itself unfindable by a lone `email`: the custom field is the only place
+  extras can be written to, so it is also the only place a lone `email` can be matched
+  against. Cost is one extra `contact/list` call per primary-email miss when the field
+  is configured.
 - **Default off**: `emailAdditional: Number(process.env.PLANFIX_FIELD_ID_EMAIL_ADDITIONAL || 0)`
   — all 4101/write paths already guard on truthiness, so `0` disables them.
-- **Schema hardening**: wrap `additionalEmails` in `nullFix(...)` in
-  `UserDataInputSchemaBase` (every sibling contact field already is); add `.max(10)` to
-  the array in all four schemas to cap API-call amplification (worst case today is 3N+3
-  sequential `contact/list` calls per search).
+- **Schema hardening**: one shared `additionalEmailsSchema` in `src/lib/emailFields.ts`,
+  reused by all five schemas, carrying both the null coercion (every sibling contact
+  field already had it) and `.max(10)`, which caps API-call amplification (worst case is
+  3N+3 sequential `contact/list` calls per search). A shared constant rather than four
+  copies: the cap and the null handling cannot drift apart.
 
 ## Implementation Steps
 
@@ -126,7 +131,9 @@ and several test/docs gaps.
       `additionalEmails` is absent
 - [x] exclude the primary email from the 4026 fallback loop values (no duplicate query
       when an additional email equals the primary)
-- [x] keep the 4101 tier gated on `additionalEmails` presence and a configured field id
+- [x] gate the 4101 tier on a configured field id only — scope change from the original
+      plan, see Technical Details: gating it on `additionalEmails` presence as well would
+      leave a contact created by this server unfindable by a lone `email`
 - [x] tests: single-`email` search falls back to 4221 and finds the contact; fallback
       order 4026 → 4221 → 4101 → 4026-additional preserved; no duplicate primary query
 - [x] write tests for new/changed functionality

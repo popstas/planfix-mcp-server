@@ -5,6 +5,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { customFieldsConfig } from "./customFieldsConfig.js";
+import { additionalEmailsSchema } from "./lib/emailFields.js";
 import { extendSchemaWithCustomFields } from "./lib/extendSchemaWithCustomFields.js";
 
 // Utility function to handle null values by converting them to undefined
@@ -23,7 +24,7 @@ export const UserDataInputSchemaBase = z.object({
     .describe("Translate name and place here"),
   phone: nullFix(z.string().optional()),
   email: nullFix(z.string().optional()),
-  additionalEmails: nullFix(z.array(z.string()).max(10).optional()),
+  additionalEmails: additionalEmailsSchema,
   telegram: nullFix(z.string().optional()),
   instagram: nullFix(z.string().optional()),
   company: nullFix(z.string().optional()),

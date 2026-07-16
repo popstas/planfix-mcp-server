@@ -9,7 +9,10 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
-import { dedupeAdditionalEmails } from "../lib/emailFields.js";
+import {
+  additionalEmailsSchema,
+  dedupeAdditionalEmails,
+} from "../lib/emailFields.js";
 import { ContactRequestBody, ContactResponse } from "../types.js";
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
@@ -27,7 +30,7 @@ const UpdatePlanfixContactInputSchemaBase = z.object({
   telegram: z.string().optional(),
   instagram: z.string().optional(),
   email: z.string().optional(),
-  additionalEmails: z.array(z.string()).max(10).optional(),
+  additionalEmails: additionalEmailsSchema,
   phone: z.string().optional(),
   forceUpdate: z.boolean().optional(),
 });
@@ -71,10 +74,10 @@ export async function updatePlanfixContact(
       : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase;
-    // System field with the contact's secondary/additional emails (read-only).
-    fields = `${fields},additionalEmailAddresses`;
     if (PLANFIX_FIELD_IDS.emailAdditional) {
-      fields = `${fields},${PLANFIX_FIELD_IDS.emailAdditional}`;
+      // Both only feed the additional-emails merge below, which is skipped
+      // entirely when no custom field is configured.
+      fields = `${fields},additionalEmailAddresses,${PLANFIX_FIELD_IDS.emailAdditional}`;
     }
     const { contact } = await planfixRequest<{ contact: ContactResponse }>({
       path: `contact/${contactId}`,
@@ -169,6 +172,11 @@ export async function updatePlanfixContact(
     // Placed after the telegram block and extendPostBodyWithCustomFields (both
     // of which may set customFieldData) so the push appends instead of being
     // overwritten.
+    if (additionalEmails?.length && !PLANFIX_FIELD_IDS.emailAdditional) {
+      log(
+        `[updatePlanfixContact] Ignoring ${additionalEmails.length} additionalEmails for contact ${contactId}: PLANFIX_FIELD_ID_EMAIL_ADDITIONAL is not set`,
+      );
+    }
     if (additionalEmails !== undefined && PLANFIX_FIELD_IDS.emailAdditional) {
       // Read existing custom-field values (string or string[]) to merge against.
       const existingField = contact.customFieldData?.find(
@@ -192,9 +200,12 @@ export async function updatePlanfixContact(
         : [];
       const existing: string[] = [...existingCustom, ...existingSystem];
 
-      // A call carrying only `additionalEmails` must not copy the contact's
-      // current primary address into the custom field.
-      const primary = email ?? contact.email;
+      // Never copy the contact's primary address into the extras. That is the
+      // address the contact will actually have after this update: `email` only
+      // becomes primary if the block above decided to write it, otherwise the
+      // stored one stays. An `email` we are not writing is a genuine extra, and
+      // a stored one we are replacing is free to become an extra.
+      const primary = postBody.email ?? contact.email;
 
       if (forceUpdate) {
         // Rewrite the field with the provided set, even when empty (clears it).

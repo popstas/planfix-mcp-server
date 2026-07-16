@@ -28,6 +28,7 @@ vi.mock("../helpers.js", async (importOriginal) => {
   };
 });
 
+import { PLANFIX_FIELD_IDS } from "../config.js";
 import { planfixRequest } from "../helpers.js";
 import { createPlanfixContact, handler } from "./planfix_create_contact.js";
 
@@ -36,6 +37,7 @@ const mockRequest = vi.mocked(planfixRequest);
 describe("createPlanfixContact", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    PLANFIX_FIELD_IDS.emailAdditional = 124;
   });
 
   it("handles dry run", async () => {
@@ -83,6 +85,18 @@ describe("createPlanfixContact", () => {
     expect(
       body.customFieldData.some((f: any) => f.field?.id === 124),
     ).toBe(false);
+  });
+
+  it("writes no custom field when PLANFIX_FIELD_ID_EMAIL_ADDITIONAL is unset", async () => {
+    // Without the opt-in guard this would push {field: {id: 0}} and be rejected.
+    PLANFIX_FIELD_IDS.emailAdditional = 0;
+    await createPlanfixContact({
+      name: "J",
+      email: "primary@example.com",
+      additionalEmails: ["extra@example.com"],
+    });
+    const body = mockRequest.mock.calls[0][0].body as any;
+    expect(body.customFieldData).toEqual([]);
   });
 
   it("excludes additional emails equal to primary", async () => {

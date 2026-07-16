@@ -152,6 +152,49 @@ describe("planfix_add_to_lead_task", () => {
     expect(res.clientId).toBe(2);
   });
 
+  it("keeps contact update errors when the lead task creation also fails", async () => {
+    mockUpdate.mockResolvedValueOnce({
+      contactId: 0,
+      error: "Field 124 is read-only",
+    });
+    mockCreateLeadTask.mockResolvedValueOnce({
+      taskId: 0,
+      error: "task create failed",
+    });
+
+    const res = await addToLeadTask({
+      name: "John Doe",
+      description: "Test",
+      additionalEmails: ["alt@example.com"],
+    } as any);
+
+    expect(res.error).toBe("Field 124 is read-only\ntask create failed");
+  });
+
+  it("keeps contact update errors when the planfix API is skipped", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ taskId: 321 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    webhookConfig.enabled = true;
+    webhookConfig.url = "https://example.com/hook";
+    webhookConfig.token = "secret";
+    webhookConfig.skipPlanfixApi = true;
+    mockUpdate.mockResolvedValueOnce({
+      contactId: 0,
+      error: "Field 124 is read-only",
+    });
+
+    const res = await addToLeadTask({
+      name: "John Doe",
+      description: "Test",
+    } as any);
+
+    expect(res.error).toBe("Field 124 is read-only");
+  });
+
   it("returns no error when the contact update succeeds", async () => {
     const res = await addToLeadTask({
       name: "John Doe",

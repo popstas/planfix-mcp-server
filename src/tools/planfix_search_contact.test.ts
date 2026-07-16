@@ -23,6 +23,7 @@ vi.mock("../helpers.js", async (importOriginal) => {
   };
 });
 
+import { PLANFIX_FIELD_IDS } from "../config.js";
 import { planfixRequest } from "../helpers.js";
 import { planfixSearchContact } from "./planfix_search_contact.js";
 
@@ -31,6 +32,7 @@ const mockPlanfixRequest = vi.mocked(planfixRequest);
 describe("planfixSearchContact", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    PLANFIX_FIELD_IDS.emailAdditional = 124;
   });
 
   it("returns contact when found by email", async () => {
@@ -79,12 +81,13 @@ describe("planfixSearchContact", () => {
   it("handles API errors", async () => {
     mockPlanfixRequest
       .mockRejectedValueOnce(new Error("API fail"))
+      .mockRejectedValueOnce(new Error("API fail"))
       .mockRejectedValueOnce(new Error("API fail"));
 
     const result = await planfixSearchContact({ email: "err@example.com" });
 
-    // 4026 (primary) then the 4221 secondary-email fallback
-    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    // 4026 (primary), then the 4221 and 4101 fallbacks
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(3);
     expect(result.contactId).toBe(0);
     expect(result.error).toBeUndefined();
     expect(result.found).toBe(false);
@@ -111,19 +114,47 @@ describe("planfixSearchContact", () => {
     expect(result.found).toBe(true);
   });
 
-  it("does not query the custom field (4101) when no additionalEmails are given", async () => {
-    // 1: byEmail (4026) miss, 2: 4221 miss => stop, custom-field tier stays gated
+  it("matches a lone email against the custom field (4101) when configured", async () => {
+    // The custom field is the only place this server writes extras to, so an
+    // email search must reach it even with no additionalEmails argument —
+    // otherwise a contact we created ourselves would not be found.
+    // 1: byEmail (4026) miss, 2: 4221 miss, 3: 4101 hit
     mockPlanfixRequest
       .mockResolvedValueOnce({ contacts: [] })
-      .mockResolvedValueOnce({ contacts: [] });
+      .mockResolvedValueOnce({ contacts: [] })
+      .mockResolvedValueOnce({
+        contacts: [{ id: 12, name: "Cust", lastname: "Field" }],
+      });
 
-    const result = await planfixSearchContact({ email: "miss@example.com" });
+    const result = await planfixSearchContact({ email: "Miss@Example.com" });
 
-    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(3);
+    const body = mockPlanfixRequest.mock.calls[2][0].body as any;
+    expect(body.filters[0]).toMatchObject({
+      type: 4101,
+      field: 124,
+      operator: "equal",
+      value: "miss@example.com",
+    });
+    expect(result.contactId).toBe(12);
+    expect(result.found).toBe(true);
+  });
+
+  it("does not query the custom field (4101) when it is not configured", async () => {
+    PLANFIX_FIELD_IDS.emailAdditional = 0;
+    mockPlanfixRequest.mockResolvedValue({ contacts: [] });
+
+    const result = await planfixSearchContact({
+      email: "miss@example.com",
+      additionalEmails: ["extra@example.com"],
+    });
+
     const types = mockPlanfixRequest.mock.calls.map(
       (call) => (call[0].body as any).filters[0].type,
     );
-    expect(types).toEqual([4026, 4221]);
+    expect(types).not.toContain(4101);
+    // 4026 primary, 4221 for both addresses, then 4026 for the extra only
+    expect(types).toEqual([4026, 4221, 4221, 4026]);
     expect(result.found).toBe(false);
     expect(result.contactId).toBe(0);
   });
