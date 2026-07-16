@@ -101,7 +101,7 @@ describe("planfix_add_to_lead_task", () => {
     );
   });
 
-  it("does not create a contact when the search failed rather than missed", async () => {
+  it("does not create a contact when the search failed rather than missed, but still captures the lead", async () => {
     mockSearch.mockResolvedValueOnce({
       taskId: 0,
       clientId: 0,
@@ -123,7 +123,11 @@ describe("planfix_add_to_lead_task", () => {
     } as any);
 
     expect(mockCreate).not.toHaveBeenCalled();
-    expect(mockCreateLeadTask).not.toHaveBeenCalled();
+    // A rejected filter must not cost the lead itself: the task is still
+    // created, unlinked, with the search error surfaced to the caller.
+    expect(mockCreateLeadTask).toHaveBeenCalledWith(
+      expect.objectContaining({ clientId: 0 }),
+    );
     expect(res.clientId).toBe(0);
     expect(res.error).toContain("filter 4221 rejected");
   });
