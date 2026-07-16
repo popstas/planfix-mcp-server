@@ -195,13 +195,19 @@ export async function updatePlanfixContact(
       ).filter((v) => v.trim() !== "");
       // Also treat addresses already in the system field as existing, so we do
       // not re-add an address the contact already has.
-      const existingSystem: string[] = Array.isArray(
-        contact.additionalEmailAddresses,
-      )
-        ? contact.additionalEmailAddresses.filter(
-            (v): v is string => typeof v === "string",
-          )
+      const systemRaw = Array.isArray(contact.additionalEmailAddresses)
+        ? contact.additionalEmailAddresses
         : [];
+      const existingSystem: string[] = systemRaw.filter(
+        (v): v is string => typeof v === "string",
+      );
+      // A shape we cannot read would silently disable dedup against the system
+      // field, re-adding addresses the contact already has on every update.
+      if (systemRaw.length && !existingSystem.length) {
+        log(
+          `[updatePlanfixContact] Unexpected additionalEmailAddresses shape for contact ${contactId}, skipping dedup against it: ${JSON.stringify(systemRaw.slice(0, 2))}`,
+        );
+      }
       const existing: string[] = [...existingCustom, ...existingSystem];
 
       // Never copy the contact's primary address into the extras. That is the

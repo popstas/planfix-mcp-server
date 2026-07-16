@@ -59,7 +59,7 @@ describe("planfixSearchContact", () => {
     });
   });
 
-  it("queries the primary email field with a normalized address", async () => {
+  it("queries the primary email field with the trimmed address, keeping case", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       contacts: [{ id: 1, name: "John", lastname: "Doe" }],
     });
@@ -69,8 +69,22 @@ describe("planfixSearchContact", () => {
     const body = mockPlanfixRequest.mock.calls[0][0].body as any;
     expect(body.filters[0]).toMatchObject({
       type: 4026,
-      value: "john@example.com",
+      value: "John@Example.COM",
     });
+  });
+
+  it("retries a mixed-case primary against 4026 in normalized form", async () => {
+    mockPlanfixRequest.mockResolvedValue({ contacts: [] });
+
+    await planfixSearchContact({ email: "John@Example.COM" });
+
+    const emailFilters = mockPlanfixRequest.mock.calls
+      .map((c) => (c[0].body as any).filters[0])
+      .filter((f) => f.type === 4026);
+    expect(emailFilters.map((f) => f.value)).toEqual([
+      "John@Example.COM",
+      "john@example.com",
+    ]);
   });
 
   it("skips phone search when phone is invalid", async () => {
@@ -123,6 +137,37 @@ describe("planfixSearchContact", () => {
     expect(result.found).toBe(true);
     // The failed tier did not affect the outcome.
     expect(result.error).toBeUndefined();
+  });
+
+  it("does not report an error when only a fallback email tier fails", async () => {
+    // 1: byEmail (4026) clean miss, 2: 4221 rejected, 3: 4101 clean miss.
+    // The authoritative primary-email field answered, so the rejected fallback
+    // must degrade to "not found" rather than block the caller from creating a
+    // contact — an account that rejects 4221 would otherwise never create one.
+    mockPlanfixRequest
+      .mockResolvedValueOnce({ contacts: [] })
+      .mockRejectedValueOnce(new Error("filter type 4221 not supported"))
+      .mockResolvedValueOnce({ contacts: [] });
+
+    const result = await planfixSearchContact({ email: "miss@example.com" });
+
+    expect(result.contactId).toBe(0);
+    expect(result.found).toBe(false);
+    expect(result.error).toBeUndefined();
+  });
+
+  it("reports an error when the primary email filter fails", async () => {
+    // The 4026 tier is authoritative: its failure means a matching contact may
+    // exist unseen, so the miss must not be reported as clean.
+    mockPlanfixRequest
+      .mockRejectedValueOnce(new Error("4026 rejected"))
+      .mockResolvedValueOnce({ contacts: [] })
+      .mockResolvedValueOnce({ contacts: [] });
+
+    const result = await planfixSearchContact({ email: "err@example.com" });
+
+    expect(result.contactId).toBe(0);
+    expect(result.error).toBe("4026 rejected");
   });
 
   it("falls back to the secondary-email filter (4221) for a single email", async () => {
