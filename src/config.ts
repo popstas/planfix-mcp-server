@@ -36,6 +36,9 @@ export const PLANFIX_TASK_TITLE_TEMPLATE =
 
 export const PLANFIX_FIELD_IDS = {
   email: Number(process.env.PLANFIX_FIELD_ID_EMAIL || 108),
+  // No default: 124 is the read-only system field, not a writable custom field.
+  // 0 disables the additional-emails write and 4101 search tiers.
+  emailAdditional: Number(process.env.PLANFIX_FIELD_ID_EMAIL_ADDITIONAL || 0),
   phone: Number(process.env.PLANFIX_FIELD_ID_PHONE || 105),
   telegram: process.env.PLANFIX_FIELD_ID_TELEGRAM_CUSTOM
     ? 0

@@ -111,6 +111,26 @@ describe("searchLeadTask", () => {
     expect(res.found).toBe(false);
     expect(res.taskId).toBe(0);
     expect(res.totalTasks).toBe(0);
+    expect(res.error).toBe("fail");
+  });
+
+  it("propagates a failed contact search instead of reporting a clean miss", async () => {
+    mContact.mockResolvedValueOnce({
+      contactId: 0,
+      found: false,
+      error: "filter rejected",
+    } as any);
+    const { searchLeadTask } = await import("./planfix_search_lead_task.js");
+    const res = await searchLeadTask({ email: "x" } as any);
+    expect(res.clientId).toBe(0);
+    expect(res.error).toBe("filter rejected");
+  });
+
+  it("reports no error when the contact search cleanly missed", async () => {
+    mContact.mockResolvedValueOnce({ contactId: 0, found: false } as any);
+    const { searchLeadTask } = await import("./planfix_search_lead_task.js");
+    const res = await searchLeadTask({ email: "x" } as any);
+    expect(res.error).toBeUndefined();
   });
 });
 
@@ -132,6 +152,26 @@ describe("handler", () => {
     expect(res.taskId).toBe(2);
     expect(res.totalTasks).toBe(1);
     expect(mTask).toHaveBeenCalledWith({ clientId: 1, templateId: 42 });
+  });
+
+  it("forwards additionalEmails through schema parse to contact search", async () => {
+    mContact.mockResolvedValueOnce({ contactId: 1, found: true } as any);
+    mTask.mockResolvedValueOnce({
+      taskId: 2,
+      assignees: { users: [] },
+      found: true,
+      totalTasks: 1,
+    } as any);
+    const { planfixSearchLeadTaskTool } = await import(
+      "./planfix_search_lead_task.js"
+    );
+    await planfixSearchLeadTaskTool.handler({
+      email: "a@b.com",
+      additionalEmails: ["alt@b.com"],
+    });
+    expect(mContact).toHaveBeenCalledWith(
+      expect.objectContaining({ additionalEmails: ["alt@b.com"] }),
+    );
   });
 
   it("parses clientId without contact lookup", async () => {

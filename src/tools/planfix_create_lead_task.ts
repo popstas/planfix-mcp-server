@@ -150,16 +150,22 @@ export async function createLeadTask(
     },
     name,
     description: finalDescription,
-    customFieldData: [
-      {
-        field: {
-          id: PLANFIX_FIELD_IDS.client,
-        },
-        value: {
-          id: clientId,
-        },
-      },
-    ],
+    // No client field when the contact is unknown (its search or create failed):
+    // `{ id: 0 }` is not a contact reference, so sending it either loses the
+    // whole task to a rejected request or persists a broken link. The lead is
+    // still captured unlinked, with the error surfaced by the caller.
+    customFieldData: clientId
+      ? [
+          {
+            field: {
+              id: PLANFIX_FIELD_IDS.client,
+            },
+            value: {
+              id: clientId,
+            },
+          },
+        ]
+      : [],
   };
 
   if (finalProjectId) {

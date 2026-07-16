@@ -9,6 +9,10 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import {
+  additionalEmailsSchema,
+  dedupeAdditionalEmails,
+} from "../lib/emailFields.js";
 import { ContactRequestBody, ContactResponse } from "../types.js";
 
 function splitName(fullName: string): { firstName: string; lastName: string } {
@@ -26,6 +30,7 @@ const UpdatePlanfixContactInputSchemaBase = z.object({
   telegram: z.string().optional(),
   instagram: z.string().optional(),
   email: z.string().optional(),
+  additionalEmails: additionalEmailsSchema,
   phone: z.string().optional(),
   forceUpdate: z.boolean().optional(),
 });
@@ -44,8 +49,16 @@ export const UpdatePlanfixContactOutputSchema = z.object({
 export async function updatePlanfixContact(
   args: z.infer<typeof UpdatePlanfixContactInputSchema>,
 ): Promise<z.infer<typeof UpdatePlanfixContactOutputSchema>> {
-  const { contactId, name, telegram, instagram, email, phone, forceUpdate } =
-    args;
+  const {
+    contactId,
+    name,
+    telegram,
+    instagram,
+    email,
+    additionalEmails,
+    phone,
+    forceUpdate,
+  } = args;
   try {
     if (PLANFIX_DRY_RUN) {
       log(`[DRY RUN] Would update contact ${contactId}`);
@@ -56,11 +69,16 @@ export async function updatePlanfixContact(
       (f) => f.id,
     );
     const fieldsBase = `id,name,lastname,email,phones,${customContactFieldsIds.join(",")}`;
-    const fields = PLANFIX_FIELD_IDS.telegramCustom
+    let fields = PLANFIX_FIELD_IDS.telegramCustom
       ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
       : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase;
+    if (additionalEmails !== undefined && PLANFIX_FIELD_IDS.emailAdditional) {
+      // Both only feed the additional-emails merge below, so request them only
+      // when that merge will actually run.
+      fields = `${fields},additionalEmailAddresses,${PLANFIX_FIELD_IDS.emailAdditional}`;
+    }
     const { contact } = await planfixRequest<{ contact: ContactResponse }>({
       path: `contact/${contactId}`,
       body: { fields },
@@ -144,6 +162,89 @@ export async function updatePlanfixContact(
       customFieldsConfig.contactFields,
       contact,
     );
+
+    // Persist additional emails into the custom field (id from
+    // PLANFIX_FIELD_ID_EMAIL_ADDITIONAL). NOTE: the Planfix *system* field
+    // `additionalEmailAddresses` is read-only via the REST API (it is absent
+    // from ContactRequest), so a numeric custom field is the only programmatic
+    // way to store extras. We still read the system field below so addresses
+    // already present there are not duplicated into the custom field.
+    // Placed after the telegram block and extendPostBodyWithCustomFields (both
+    // of which may set customFieldData) so the push appends instead of being
+    // overwritten.
+    if (additionalEmails?.length && !PLANFIX_FIELD_IDS.emailAdditional) {
+      log(
+        `[updatePlanfixContact] Ignoring ${additionalEmails.length} additionalEmails for contact ${contactId}: PLANFIX_FIELD_ID_EMAIL_ADDITIONAL is not set`,
+      );
+    }
+    if (additionalEmails !== undefined && PLANFIX_FIELD_IDS.emailAdditional) {
+      // Read existing custom-field values (string or string[]) to merge against.
+      const existingField = contact.customFieldData?.find(
+        (f) => f.field.id === PLANFIX_FIELD_IDS.emailAdditional,
+      );
+      // Empties are dropped: Planfix returns "" for an unset custom field, and
+      // the union write below re-sends these values.
+      const existingCustom: string[] = (
+        Array.isArray(existingField?.value)
+          ? (existingField.value as unknown[]).filter(
+              (v): v is string => typeof v === "string",
+            )
+          : typeof existingField?.value === "string"
+            ? [existingField.value]
+            : []
+      ).filter((v) => v.trim() !== "");
+      // Also treat addresses already in the system field as existing, so we do
+      // not re-add an address the contact already has.
+      const systemRaw = Array.isArray(contact.additionalEmailAddresses)
+        ? contact.additionalEmailAddresses
+        : [];
+      const existingSystem: string[] = systemRaw.filter(
+        (v): v is string => typeof v === "string",
+      );
+      // A shape we cannot read would silently disable dedup against the system
+      // field, re-adding addresses the contact already has on every update.
+      if (systemRaw.length && !existingSystem.length) {
+        log(
+          `[updatePlanfixContact] Unexpected additionalEmailAddresses shape for contact ${contactId}, skipping dedup against it: ${JSON.stringify(systemRaw.slice(0, 2))}`,
+        );
+      }
+      const existing: string[] = [...existingCustom, ...existingSystem];
+
+      // Never copy the contact's primary address into the extras. That is the
+      // address the contact will actually have after this update: `email` only
+      // becomes primary if the block above decided to write it, otherwise the
+      // stored one stays. An `email` we are not writing is a genuine extra, and
+      // a stored one we are replacing is free to become an extra.
+      const primary = postBody.email ?? contact.email;
+
+      if (forceUpdate) {
+        // Rewrite the field with the provided set, even when empty (clears it).
+        postBody.customFieldData.push({
+          field: { id: PLANFIX_FIELD_IDS.emailAdditional },
+          value: dedupeAdditionalEmails(primary, additionalEmails),
+        });
+      } else {
+        // Add only genuinely-new values. Custom-field writes replace the whole
+        // value, so send the union with what is already stored there.
+        // Addresses that only live in the read-only system field are used for
+        // dedup but are not copied into the custom field.
+        const extras = dedupeAdditionalEmails(
+          primary,
+          additionalEmails,
+          existing,
+        );
+        if (extras.length) {
+          // Stored values are re-sent normalized (trimmed + lowercased) and
+          // without the primary: writing it back here would re-introduce the
+          // address the force path strips.
+          const keptCustom = dedupeAdditionalEmails(primary, existingCustom);
+          postBody.customFieldData.push({
+            field: { id: PLANFIX_FIELD_IDS.emailAdditional },
+            value: [...keptCustom, ...extras],
+          });
+        }
+      }
+    }
 
     const hasUpdates =
       Object.keys(postBody).some(

@@ -5,6 +5,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { customFieldsConfig } from "./customFieldsConfig.js";
+import { additionalEmailsSchema } from "./lib/emailFields.js";
 import { extendSchemaWithCustomFields } from "./lib/extendSchemaWithCustomFields.js";
 
 // Utility function to handle null values by converting them to undefined
@@ -23,6 +24,7 @@ export const UserDataInputSchemaBase = z.object({
     .describe("Translate name and place here"),
   phone: nullFix(z.string().optional()),
   email: nullFix(z.string().optional()),
+  additionalEmails: additionalEmailsSchema,
   telegram: nullFix(z.string().optional()),
   instagram: nullFix(z.string().optional()),
   company: nullFix(z.string().optional()),
@@ -91,6 +93,10 @@ export interface ContactResponse {
   name?: string;
   lastname?: string;
   email?: string;
+  // Planfix system field: a contact's secondary/additional email addresses.
+  // Read-only via the REST API (present on the contact response, absent from
+  // ContactRequest), and searchable via filter type 4221.
+  additionalEmailAddresses?: string[];
   phones?: Array<{ number: string; type: number }>;
   telegram?: string;
   customFieldData?: CustomFieldDataType[];

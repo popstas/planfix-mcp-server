@@ -6,6 +6,7 @@ vi.mock("../config.js", () => ({
   PLANFIX_FIELD_IDS: {
     telegram: 0,
     telegramCustom: 1001,
+    emailAdditional: 124,
   },
 }));
 
@@ -28,6 +29,7 @@ vi.mock("../helpers.js", async (importOriginal) => {
   };
 });
 
+import { PLANFIX_FIELD_IDS } from "../config.js";
 import { planfixRequest } from "../helpers.js";
 import { updatePlanfixContact } from "./planfix_update_contact.js";
 
@@ -45,9 +47,15 @@ const mockContact = {
 describe("planfix_update_contact tool", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    PLANFIX_FIELD_IDS.emailAdditional = 124;
   });
 
-  const setupMocks = (customContact: Partial<typeof mockContact> = {}) => {
+  const setupMocks = (
+    customContact: Partial<Omit<typeof mockContact, "customFieldData">> & {
+      customFieldData?: Array<{ field: { id: number }; value: unknown }>;
+      additionalEmailAddresses?: string[];
+    } = {},
+  ) => {
     mockPlanfixRequest.mockReset();
     mockPlanfixRequest.mockImplementation(async (args: any) => {
       if (args.path === `contact/${mockContact.id}`) {
@@ -249,6 +257,358 @@ describe("planfix_update_contact tool", () => {
 
     // Should only make one call (GET) since no updates are needed
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+    expect(result.contactId).toBe(1);
+  });
+
+  it("writes the union of stored and genuinely-new additional emails", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: ["existing@example.com"] },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["New@Example.com", "existing@example.com"],
+    });
+
+    // GET requests field 124 so existing values can be read back.
+    const getCall = mockPlanfixRequest.mock.calls[0][0];
+    const fields = (getCall.body as { fields: string }).fields.split(",");
+    expect(fields).toContain("124");
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    expect(field124).toBeDefined();
+    // Writes replace the value, so the stored address is resent alongside the
+    // new one; the duplicate of existing is not added twice.
+    expect(field124?.value).toEqual(["existing@example.com", "new@example.com"]);
+
+    expect(result.contactId).toBe(1);
+  });
+
+  it("does not copy system-field addresses into field 124", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: ["custom@example.com"] },
+      ],
+      additionalEmailAddresses: ["system@example.com"],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["system@example.com", "new@example.com"],
+    });
+
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    // system@ already exists on the contact -> deduped away, not written.
+    expect(field124?.value).toEqual(["custom@example.com", "new@example.com"]);
+
+    expect(result.contactId).toBe(1);
+  });
+
+  it("does not write the primary address back into field 124", async () => {
+    setupMocks({
+      email: "primary@example.com",
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        {
+          field: { id: 124 },
+          value: ["primary@example.com", "kept@example.com"],
+        },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["new@example.com"],
+    });
+
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    // The stored primary is stripped rather than re-sent, matching forceUpdate.
+    expect(field124?.value).toEqual(["kept@example.com", "new@example.com"]);
+
+    expect(result.contactId).toBe(1);
+  });
+
+  it("skips an address stored only in the read-only system field", async () => {
+    setupMocks({
+      customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],
+      additionalEmailAddresses: ["System@Example.com"],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["system@example.com"],
+    });
+
+    // The contact already has the address (in the system field) and there is
+    // nothing new -> no write at all, only the GET.
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+    expect(result.contactId).toBe(1);
+  });
+
+  it("merges into a custom field whose stored value is a single string", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: "stored@example.com" },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["stored@example.com", "new@example.com"],
+    });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    // The scalar value is normalized into the union, not dropped or stringified.
+    expect(field124?.value).toEqual(["stored@example.com", "new@example.com"]);
+
+    expect(result.contactId).toBe(1);
+  });
+
+  it("does not duplicate the contact's primary email when only additionalEmails is given", async () => {
+    setupMocks({
+      customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["John.Doe@example.com", "extra@example.com"],
+    });
+
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    // contact.email is john.doe@example.com -> excluded from the extras.
+    expect(field124?.value).toEqual(["extra@example.com"]);
+
+    expect(result.contactId).toBe(1);
+  });
+
+  it("does not duplicate the stored primary when a new email is not written over it", async () => {
+    // Non-force update with a primary already set: the `email` argument is
+    // rejected, so john.doe@example.com stays the contact's primary and must
+    // not be copied into the extras just because `email` was also passed.
+    setupMocks({
+      customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      email: "new-primary@example.com",
+      additionalEmails: ["John.Doe@example.com", "extra@example.com"],
+    });
+
+    const body = mockPlanfixRequest.mock.calls[1][0].body as {
+      email?: string;
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    expect(body.email).toBeUndefined();
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    expect(field124?.value).toEqual(["extra@example.com"]);
+    expect(result.contactId).toBe(1);
+  });
+
+  it("moves the replaced primary into the extras on forceUpdate", async () => {
+    setupMocks({
+      customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],
+    });
+
+    await updatePlanfixContact({
+      contactId: 1,
+      email: "new-primary@example.com",
+      additionalEmails: ["John.Doe@example.com"],
+      forceUpdate: true,
+    });
+
+    const body = mockPlanfixRequest.mock.calls[1][0].body as {
+      email?: string;
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    expect(body.email).toBe("new-primary@example.com");
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    // john.doe is no longer primary, so it is free to be stored as an extra.
+    expect(field124?.value).toEqual(["john.doe@example.com"]);
+  });
+
+  it("writes no custom field when PLANFIX_FIELD_ID_EMAIL_ADDITIONAL is unset", async () => {
+    // Without the opt-in guard this would push {field: {id: 0}} and be rejected.
+    PLANFIX_FIELD_IDS.emailAdditional = 0;
+    setupMocks({
+      customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],
+    });
+
+    await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["extra@example.com"],
+    });
+
+    const getCall = mockPlanfixRequest.mock.calls[0][0];
+    // The read-only system field is only read to feed the merge that is skipped.
+    expect((getCall.body as any).fields).not.toContain(
+      "additionalEmailAddresses",
+    );
+    // No update request at all: there is nothing else to write.
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not request the additional-email fields when no additionalEmails are given", async () => {
+    setupMocks({
+      customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],
+    });
+
+    await updatePlanfixContact({ contactId: 1, name: "Jane Roe" });
+
+    const getCall = mockPlanfixRequest.mock.calls[0][0];
+    const fields = (getCall.body as { fields: string }).fields;
+    // The merge is skipped, so neither field is read: a plain name update must
+    // not depend on these field names being accepted on contact/{id}.
+    expect(fields).not.toContain("additionalEmailAddresses");
+    expect(fields.split(",")).not.toContain("124");
+  });
+
+  it("drops an empty stored custom-field value from the union write", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        // Planfix returns "" for an unset custom field.
+        { field: { id: 124 }, value: "" },
+      ],
+    });
+
+    await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["new@example.com"],
+    });
+
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    // No empty entry pushed into the email field alongside the new address.
+    expect(field124?.value).toEqual(["new@example.com"]);
+  });
+
+  it("clears field 124 on forceUpdate with an empty additionalEmails", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: ["existing@example.com"] },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: [],
+      forceUpdate: true,
+    });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    expect(field124).toBeDefined();
+    expect(field124?.value).toEqual([]);
+
+    expect(result.contactId).toBe(1);
+  });
+
+  it("skips field 124 write when all values duplicate primary/existing", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: ["dup@example.com"] },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      email: "john.doe@example.com",
+      additionalEmails: ["dup@example.com", "John.Doe@example.com"],
+    });
+
+    // Nothing new to write -> only the GET call is made.
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+    expect(result.contactId).toBe(1);
+  });
+
+  it("rewrites field 124 with the full set when forceUpdate is true", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: ["existing@example.com"] },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["existing@example.com", "another@example.com"],
+      forceUpdate: true,
+    });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    expect(field124).toBeDefined();
+    // forceUpdate rewrites with the full provided set (existing not excluded).
+    expect(field124?.value).toEqual([
+      "existing@example.com",
+      "another@example.com",
+    ]);
+
+    expect(result.contactId).toBe(1);
+  });
+
+  it("does not touch field 124 when additionalEmails is omitted", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@old_username" },
+        { field: { id: 124 }, value: ["existing@example.com"] },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      telegram: "new_username",
+      forceUpdate: true,
+    });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: unknown }>;
+    };
+    // Only telegram field is written; field 124 is left alone.
+    expect(body.customFieldData?.some((f) => f.field.id === 124)).toBe(false);
     expect(result.contactId).toBe(1);
   });
 

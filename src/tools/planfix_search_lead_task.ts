@@ -31,6 +31,9 @@ export const SearchLeadTaskOutputSchema = z.object({
   lastName: z.string().optional(),
   agencyId: z.number().optional(),
   totalTasks: z.number().optional(),
+  // Set when the contact search failed rather than missed. Callers must not
+  // treat a zero clientId as "no such contact" while this is present.
+  error: z.string().optional(),
   found: z.boolean(),
 });
 
@@ -55,6 +58,7 @@ export async function searchLeadTask(
           contactId: userData.clientId ?? 0,
           firstName: undefined,
           lastName: undefined,
+          error: undefined,
           found: Boolean(userData.clientId),
         };
     const clientId = contactResult.contactId || 0;
@@ -104,6 +108,7 @@ export async function searchLeadTask(
       lastName,
       agencyId,
       totalTasks,
+      error: contactResult.error,
       found: taskId > 0,
     };
   } catch (error) {
@@ -120,6 +125,7 @@ export async function searchLeadTask(
       firstName: undefined,
       lastName: undefined,
       totalTasks: 0,
+      error: errorMessage,
       found: false,
     };
   }

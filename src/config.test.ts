@@ -38,3 +38,30 @@ describe("config base URL resolution", () => {
     expect(cfg.PLANFIX_ACCOUNT_URL).toBe("https://custom.example.com");
   });
 });
+
+describe("config emailAdditional field id", () => {
+  const ORIGINAL_ENV = { ...process.env };
+
+  beforeEach(() => {
+    vi.resetModules();
+    delete process.env.PLANFIX_FIELD_ID_EMAIL_ADDITIONAL;
+  });
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+    vi.resetModules();
+  });
+
+  // 124 is the read-only system field, so an implicit default would break
+  // contact writes on accounts without a custom field at that id.
+  it("is 0 (feature off) when the env var is not set", async () => {
+    const cfg = await import("./config.js");
+    expect(cfg.PLANFIX_FIELD_IDS.emailAdditional).toBe(0);
+  });
+
+  it("uses the explicitly configured custom field id", async () => {
+    process.env.PLANFIX_FIELD_ID_EMAIL_ADDITIONAL = "5566";
+    const cfg = await import("./config.js");
+    expect(cfg.PLANFIX_FIELD_IDS.emailAdditional).toBe(5566);
+  });
+});

@@ -89,6 +89,7 @@ export async function addToLeadTask(
     nameTranslated,
     phone,
     email,
+    additionalEmails,
     telegram,
     instagram,
     company,
@@ -145,6 +146,7 @@ export async function addToLeadTask(
     nameTranslated,
     phone,
     email,
+    additionalEmails,
     telegram,
     instagram,
     instagram_custom,
@@ -180,6 +182,12 @@ export async function addToLeadTask(
     }
 
     const errors: string[] = [];
+    // Contact create/update failures are collected rather than thrown, so every
+    // exit path below has to report them or they are lost.
+    const joinErrors = (...extra: (string | undefined)[]) => {
+      const all = [...errors, ...extra.filter((e): e is string => Boolean(e))];
+      return all.length ? all.join("\n") : undefined;
+    };
 
     // 1. Try to get taskId and clientId
     const searchResult = await searchLeadTask(userData);
@@ -215,32 +223,46 @@ export async function addToLeadTask(
 
     // 2. If contact not found, create it
     if (!clientId) {
-      // console.log('[leadToTask] Creating contact...');
-      if (!userData.name) {
-        // const nowDatetime = new Date().toLocaleString();
-        userData.name =
-          userData.telegram || userData.phone || userData.email
-            ? ((userData.telegram ||
-                userData.phone ||
-                userData.email) as string)
-            : ""; //`Контакт ${nowDatetime}`;
-      }
-      const createResult = await createPlanfixContact(userData);
-      clientId = Number(createResult.contactId) || 0;
-      if (createResult.error) {
-        errors.push(createResult.error);
+      if (searchResult.error) {
+        // The search failed rather than missed, so a matching contact may well
+        // exist. Creating one now would silently duplicate it. The lead itself
+        // is still captured (task + webhook) with the error surfaced, the same
+        // way a failed contact create is handled below — dropping the lead over
+        // one rejected filter trades a mergeable duplicate for a lost lead.
+        log(`[leadToTask] Contact search failed, not creating a contact`);
+        errors.push(searchResult.error);
+      } else {
+        // console.log('[leadToTask] Creating contact...');
+        if (!userData.name) {
+          // const nowDatetime = new Date().toLocaleString();
+          userData.name =
+            userData.telegram || userData.phone || userData.email
+              ? ((userData.telegram ||
+                  userData.phone ||
+                  userData.email) as string)
+              : ""; //`Контакт ${nowDatetime}`;
+        }
+        const createResult = await createPlanfixContact(userData);
+        clientId = Number(createResult.contactId) || 0;
+        if (createResult.error) {
+          errors.push(createResult.error);
+        }
       }
     } else if (clientId) {
       // 3. Update contact with provided data
-      await updatePlanfixContact({
+      const updateResult = await updatePlanfixContact({
         contactId: clientId,
         name: userData.name,
         telegram: userData.telegram,
         instagram: userData.instagram,
         email: userData.email,
+        additionalEmails: userData.additionalEmails,
         phone: userData.phone,
         ...(args as Record<string, unknown>),
       });
+      if (updateResult.error) {
+        errors.push(updateResult.error);
+      }
     }
     // 4. If task not found and name has space, search by name
     if (
@@ -263,7 +285,11 @@ export async function addToLeadTask(
     const webhookResponse = await sendWebhook();
     if (webhookConfig.enabled && webhookConfig.skipPlanfixApi) {
       const webhookTaskId = Number(webhookResponse?.taskId) || 0;
-      return { taskId: webhookTaskId, clientId: Number(clientId) || 0 };
+      return {
+        taskId: webhookTaskId,
+        clientId: Number(clientId) || 0,
+        error: joinErrors(),
+      };
     }
 
     if (!taskId) {
@@ -290,7 +316,7 @@ export async function addToLeadTask(
         return {
           taskId: 0,
           clientId: Number(clientId) || 0,
-          error: createLeadTaskResult.error,
+          error: joinErrors(createLeadTaskResult.error),
         };
       }
       taskId = Number(createLeadTaskResult.taskId) || 0;
@@ -325,14 +351,14 @@ export async function addToLeadTask(
         return {
           taskId: Number(taskId) || 0,
           clientId: Number(clientId) || 0,
-          error: updateLeadTaskResult.error,
+          error: joinErrors(updateLeadTaskResult.error),
         };
       }
     }
 
     url = commentId ? getCommentUrl(taskId, commentId) : getTaskUrl(taskId);
     clientUrl = getContactUrl(clientId);
-    const error = errors.length ? errors.join("\n") : undefined;
+    const error = joinErrors();
     return {
       taskId: Number(taskId) || 0,
       clientId: Number(clientId) || 0,

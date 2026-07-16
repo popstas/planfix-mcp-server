@@ -9,12 +9,17 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
+import {
+  additionalEmailsSchema,
+  dedupeAdditionalEmails,
+} from "../lib/emailFields.js";
 import { ContactRequestBody } from "../types.js";
 
 const CreatePlanfixContactInputSchemaBase = z.object({
   name: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
+  additionalEmails: additionalEmailsSchema,
   telegram: z.string().optional(),
   instagram: z.string().optional(),
 });
@@ -99,6 +104,31 @@ export async function createPlanfixContact(
     // Add instagram if available
     if (userData.instagram) {
       postBody.instagram = userData.instagram.replace(/^@/, "");
+    }
+
+    // Persist additional emails into the custom field (id from
+    // PLANFIX_FIELD_ID_EMAIL_ADDITIONAL). The primary `email` maps to the main
+    // system email field above; extras (deduped, normalized, primary excluded)
+    // go into the custom field when any remain. NOTE: the Planfix *system*
+    // field `additionalEmailAddresses` is read-only via the REST API (absent
+    // from ContactRequest), so a numeric custom field is the only programmatic
+    // way to store extras on create.
+    if (userData.additionalEmails?.length && !PLANFIX_FIELD_IDS.emailAdditional) {
+      log(
+        `[createPlanfixContact] Ignoring ${userData.additionalEmails.length} additionalEmails: PLANFIX_FIELD_ID_EMAIL_ADDITIONAL is not set`,
+      );
+    }
+    if (userData.additionalEmails && PLANFIX_FIELD_IDS.emailAdditional) {
+      const extras = dedupeAdditionalEmails(
+        userData.email,
+        userData.additionalEmails,
+      );
+      if (extras.length) {
+        postBody.customFieldData.push({
+          field: { id: PLANFIX_FIELD_IDS.emailAdditional },
+          value: extras,
+        });
+      }
     }
 
     await extendPostBodyWithCustomFields(

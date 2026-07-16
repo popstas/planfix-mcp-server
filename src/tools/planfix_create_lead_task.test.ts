@@ -139,6 +139,25 @@ describe("planfix_create_lead_task", () => {
     expect(result.taskId).toBe(1);
   });
 
+  it("omits the client field when the contact is unknown", async () => {
+    const { createLeadTask } = await import("./planfix_create_lead_task.js");
+
+    await createLeadTask({
+      name: "Test",
+      description: "Desc",
+      clientId: 0,
+    });
+
+    const body = mockPlanfixRequest.mock.calls[0][0].body as any;
+    // `{ id: 0 }` is not a contact reference: it would either get the whole
+    // task rejected or persist a broken link.
+    expect(
+      body.customFieldData.some(
+        (f: { field: { id: number } }) => f.field.id === 5,
+      ),
+    ).toBe(false);
+  });
+
   it("adds field name to error message when custom field required", async () => {
     mockPlanfixRequest.mockRejectedValueOnce(
       new Error("custom_field_is_required, id 81905"),

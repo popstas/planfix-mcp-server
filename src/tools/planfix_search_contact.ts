@@ -9,6 +9,10 @@ import {
 import { customFieldsConfig } from "../customFieldsConfig.js";
 import { extendSchemaWithCustomFields } from "../lib/extendSchemaWithCustomFields.js";
 import { extendFiltersWithCustomFields } from "../lib/extendFiltersWithCustomFields.js";
+import {
+  additionalEmailsSchema,
+  buildEmailMatchList,
+} from "../lib/emailFields.js";
 import type { ContactResponse } from "../types.js";
 
 const PlanfixSearchContactInputSchemaBase = z.object({
@@ -16,6 +20,7 @@ const PlanfixSearchContactInputSchemaBase = z.object({
   nameTranslated: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
+  additionalEmails: additionalEmailsSchema,
   telegram: z.string().optional(),
 });
 
@@ -37,7 +42,7 @@ export const PlanfixSearchContactOutputSchema = z.object({
 export async function planfixSearchContact(
   args: z.infer<typeof PlanfixSearchContactInputSchema>,
 ): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
-  const { name, nameTranslated, email, telegram } = args;
+  const { name, nameTranslated, email, additionalEmails, telegram } = args;
   let { phone } = args;
   let contactId: number | null = null;
   if (phone && (phone.startsWith("@") || !/^[+\d\s\-()]{5,}$/.test(phone))) {
@@ -45,15 +50,18 @@ export async function planfixSearchContact(
   }
 
   const fieldsBase = "id,name,midname,lastname,email,phone,description,group";
+  // Additional-email fields are matched via filters, never read off the
+  // response, so they are not requested here.
+  const fields = PLANFIX_FIELD_IDS.telegramCustom
+    ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
+    : PLANFIX_FIELD_IDS.telegram
+      ? `${fieldsBase},telegram`
+      : fieldsBase;
   const postBody = {
     offset: 0,
     pageSize: 100,
     filters: [],
-    fields: PLANFIX_FIELD_IDS.telegramCustom
-      ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
-      : PLANFIX_FIELD_IDS.telegram
-        ? `${fieldsBase},telegram`
-        : fieldsBase,
+    fields,
   };
 
   type FilterType = {
@@ -62,6 +70,12 @@ export async function planfixSearchContact(
     value?: string | number | boolean | string[];
     field?: number;
   };
+
+  // Trimmed, not lowercased: filter 4026 is queried with the caller's casing, as
+  // it always has been, in case the operator is case-sensitive on this account.
+  // Trimming alone is enough to keep a whitespace-only `email` (truthy, but
+  // empty once trimmed) from reaching a filter as an `equal ""` query.
+  const trimmedEmail = email ? email.trim() : "";
 
   const filters: Record<string, FilterType | undefined> = {
     byName: {
@@ -82,7 +96,7 @@ export async function planfixSearchContact(
     byEmail: {
       type: 4026,
       operator: "equal",
-      value: email,
+      value: trimmedEmail || undefined,
     },
     byTelegram: telegram
       ? PLANFIX_FIELD_IDS.telegramCustom
@@ -165,6 +179,34 @@ export async function planfixSearchContact(
       : undefined,
   };
 
+  // System "secondary email" match filter (type 4221, "Contact part of
+  // secondary email" in the contact swagger). This is the documented, account-
+  // agnostic way to match a contact by an address stored in its additional-
+  // emails system field. No `field` id — it is a system field, like the primary
+  // email field (4026).
+  function buildSecondaryEmailFilter(value: string): FilterType {
+    return {
+      type: 4221,
+      operator: "equal",
+      value,
+    };
+  }
+
+  // Optional custom-field fallback: some accounts mirror extra emails into a
+  // numeric custom field (id from PLANFIX_FIELD_ID_EMAIL_ADDITIONAL). Because
+  // the system additionalEmailAddresses field is NOT writable via the REST API
+  // (absent from ContactRequest), a custom field is the only programmatic way
+  // to persist extras, so we also search it when configured. Uses the
+  // established numeric-id contact filter (type 4101).
+  function buildEmailAdditionalFilter(value: string): FilterType {
+    return {
+      type: 4101,
+      field: PLANFIX_FIELD_IDS.emailAdditional,
+      operator: "equal",
+      value,
+    };
+  }
+
   const customFilters: FilterType[] = [];
   extendFiltersWithCustomFields(
     customFilters,
@@ -187,8 +229,20 @@ export async function planfixSearchContact(
     return "";
   }
 
+  // A rejected filter (e.g. an unsupported type on this account) otherwise looks
+  // exactly like "no match" to the caller, which would silently create a
+  // duplicate contact. Remembered here and surfaced when no tier matched.
+  //
+  // Only authoritative tiers set it. The additional-email tiers below are
+  // broadening fallbacks over optional storage, so a rejection there degrades to
+  // a plain "not found" — logged, but not blocking. Letting them set the error
+  // would mean an account that rejects filter 4221, or a misconfigured
+  // emailAdditional field id, never creates a contact again.
+  let filterError: string | undefined;
+
   async function searchWithFilter(
     filter: FilterType,
+    { blocking = true }: { blocking?: boolean } = {},
   ): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
     try {
       const result = (await planfixRequest({
@@ -221,8 +275,9 @@ export async function planfixSearchContact(
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       log(
-        `[planfixSearchContact] Error searching with filter: ${errorMessage}`,
+        `[planfixSearchContact] Error searching with filter (type ${filter.type}): ${errorMessage}`,
       );
+      if (blocking) filterError = errorMessage;
       return {
         contactId: 0,
         error: errorMessage,
@@ -233,9 +288,54 @@ export async function planfixSearchContact(
 
   try {
     let result: z.infer<typeof PlanfixSearchContactOutputSchema> | undefined;
-    if (!contactId && email && filters.byEmail) {
+    if (!contactId && trimmedEmail && filters.byEmail) {
       result = await searchWithFilter(filters.byEmail);
       contactId = result.contactId;
+    }
+    const emailMatchList = buildEmailMatchList(email, additionalEmails);
+    if (!contactId && emailMatchList.length) {
+      // On a primary-email (4026) miss, look for the contact by any of the
+      // known addresses. Order (first match wins):
+      //   1. System "secondary email" field via filter 4221 — the documented,
+      //      account-agnostic location for additional addresses. Tried for the
+      //      primary email too: an address that is primary for us may be stored
+      //      as a secondary one on the Planfix side.
+      //   2. Optional custom field via filter 4101 — only when configured, for
+      //      accounts that mirror extras into a numeric custom field. Tried for
+      //      a plain `email` search too: the custom field is the only place this
+      //      server can write extras to, so a lone `email` must be matched
+      //      against it or a contact we created ourselves would not be found.
+      //   3. The main email field (4026) — in case an "additional" address is
+      //      actually stored as that contact's primary email. The primary is
+      //      skipped only when the query above already sent this exact value; a
+      //      mixed-case primary is retried here in normalized form, in case 4026
+      //      matches case-sensitively.
+      for (const value of emailMatchList) {
+        if (contactId) break;
+        result = await searchWithFilter(buildSecondaryEmailFilter(value), {
+          blocking: false,
+        });
+        contactId = result.contactId;
+      }
+      if (PLANFIX_FIELD_IDS.emailAdditional) {
+        for (const value of emailMatchList) {
+          if (contactId) break;
+          result = await searchWithFilter(buildEmailAdditionalFilter(value), {
+            blocking: false,
+          });
+          contactId = result.contactId;
+        }
+      }
+      for (const value of emailMatchList) {
+        if (contactId) break;
+        if (value === trimmedEmail) continue;
+        result = await searchWithFilter({
+          type: 4026,
+          operator: "equal",
+          value,
+        });
+        contactId = result.contactId;
+      }
     }
     if (!contactId && phone && filters.byPhone) {
       result = await searchWithFilter(filters.byPhone);
@@ -315,6 +415,9 @@ export async function planfixSearchContact(
       firstName,
       lastName,
       found: contactId > 0,
+      // Only meaningful on a miss: a later tier matching means the failed
+      // filter did not affect the outcome.
+      error: contactId > 0 ? undefined : filterError,
     };
   } catch (error) {
     const errorMessage =
