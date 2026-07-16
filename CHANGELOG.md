@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 
 
+## v1.9.0 - 2026-07-16
+
+### Features
+
+- Additional email addresses (system field 124) for contact matching & filling (#65)
+
 ## v1.8.9 - 2026-06-02
 
 ### Features
