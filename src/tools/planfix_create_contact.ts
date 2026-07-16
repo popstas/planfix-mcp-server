@@ -16,7 +16,7 @@ const CreatePlanfixContactInputSchemaBase = z.object({
   name: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().optional(),
-  additionalEmails: z.array(z.string()).optional(),
+  additionalEmails: z.array(z.string()).max(10).optional(),
   telegram: z.string().optional(),
   instagram: z.string().optional(),
 });

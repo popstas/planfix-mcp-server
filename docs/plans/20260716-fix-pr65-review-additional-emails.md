@@ -134,14 +134,14 @@ and several test/docs gaps.
 
 ### Task 4: Schema hardening (nullFix, size cap)
 
-- [ ] wrap `additionalEmails` in `nullFix(...)` in `UserDataInputSchemaBase` (`src/types.ts`)
+- [x] wrap `additionalEmails` in `nullFix(...)` in `UserDataInputSchemaBase` (`src/types.ts`)
       so `additionalEmails: null` no longer fails the whole tool call
-- [ ] add `.max(10)` to the `additionalEmails` array in all four schemas (types.ts, search,
+- [x] add `.max(10)` to the `additionalEmails` array in all four schemas (types.ts, search,
       create, update)
-- [ ] tests: `additionalEmails: null` is tolerated through `addToLeadTask` parsing; an
+- [x] tests: `additionalEmails: null` is tolerated through `addToLeadTask` parsing; an
       oversized array is rejected with a clear validation error
-- [ ] write tests for new/changed functionality
-- [ ] run project tests - must pass before next task
+- [x] write tests for new/changed functionality
+- [x] run project tests - must pass before next task
 
 ### Task 5: Close test gaps and minor cleanups
 

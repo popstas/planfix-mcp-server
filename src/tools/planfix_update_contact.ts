@@ -27,7 +27,7 @@ const UpdatePlanfixContactInputSchemaBase = z.object({
   telegram: z.string().optional(),
   instagram: z.string().optional(),
   email: z.string().optional(),
-  additionalEmails: z.array(z.string()).optional(),
+  additionalEmails: z.array(z.string()).max(10).optional(),
   phone: z.string().optional(),
   forceUpdate: z.boolean().optional(),
 });

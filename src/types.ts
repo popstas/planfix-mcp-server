@@ -23,7 +23,7 @@ export const UserDataInputSchemaBase = z.object({
     .describe("Translate name and place here"),
   phone: nullFix(z.string().optional()),
   email: nullFix(z.string().optional()),
-  additionalEmails: z.array(z.string()).optional(),
+  additionalEmails: nullFix(z.array(z.string()).max(10).optional()),
   telegram: nullFix(z.string().optional()),
   instagram: nullFix(z.string().optional()),
   company: nullFix(z.string().optional()),
