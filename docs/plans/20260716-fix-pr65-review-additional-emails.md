@@ -122,15 +122,15 @@ and several test/docs gaps.
 
 ### Task 3: Search by single email checks the secondary-email filter (4221)
 
-- [ ] on a primary-email (4026) miss, try filter 4221 with the primary email even when
+- [x] on a primary-email (4026) miss, try filter 4221 with the primary email even when
       `additionalEmails` is absent
-- [ ] exclude the primary email from the 4026 fallback loop values (no duplicate query
+- [x] exclude the primary email from the 4026 fallback loop values (no duplicate query
       when an additional email equals the primary)
-- [ ] keep the 4101 tier gated on `additionalEmails` presence and a configured field id
-- [ ] tests: single-`email` search falls back to 4221 and finds the contact; fallback
+- [x] keep the 4101 tier gated on `additionalEmails` presence and a configured field id
+- [x] tests: single-`email` search falls back to 4221 and finds the contact; fallback
       order 4026 → 4221 → 4101 → 4026-additional preserved; no duplicate primary query
-- [ ] write tests for new/changed functionality
-- [ ] run project tests - must pass before next task
+- [x] write tests for new/changed functionality
+- [x] run project tests - must pass before next task
 
 ### Task 4: Schema hardening (nullFix, size cap)
 

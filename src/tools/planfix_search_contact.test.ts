@@ -77,28 +77,77 @@ describe("planfixSearchContact", () => {
   });
 
   it("handles API errors", async () => {
-    mockPlanfixRequest.mockRejectedValueOnce(new Error("API fail"));
+    mockPlanfixRequest
+      .mockRejectedValueOnce(new Error("API fail"))
+      .mockRejectedValueOnce(new Error("API fail"));
 
     const result = await planfixSearchContact({ email: "err@example.com" });
 
-    expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+    // 4026 (primary) then the 4221 secondary-email fallback
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
     expect(result.contactId).toBe(0);
     expect(result.error).toBeUndefined();
     expect(result.found).toBe(false);
   });
 
-  it("matches primary email via main field without extra calls when no additionalEmails", async () => {
-    // byEmail misses, no additionalEmails => behavior unchanged (single call)
-    mockPlanfixRequest.mockResolvedValueOnce({ contacts: [] });
+  it("falls back to the secondary-email filter (4221) for a single email", async () => {
+    // 1: byEmail (4026) miss
+    // 2: 4221 with the same email -> hit
+    mockPlanfixRequest.mockResolvedValueOnce({ contacts: [] }).mockResolvedValueOnce({
+      contacts: [{ id: 11, name: "Sec", lastname: "Ondary" }],
+    });
+
+    const result = await planfixSearchContact({ email: "Miss@Example.com" });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const body = mockPlanfixRequest.mock.calls[1][0].body as any;
+    expect(body.filters[0]).toMatchObject({
+      type: 4221,
+      operator: "equal",
+      value: "miss@example.com",
+    });
+    expect(body.filters[0].field).toBeUndefined();
+    expect(result.contactId).toBe(11);
+    expect(result.found).toBe(true);
+  });
+
+  it("does not query the custom field (4101) when no additionalEmails are given", async () => {
+    // 1: byEmail (4026) miss, 2: 4221 miss => stop, custom-field tier stays gated
+    mockPlanfixRequest
+      .mockResolvedValueOnce({ contacts: [] })
+      .mockResolvedValueOnce({ contacts: [] });
 
     const result = await planfixSearchContact({ email: "miss@example.com" });
 
-    expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
-    const call = mockPlanfixRequest.mock.calls[0][0];
-    const body = call.body as any;
-    expect(body.filters[0]).toMatchObject({ type: 4026 });
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const types = mockPlanfixRequest.mock.calls.map(
+      (call) => (call[0].body as any).filters[0].type,
+    );
+    expect(types).toEqual([4026, 4221]);
     expect(result.found).toBe(false);
     expect(result.contactId).toBe(0);
+  });
+
+  it("does not repeat the primary 4026 query when an additional email equals it", async () => {
+    mockPlanfixRequest.mockResolvedValue({ contacts: [] });
+
+    const result = await planfixSearchContact({
+      email: "same@example.com",
+      additionalEmails: ["Same@example.com"],
+    });
+
+    // 4026 primary, 4221 primary, 4101 primary — the duplicate additional is
+    // deduped away, so no second 4026 query is made.
+    const calls = mockPlanfixRequest.mock.calls.map((call) => {
+      const filter = (call[0].body as any).filters[0];
+      return { type: filter.type, value: filter.value };
+    });
+    expect(calls).toEqual([
+      { type: 4026, value: "same@example.com" },
+      { type: 4221, value: "same@example.com" },
+      { type: 4101, value: "same@example.com" },
+    ]);
+    expect(result.found).toBe(false);
   });
 
   it("requests the additional-emails fields (system + custom id) in fields", async () => {
