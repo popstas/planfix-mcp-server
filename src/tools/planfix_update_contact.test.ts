@@ -315,6 +315,48 @@ describe("planfix_update_contact tool", () => {
     expect(result.contactId).toBe(1);
   });
 
+  it("skips an address stored only in the read-only system field", async () => {
+    setupMocks({
+      customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],
+      additionalEmailAddresses: ["System@Example.com"],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["system@example.com"],
+    });
+
+    // The contact already has the address (in the system field) and there is
+    // nothing new -> no write at all, only the GET.
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+    expect(result.contactId).toBe(1);
+  });
+
+  it("merges into a custom field whose stored value is a single string", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        { field: { id: 124 }, value: "stored@example.com" },
+      ],
+    });
+
+    const result = await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["stored@example.com", "new@example.com"],
+    });
+
+    expect(mockPlanfixRequest).toHaveBeenCalledTimes(2);
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    // The scalar value is normalized into the union, not dropped or stringified.
+    expect(field124?.value).toEqual(["stored@example.com", "new@example.com"]);
+
+    expect(result.contactId).toBe(1);
+  });
+
   it("does not duplicate the contact's primary email when only additionalEmails is given", async () => {
     setupMocks({
       customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],

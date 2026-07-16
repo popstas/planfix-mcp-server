@@ -150,7 +150,7 @@ describe("planfixSearchContact", () => {
     expect(result.found).toBe(false);
   });
 
-  it("requests the additional-emails fields (system + custom id) in fields", async () => {
+  it("does not request the additional-emails fields it never reads", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       contacts: [{ id: 1, name: "John", lastname: "Doe" }],
     });
@@ -158,11 +158,16 @@ describe("planfixSearchContact", () => {
     await planfixSearchContact({ email: "john@example.com" });
 
     const call = mockPlanfixRequest.mock.calls[0][0];
-    const body = call.body as any;
-    // System secondary-email field is always requested...
-    expect(String(body.fields)).toContain("additionalEmailAddresses");
-    // ...and the optional numeric custom field id when configured.
-    expect(String(body.fields)).toContain("124");
+    const fields = String((call.body as any).fields).split(",");
+    // Additional emails are matched via filters (4221/4101); the response is
+    // only read for id/name/telegram, so neither field is requested.
+    expect(fields).not.toContain("additionalEmailAddresses");
+    expect(fields).not.toContain("124");
+    // The fields actually consumed are still requested.
+    expect(fields).toContain("id");
+    expect(fields).toContain("name");
+    expect(fields).toContain("lastname");
+    expect(fields).toContain("telegram");
   });
 
   it("finds contact via the system secondary-email filter (4221)", async () => {

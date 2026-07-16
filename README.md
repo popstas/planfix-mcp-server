@@ -310,19 +310,26 @@ const objects = await planfixClient.post('object/list', {
 ### Contact Management
 
 - `searchPlanfixContact`: Search contacts by name, phone, email, or Telegram.
-  Accepts an optional `additionalEmails: string[]` argument: when the primary
-  `email` does not match, each address is also matched against the system
-  secondary-email field (filter type 4221), the optional custom field
-  (`PLANFIX_FIELD_ID_EMAIL_ADDITIONAL`), and the main email field.
+  When the primary `email` does not match the main email field, it is also matched
+  against the system secondary-email field (filter type 4221) — this happens for a
+  plain `email` search too, no extra configuration needed. The optional
+  `additionalEmails: string[]` argument (max 10) adds each address to that same
+  fallback, plus the custom field (filter type 4101, only when
+  `PLANFIX_FIELD_ID_EMAIL_ADDITIONAL` is set) and the main email field.
 - `createPlanfixContact`: Create a new contact in Planfix. Accepts an optional
-  `additionalEmails: string[]` argument that is written to the additional-emails
-  custom field (`PLANFIX_FIELD_ID_EMAIL_ADDITIONAL`), deduplicated and excluding
-  the primary `email`. (The system secondary-email field is read-only via the API.)
+  `additionalEmails: string[]` argument (max 10) that is written to the
+  additional-emails custom field (`PLANFIX_FIELD_ID_EMAIL_ADDITIONAL`),
+  deduplicated and excluding the primary `email`. (The system secondary-email
+  field is read-only via the API.)
 - `updatePlanfixContact`: Update existing contact information. Accepts an optional
-  `additionalEmails: string[]` argument that is merged into the additional-emails
-  custom field; only genuinely new addresses are added (addresses already in the
-  contact's custom field or system secondary-email field are skipped) unless
-  `forceUpdate` is set.
+  `additionalEmails: string[]` argument (max 10) that is merged into the
+  additional-emails custom field. Planfix custom-field writes replace the whole
+  value, so the field is rewritten with the union of what is already stored there
+  and the genuinely new addresses; nothing is lost. Addresses already on the
+  contact — in the custom field, in the read-only system secondary-email field, or
+  as the primary `email` — are not added again. With `forceUpdate` the field is
+  instead rewritten with exactly the addresses you pass, so an empty array clears
+  it; omitting `additionalEmails` leaves the field untouched either way.
 - `searchPlanfixCompany`: Search for companies by name
 
 ### Task Management

@@ -47,17 +47,13 @@ export async function planfixSearchContact(
   }
 
   const fieldsBase = "id,name,midname,lastname,email,phone,description,group";
-  let fields = PLANFIX_FIELD_IDS.telegramCustom
+  // Additional-email fields are matched via filters, never read off the
+  // response, so they are not requested here.
+  const fields = PLANFIX_FIELD_IDS.telegramCustom
     ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
     : PLANFIX_FIELD_IDS.telegram
       ? `${fieldsBase},telegram`
       : fieldsBase;
-  // System field holding a contact's secondary/additional email addresses.
-  // Requested unconditionally (it is a system field, not account-specific).
-  fields = `${fields},additionalEmailAddresses`;
-  if (PLANFIX_FIELD_IDS.emailAdditional) {
-    fields = `${fields},${PLANFIX_FIELD_IDS.emailAdditional}`;
-  }
   const postBody = {
     offset: 0,
     pageSize: 100,

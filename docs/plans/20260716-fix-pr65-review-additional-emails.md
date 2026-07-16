@@ -145,18 +145,18 @@ and several test/docs gaps.
 
 ### Task 5: Close test gaps and minor cleanups
 
-- [ ] add unit tests for the update read paths with no live confirmation yet: existing
+- [x] add unit tests for the update read paths with no live confirmation yet: existing
       addresses coming from `contact.additionalEmailAddresses` (system field) and a
       single-string custom-field value
-- [ ] strengthen the weak substring assertion in `planfix_search_contact.test.ts`
+- [x] strengthen the weak substring assertion in `planfix_search_contact.test.ts`
       (`toContain("124")` on the joined fields string → exact `split(",")` membership)
-- [ ] remove the unused `additionalEmailAddresses` and custom-field id entries from the
+- [x] remove the unused `additionalEmailAddresses` and custom-field id entries from the
       search request `fields` (the search response never reads them), or read them —
       pick removal unless a concrete consumer exists
-- [ ] sweep README/docs wording to match final behavior (merge semantics on update,
+- [x] sweep README/docs wording to match final behavior (merge semantics on update,
       opt-in env var, 4221 fallback for a single email)
-- [ ] write tests for new/changed functionality
-- [ ] run project tests - must pass before next task
+- [x] write tests for new/changed functionality
+- [x] run project tests - must pass before next task
 
 ### Task 6: Verify acceptance criteria
 
