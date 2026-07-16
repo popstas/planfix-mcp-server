@@ -74,9 +74,9 @@ export async function updatePlanfixContact(
       : PLANFIX_FIELD_IDS.telegram
         ? `${fieldsBase},telegram`
         : fieldsBase;
-    if (PLANFIX_FIELD_IDS.emailAdditional) {
-      // Both only feed the additional-emails merge below, which is skipped
-      // entirely when no custom field is configured.
+    if (additionalEmails !== undefined && PLANFIX_FIELD_IDS.emailAdditional) {
+      // Both only feed the additional-emails merge below, so request them only
+      // when that merge will actually run.
       fields = `${fields},additionalEmailAddresses,${PLANFIX_FIELD_IDS.emailAdditional}`;
     }
     const { contact } = await planfixRequest<{ contact: ContactResponse }>({
@@ -182,13 +182,17 @@ export async function updatePlanfixContact(
       const existingField = contact.customFieldData?.find(
         (f) => f.field.id === PLANFIX_FIELD_IDS.emailAdditional,
       );
-      const existingCustom: string[] = Array.isArray(existingField?.value)
-        ? (existingField.value as unknown[]).filter(
-            (v): v is string => typeof v === "string",
-          )
-        : typeof existingField?.value === "string"
-          ? [existingField.value]
-          : [];
+      // Empties are dropped: Planfix returns "" for an unset custom field, and
+      // the union write below re-sends these values verbatim.
+      const existingCustom: string[] = (
+        Array.isArray(existingField?.value)
+          ? (existingField.value as unknown[]).filter(
+              (v): v is string => typeof v === "string",
+            )
+          : typeof existingField?.value === "string"
+            ? [existingField.value]
+            : []
+      ).filter((v) => v.trim() !== "");
       // Also treat addresses already in the system field as existing, so we do
       // not re-add an address the contact already has.
       const existingSystem: string[] = Array.isArray(

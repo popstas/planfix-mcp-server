@@ -89,8 +89,26 @@ describe("planfixSearchContact", () => {
     // 4026 (primary), then the 4221 and 4101 fallbacks
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(3);
     expect(result.contactId).toBe(0);
-    expect(result.error).toBeUndefined();
+    // A rejected filter must not be reported as a clean "not found": callers
+    // would create a duplicate contact instead of surfacing the failure.
+    expect(result.error).toBe("API fail");
     expect(result.found).toBe(false);
+  });
+
+  it("does not report an error when a later filter matches", async () => {
+    // 1: byEmail (4026) rejected, 2: 4221 hit
+    mockPlanfixRequest
+      .mockRejectedValueOnce(new Error("filter rejected"))
+      .mockResolvedValueOnce({
+        contacts: [{ id: 12, name: "Sec", lastname: "Ondary" }],
+      });
+
+    const result = await planfixSearchContact({ email: "hit@example.com" });
+
+    expect(result.contactId).toBe(12);
+    expect(result.found).toBe(true);
+    // The failed tier did not affect the outcome.
+    expect(result.error).toBeUndefined();
   });
 
   it("falls back to the secondary-email filter (4221) for a single email", async () => {

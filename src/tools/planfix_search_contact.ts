@@ -224,6 +224,11 @@ export async function planfixSearchContact(
     return "";
   }
 
+  // A rejected filter (e.g. an unsupported type on this account) otherwise looks
+  // exactly like "no match" to the caller, which would silently create a
+  // duplicate contact. Remembered here and surfaced when no tier matched.
+  let filterError: string | undefined;
+
   async function searchWithFilter(
     filter: FilterType,
   ): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
@@ -260,6 +265,7 @@ export async function planfixSearchContact(
       log(
         `[planfixSearchContact] Error searching with filter: ${errorMessage}`,
       );
+      filterError = errorMessage;
       return {
         contactId: 0,
         error: errorMessage,
@@ -393,6 +399,9 @@ export async function planfixSearchContact(
       firstName,
       lastName,
       found: contactId > 0,
+      // Only meaningful on a miss: a later tier matching means the failed
+      // filter did not affect the outcome.
+      error: contactId > 0 ? undefined : filterError,
     };
   } catch (error) {
     const errorMessage =

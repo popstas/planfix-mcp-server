@@ -447,6 +447,44 @@ describe("planfix_update_contact tool", () => {
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
   });
 
+  it("does not request the additional-email fields when no additionalEmails are given", async () => {
+    setupMocks({
+      customFieldData: [{ field: { id: 1001 }, value: "@telegram_username" }],
+    });
+
+    await updatePlanfixContact({ contactId: 1, name: "Jane Roe" });
+
+    const getCall = mockPlanfixRequest.mock.calls[0][0];
+    const fields = (getCall.body as { fields: string }).fields;
+    // The merge is skipped, so neither field is read: a plain name update must
+    // not depend on these field names being accepted on contact/{id}.
+    expect(fields).not.toContain("additionalEmailAddresses");
+    expect(fields.split(",")).not.toContain("124");
+  });
+
+  it("drops an empty stored custom-field value from the union write", async () => {
+    setupMocks({
+      customFieldData: [
+        { field: { id: 1001 }, value: "@telegram_username" },
+        // Planfix returns "" for an unset custom field.
+        { field: { id: 124 }, value: "" },
+      ],
+    });
+
+    await updatePlanfixContact({
+      contactId: 1,
+      additionalEmails: ["new@example.com"],
+    });
+
+    const updateCall = mockPlanfixRequest.mock.calls[1][0];
+    const body = updateCall.body as {
+      customFieldData?: Array<{ field: { id: number }; value: string[] }>;
+    };
+    const field124 = body.customFieldData?.find((f) => f.field.id === 124);
+    // No empty entry pushed into the email field alongside the new address.
+    expect(field124?.value).toEqual(["new@example.com"]);
+  });
+
   it("clears field 124 on forceUpdate with an empty additionalEmails", async () => {
     setupMocks({
       customFieldData: [
