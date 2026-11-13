@@ -13,6 +13,7 @@ import {
   additionalEmailsSchema,
   buildEmailMatchList,
 } from "../lib/emailFields.js";
+import { isExactNameMatch } from "../lib/nameMatch.js";
 import type { ContactResponse } from "../types.js";
 
 const PlanfixSearchContactInputSchemaBase = z.object({
@@ -40,34 +41,6 @@ export const PlanfixSearchContactOutputSchema = z.object({
 });
 
 const IDENTIFYING_CUSTOM_FIELD_TYPES: string[] = ["string", "number"];
-
-function nameTokens(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/ё/g, "е")
-    .split(/\s+/)
-    .filter(Boolean)
-    .sort()
-    .join(" ");
-}
-
-/**
- * Filter 4001 matches a *substring* of the full name, case-insensitively, so
- * "US Media" finds "Status Media". A name-only match is accepted only when the
- * contact's full name (name, midname, lastname) consists of exactly the same
- * words as the query, in any order.
- */
-export function isExactNameMatch(
-  query: string,
-  contact: Pick<ContactResponse, "name" | "lastname"> & { midname?: string },
-): boolean {
-  const expected = nameTokens(query);
-  if (!expected) return false;
-  const actual = nameTokens(
-    [contact.name, contact.midname, contact.lastname].filter(Boolean).join(" "),
-  );
-  return actual === expected;
-}
 
 export async function planfixSearchContact(
   args: z.infer<typeof PlanfixSearchContactInputSchema>,

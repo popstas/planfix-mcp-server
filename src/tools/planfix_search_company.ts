@@ -5,6 +5,7 @@ import {
   log,
   planfixRequest,
 } from "../helpers.js";
+import { isExactNameMatch } from "../lib/nameMatch.js";
 
 interface SearchFilter {
   type: number;
@@ -65,9 +66,23 @@ export async function planfixSearchCompany({
         },
       });
 
-      if (result.contacts?.length > 0) {
-        contactId = result.contacts[0].id;
-        companyName = result.contacts[0].name;
+      // Filter 4001 matches a substring of the name ("Media" finds "Status
+      // Media"), so only a company whose name has exactly the query's words is
+      // accepted, wherever it is on the page.
+      const companies = result.contacts ?? [];
+      const company = name
+        ? companies.find((c) => isExactNameMatch(name, c))
+        : undefined;
+      if (company) {
+        contactId = company.id;
+        companyName = company.name;
+      } else if (companies.length) {
+        log(
+          `[planfixSearchCompany] Filter 4001 "${name}" returned ${companies.length} company(ies), none with an exact name match: ${companies
+            .slice(0, 5)
+            .map((c) => `${c.id} "${c.name}"`)
+            .join(", ")}`,
+        );
       }
       return { contactId: contactId || 0, name: companyName };
     } catch (error) {
@@ -112,7 +127,8 @@ async function handler(
 
 const planfixSearchCompanyTool = getToolWithHandler({
   name: "planfix_search_company",
-  description: "Search for a company in Planfix by name",
+  description:
+    "Search for a company in Planfix by name. Matches only a company whose name has exactly the same words (any order, case-insensitive).",
   inputSchema: PlanfixSearchCompanyInputSchema,
   outputSchema: PlanfixSearchCompanyOutputSchema,
   handler,

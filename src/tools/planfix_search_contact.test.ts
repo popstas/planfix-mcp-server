@@ -26,10 +26,7 @@ vi.mock("../helpers.js", async (importOriginal) => {
 import { PLANFIX_FIELD_IDS } from "../config.js";
 import { planfixRequest } from "../helpers.js";
 import { customFieldsConfig } from "../customFieldsConfig.js";
-import {
-  isExactNameMatch,
-  planfixSearchContact,
-} from "./planfix_search_contact.js";
+import { planfixSearchContact } from "./planfix_search_contact.js";
 
 const mockPlanfixRequest = vi.mocked(planfixRequest);
 
@@ -526,23 +523,6 @@ describe("planfixSearchContact", () => {
         value: "insta_user",
       });
       expect(result).toMatchObject({ contactId: 77, found: true });
-    });
-  });
-
-  describe("isExactNameMatch", () => {
-    it.each([
-      ["US Media", { name: "Status Media" }, false],
-      ["СМИ США", { name: "СМИ", lastname: "США" }, true],
-      ["Иванов Иван", { name: "Иван", lastname: "Иванов" }, true],
-      ["Алёна Петрова", { name: "алена", lastname: "петрова" }, true],
-      [
-        "Иван Петров",
-        { name: "Иван", midname: "Сергеевич", lastname: "Петров" },
-        false,
-      ],
-      ["  ", { name: "" }, false],
-    ])("%s vs %j -> %s", (query, contact, expected) => {
-      expect(isExactNameMatch(query, contact)).toBe(expected);
     });
   });
 });

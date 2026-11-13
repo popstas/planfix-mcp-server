@@ -63,4 +63,35 @@ describe("planfixSearchCompany", () => {
     expect(result.contactId).toBe(0);
     expect(result.error).toBe("API fail");
   });
+
+  it("rejects a company whose name only contains the query", async () => {
+    // 4001 is a substring match: "Media" returns supplier "Status Media".
+    mockPlanfixRequest.mockResolvedValueOnce({
+      contacts: [{ id: 21793, name: "Status Media" }],
+    });
+
+    const result = (await planfixSearchCompany({ name: "Media" })) as any;
+
+    expect(result.contactId).toBe(0);
+    expect(result.name).toBeUndefined();
+  });
+
+  it("finds the exact match anywhere on the result page", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      contacts: [
+        { id: 21793, name: "Status Media" },
+        { id: 30001, name: "status  media group" },
+        { id: 30002, name: "Media Status" },
+      ],
+    });
+
+    const result = (await planfixSearchCompany({
+      name: "Status Media Group",
+    })) as any;
+
+    expect(result).toMatchObject({
+      contactId: 30001,
+      name: "status  media group",
+    });
+  });
 });
