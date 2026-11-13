@@ -46,6 +46,46 @@ export const UpdatePlanfixContactOutputSchema = z.object({
   error: z.string().optional(),
 });
 
+const NOT_PERMITTED_FIELD_RE = /Custom field not permitted by id - (\d+)/i;
+
+/**
+ * Sends a contact update. A custom field the contact's template lacks (e.g. a
+ * client-template field on a supplier contact) is rejected by Planfix with
+ * "Custom field not permitted by id - N" and fails the whole request; such a
+ * field is dropped, logged, and the rest of the update is retried.
+ */
+async function sendContactUpdate(
+  contactId: number,
+  body: Omit<ContactRequestBody, "template">,
+): Promise<void> {
+  let customFieldData = [...body.customFieldData];
+  for (;;) {
+    try {
+      await planfixRequest({
+        path: `contact/${contactId}`,
+        body: { ...body, customFieldData },
+      });
+      return;
+    } catch (error) {
+      const match =
+        error instanceof Error
+          ? NOT_PERMITTED_FIELD_RE.exec(error.message)
+          : null;
+      const fieldId = match ? Number(match[1]) : 0;
+      const remaining = customFieldData.filter((f) => f.field.id !== fieldId);
+      if (!fieldId || remaining.length === customFieldData.length) throw error;
+      log(
+        `[updatePlanfixContact] Skipping custom field ${fieldId} for contact ${contactId}: not in the contact's template`,
+      );
+      customFieldData = remaining;
+      const hasOtherUpdates = Object.keys(body).some(
+        (k) => k !== "customFieldData",
+      );
+      if (!hasOtherUpdates && !customFieldData.length) return;
+    }
+  }
+}
+
 export async function updatePlanfixContact(
   args: z.infer<typeof UpdatePlanfixContactInputSchema>,
 ): Promise<z.infer<typeof UpdatePlanfixContactOutputSchema>> {
@@ -68,7 +108,7 @@ export async function updatePlanfixContact(
     const customContactFieldsIds = customFieldsConfig.contactFields.map(
       (f) => f.id,
     );
-    const fieldsBase = `id,name,lastname,email,phones,${customContactFieldsIds.join(",")}`;
+    const fieldsBase = `id,name,lastname,email,phones,template,${customContactFieldsIds.join(",")}`;
     let fields = PLANFIX_FIELD_IDS.telegramCustom
       ? `${fieldsBase},${PLANFIX_FIELD_IDS.telegramCustom}`
       : PLANFIX_FIELD_IDS.telegram
@@ -85,9 +125,16 @@ export async function updatePlanfixContact(
       method: "GET",
     });
 
+    // `template` here only tells extendPostBodyWithCustomFields which template's
+    // directories to resolve handbook values against. It is the contact's own
+    // template, and it is stripped before the update is sent: the template is
+    // set on creation only, never changed on an existing (possibly non-client)
+    // contact.
     const postBody: ContactRequestBody = {
       template: {
-        id: Number(process.env.PLANFIX_CONTACT_TEMPLATE_ID || 1),
+        id:
+          contact.template?.id ||
+          Number(process.env.PLANFIX_CONTACT_TEMPLATE_ID || 1),
       },
       customFieldData: [],
     };
@@ -254,7 +301,9 @@ export async function updatePlanfixContact(
       return { contactId, url: getContactUrl(contactId) };
     }
 
-    await planfixRequest({ path: `contact/${contactId}`, body: postBody });
+    const { template: _template, ...requestBody } = postBody;
+    void _template;
+    await sendContactUpdate(contactId, requestBody);
     return { contactId, url: getContactUrl(contactId) };
   } catch (error) {
     const errorMessage =

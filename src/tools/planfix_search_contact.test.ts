@@ -25,7 +25,11 @@ vi.mock("../helpers.js", async (importOriginal) => {
 
 import { PLANFIX_FIELD_IDS } from "../config.js";
 import { planfixRequest } from "../helpers.js";
-import { planfixSearchContact } from "./planfix_search_contact.js";
+import { customFieldsConfig } from "../customFieldsConfig.js";
+import {
+  isExactNameMatch,
+  planfixSearchContact,
+} from "./planfix_search_contact.js";
 
 const mockPlanfixRequest = vi.mocked(planfixRequest);
 
@@ -433,5 +437,112 @@ describe("planfixSearchContact", () => {
     expect(body.value).toBe("https://t.me/SomeUser");
     expect(result.contactId).toBe(1);
     expect(result.found).toBe(true);
+  });
+
+  describe('lead from 13.11: "СМИ США" must not bind to supplier "Status Media"', () => {
+    // Filter 4001 matches a substring of the full name: "US Media" is inside
+    // "Status Media", so Planfix returns the supplier for the translated name.
+    const statusMedia = { id: 21793, name: "Status Media", lastname: "" };
+
+    afterEach(() => {
+      customFieldsConfig.contactFields = [];
+    });
+
+    it("rejects a 4001 hit whose full name only contains the query", async () => {
+      customFieldsConfig.contactFields = [
+        {
+          id: 783,
+          name: "Резидентство",
+          argName: "resident",
+          type: "enum",
+          values: ["Не резидент", "В процессе", "Резидент"],
+        },
+      ];
+      mockPlanfixRequest.mockImplementation(async (args: any) => {
+        const filter = args.body.filters[0];
+        if (filter.type === 4001 && filter.value === "US Media") {
+          return { contacts: [statusMedia] };
+        }
+        // Every contact with resident "В процессе" would match the enum filter.
+        if (filter.type === 4111)
+          return { contacts: [{ id: 555, name: "Random" }] };
+        return { contacts: [] };
+      });
+
+      const result = await planfixSearchContact({
+        name: "СМИ США",
+        nameTranslated: "US Media",
+        phone: "+1 (645) 229-0801",
+        resident: "В процессе",
+      } as any);
+
+      expect(result.found).toBe(false);
+      expect(result.contactId).toBe(0);
+      const filterTypes = mockPlanfixRequest.mock.calls.map(
+        (c) => (c[0].body as any).filters[0].type,
+      );
+      expect(filterTypes).toEqual([4003, 4001, 4001]);
+    });
+
+    it("accepts an exact full-name match anywhere on the result page", async () => {
+      mockPlanfixRequest.mockImplementation(async (args: any) => {
+        const filter = args.body.filters[0];
+        if (filter.type === 4001 && filter.value === "us  media") {
+          return {
+            contacts: [
+              statusMedia,
+              { id: 24100, name: "US", lastname: "Media" },
+            ],
+          };
+        }
+        return { contacts: [] };
+      });
+
+      const result = await planfixSearchContact({
+        name: "СМИ США",
+        nameTranslated: "us  media",
+      });
+
+      expect(result).toMatchObject({ contactId: 24100, found: true });
+    });
+
+    it("still searches by string custom fields", async () => {
+      customFieldsConfig.contactFields = [
+        { id: 900, argName: "instagram_custom", type: "string" },
+      ];
+      mockPlanfixRequest.mockResolvedValueOnce({
+        contacts: [{ id: 77, name: "Insta" }],
+      });
+
+      const result = await planfixSearchContact({
+        instagram_custom: "insta_user",
+      } as any);
+
+      expect(
+        (mockPlanfixRequest.mock.calls[0][0].body as any).filters[0],
+      ).toMatchObject({
+        type: 4101,
+        field: 900,
+        value: "insta_user",
+      });
+      expect(result).toMatchObject({ contactId: 77, found: true });
+    });
+  });
+
+  describe("isExactNameMatch", () => {
+    it.each([
+      ["US Media", { name: "Status Media" }, false],
+      ["СМИ США", { name: "СМИ", lastname: "США" }, true],
+      ["Иванов Иван", { name: "Иван", lastname: "Иванов" }, true],
+      ["Алёна Петрова", { name: "алена", lastname: "петрова" }, true],
+      [
+        "Иван Петров",
+        { name: "Иван", midname: "Сергеевич", lastname: "Петров" },
+        false,
+      ],
+      ["  ", { name: "" }, false],
+    ])("%s vs %j -> %s", (query, contact, expected) => {
+      expect(isExactNameMatch(query, contact)).toBe(expected);
+    });
   });
 });

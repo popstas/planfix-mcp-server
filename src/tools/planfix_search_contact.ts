@@ -39,6 +39,36 @@ export const PlanfixSearchContactOutputSchema = z.object({
   telegram: z.string().optional(),
 });
 
+const IDENTIFYING_CUSTOM_FIELD_TYPES: string[] = ["string", "number"];
+
+function nameTokens(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+}
+
+/**
+ * Filter 4001 matches a *substring* of the full name, case-insensitively, so
+ * "US Media" finds "Status Media". A name-only match is accepted only when the
+ * contact's full name (name, midname, lastname) consists of exactly the same
+ * words as the query, in any order.
+ */
+export function isExactNameMatch(
+  query: string,
+  contact: Pick<ContactResponse, "name" | "lastname"> & { midname?: string },
+): boolean {
+  const expected = nameTokens(query);
+  if (!expected) return false;
+  const actual = nameTokens(
+    [contact.name, contact.midname, contact.lastname].filter(Boolean).join(" "),
+  );
+  return actual === expected;
+}
+
 export async function planfixSearchContact(
   args: z.infer<typeof PlanfixSearchContactInputSchema>,
 ): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
@@ -207,11 +237,17 @@ export async function planfixSearchContact(
     };
   }
 
+  // Only identifying custom fields (string/number, e.g. an instagram handle)
+  // may locate a contact. An enum/boolean value such as "resident: В процессе"
+  // is shared by many contacts, so matching on it would bind a lead to an
+  // arbitrary one.
   const customFilters: FilterType[] = [];
   extendFiltersWithCustomFields(
     customFilters,
     args,
-    customFieldsConfig.contactFields,
+    customFieldsConfig.contactFields.filter((f) =>
+      IDENTIFYING_CUSTOM_FIELD_TYPES.includes(f.type),
+    ),
     "contact",
   );
 
@@ -242,7 +278,15 @@ export async function planfixSearchContact(
 
   async function searchWithFilter(
     filter: FilterType,
-    { blocking = true }: { blocking?: boolean } = {},
+    {
+      blocking = true,
+      accept,
+    }: {
+      blocking?: boolean;
+      // When set, the first contact on the page passing it wins; contacts the
+      // filter returned but `accept` rejects are treated as a miss.
+      accept?: (contact: ContactResponse & { midname?: string }) => boolean;
+    } = {},
   ): Promise<z.infer<typeof PlanfixSearchContactOutputSchema>> {
     try {
       const result = (await planfixRequest({
@@ -252,11 +296,24 @@ export async function planfixSearchContact(
           filters: [filter],
         },
       })) as {
-        contacts?: Array<ContactResponse>;
+        contacts?: Array<ContactResponse & { midname?: string }>;
       };
 
-      if (result.contacts?.[0]) {
-        const contact = result.contacts[0];
+      const contact = accept
+        ? result.contacts?.find(accept)
+        : result.contacts?.[0];
+      if (accept && result.contacts?.length && !contact) {
+        log(
+          `[planfixSearchContact] Filter ${filter.type} "${filter.value}" returned ${result.contacts.length} contact(s), none with an exact name match: ${result.contacts
+            .slice(0, 5)
+            .map(
+              (c) =>
+                `${c.id} "${[c.name, c.lastname].filter(Boolean).join(" ")}"`,
+            )
+            .join(", ")}`,
+        );
+      }
+      if (contact) {
         const contactTelegram = extractTelegramFromContact(contact);
         return {
           contactId: contact.id,
@@ -342,7 +399,9 @@ export async function planfixSearchContact(
       contactId = result.contactId;
     }
     if (!contactId && name && name.trim().includes(" ") && filters.byName) {
-      result = await searchWithFilter(filters.byName);
+      result = await searchWithFilter(filters.byName, {
+        accept: (c) => isExactNameMatch(name, c),
+      });
       contactId = result.contactId;
       if (telegram && contactId > 0 && result.telegram) {
         const expectedTelegram = telegram.replace(/^@/, "").toLowerCase();
@@ -362,7 +421,9 @@ export async function planfixSearchContact(
       nameTranslated.trim().includes(" ") &&
       filters.byNameTranslated
     ) {
-      result = await searchWithFilter(filters.byNameTranslated);
+      result = await searchWithFilter(filters.byNameTranslated, {
+        accept: (c) => isExactNameMatch(nameTranslated, c),
+      });
       contactId = result.contactId;
       if (telegram && contactId > 0 && result.telegram) {
         const expectedTelegram = telegram.replace(/^@/, "").toLowerCase();
@@ -441,7 +502,7 @@ async function handler(
 export default getToolWithHandler({
   name: "planfix_search_contact",
   description:
-    "Search for a contact in Planfix by name, phone, email, or telegram. Use name in 2 languages: Russian and English.",
+    "Search for a contact in Planfix by name, phone, email, or telegram. Use name in 2 languages: Russian and English. A name matches only when the contact's full name has exactly the same words (any order, case-insensitive); a first name alone is not searched.",
   inputSchema: PlanfixSearchContactInputSchema,
   outputSchema: PlanfixSearchContactOutputSchema,
   handler,

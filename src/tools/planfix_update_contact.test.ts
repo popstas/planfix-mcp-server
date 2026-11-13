@@ -30,8 +30,9 @@ vi.mock("../helpers.js", async (importOriginal) => {
 });
 
 import { PLANFIX_FIELD_IDS } from "../config.js";
-import { planfixRequest } from "../helpers.js";
+import { log, planfixRequest } from "../helpers.js";
 import { updatePlanfixContact } from "./planfix_update_contact.js";
+import { extendPostBodyWithCustomFields } from "../lib/extendPostBodyWithCustomFields.js";
 
 const mockPlanfixRequest = vi.mocked(planfixRequest);
 
@@ -676,5 +677,110 @@ describe("planfix_update_contact tool", () => {
 
     expect(result.contactId).toBe(0);
     expect(result.error).toBe(errorMessage);
+  });
+
+  describe("custom field missing from the contact's template", () => {
+    // Lead 931839: the client field 783 (resident) was written to supplier
+    // contact 21793 (template 18774, which has no such field).
+    const setup = (rejectIds: number[]) => {
+      mockPlanfixRequest.mockReset();
+      mockPlanfixRequest.mockImplementation(async (args: any) => {
+        if (args.method === "GET") {
+          return {
+            contact: {
+              ...mockContact,
+              phones: [],
+              template: { id: 18774 },
+              customFieldData: [],
+            },
+          };
+        }
+        const sent: number[] = (args.body.customFieldData || []).map(
+          (f: any) => f.field.id,
+        );
+        const rejected = rejectIds.find((id) => sent.includes(id));
+        if (rejected) {
+          throw new Error(`Custom field not permitted by id - ${rejected}`);
+        }
+        return {};
+      });
+      vi.mocked(extendPostBodyWithCustomFields).mockImplementationOnce(
+        async (postBody: any) => {
+          postBody.customFieldData.push(
+            { field: { id: 783 }, value: "В процессе" },
+            { field: { id: 823 }, value: "folder" },
+          );
+        },
+      );
+    };
+
+    it("skips the rejected field, logs it and writes the rest", async () => {
+      setup([783]);
+
+      const result = await updatePlanfixContact({
+        contactId: 1,
+        phone: "+1 (645) 229-0801",
+      });
+
+      expect(result.error).toBeUndefined();
+      expect(result.contactId).toBe(1);
+      const posts = mockPlanfixRequest.mock.calls
+        .map((c) => c[0])
+        .filter((a: any) => a.method !== "GET");
+      expect(posts).toHaveLength(2);
+      const retried = posts[1].body as any;
+      expect(retried.customFieldData).toEqual([
+        { field: { id: 823 }, value: "folder" },
+      ]);
+      expect(retried.phones).toEqual([{ number: "16452290801", type: 1 }]);
+      expect(vi.mocked(log)).toHaveBeenCalledWith(
+        expect.stringContaining("Skipping custom field 783"),
+      );
+    });
+
+    it("succeeds without a request when every field is rejected and nothing else changes", async () => {
+      setup([783, 823]);
+
+      const result = await updatePlanfixContact({ contactId: 1 });
+
+      expect(result).toEqual({
+        contactId: 1,
+        url: "https://example.com/contact/1",
+      });
+      const posts = mockPlanfixRequest.mock.calls.filter(
+        (c: any) => c[0].method !== "GET",
+      );
+      expect(posts).toHaveLength(2);
+    });
+
+    it("does not send the template on update", async () => {
+      setup([]);
+
+      await updatePlanfixContact({ contactId: 1, phone: "+1 645 229 0801" });
+
+      const post = mockPlanfixRequest.mock.calls.find(
+        (c: any) => c[0].method !== "GET",
+      )?.[0];
+      expect(post?.body).not.toHaveProperty("template");
+      const getFields = (mockPlanfixRequest.mock.calls[0][0].body as any)
+        .fields as string;
+      expect(getFields.split(",")).toContain("template");
+    });
+
+    it("still fails on other errors", async () => {
+      mockPlanfixRequest.mockReset();
+      mockPlanfixRequest.mockImplementation(async (args: any) => {
+        if (args.method === "GET") return { contact: { ...mockContact } };
+        throw new Error("Contact is locked");
+      });
+
+      const result = await updatePlanfixContact({
+        contactId: 1,
+        email: "new@example.com",
+        forceUpdate: true,
+      });
+
+      expect(result).toEqual({ contactId: 0, error: "Contact is locked" });
+    });
   });
 });

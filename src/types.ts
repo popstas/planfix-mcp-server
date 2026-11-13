@@ -99,6 +99,7 @@ export interface ContactResponse {
   additionalEmailAddresses?: string[];
   phones?: Array<{ number: string; type: number }>;
   telegram?: string;
+  template?: { id: number };
   customFieldData?: CustomFieldDataType[];
 }
 
