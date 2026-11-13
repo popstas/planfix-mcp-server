@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 
 
+## v1.9.1 - 2026-11-13
+
+### Bug Fixes
+
+- Match companies only on exact name, scanning the whole result page
+- Bind leads to contacts only on exact name match, skip custom fields missing from contact template
+
 ## v1.9.0 - 2026-07-16
 
 ### Features
@@ -267,6 +274,12 @@ All notable changes to this project are documented here.
 - Client name from phone/email/telegram
 - Comment notify assignees by default
 
+## v1.2.0 - 2025-06-17
+
+### Features
+
+- Add directory search tools and caching
+
 ## v1.1.1 - 2025-06-17
 
 ### Miscellaneous
@@ -278,7 +291,6 @@ All notable changes to this project are documented here.
 ### Features
 
 - Define task title, header, message -> title, description (#12)
-- Add directory search tools and caching
 - Add objects cache with all fields ids (#8)
 - Add planfix_create_task tool (#6)
 - Support system Telegram field (#5)
