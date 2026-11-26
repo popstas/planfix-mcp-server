@@ -195,9 +195,12 @@ export async function updatePlanfixContact(
     }
 
     const cleanPhone = (phone: string) => phone.replace(/[^0-9]/g, "");
+    // "8 913 000-67-45", "+7 (913) 000-67-45" and "913 000 67 45" are one
+    // number: compare by the last 10 digits, dropping the country/trunk prefix
+    const phoneKey = (phone: string) => cleanPhone(phone).slice(-10);
     if (phone) {
       const phones = contact.phones || [];
-      const exists = phones.some((p) => p.number === cleanPhone(phone));
+      const exists = phones.some((p) => phoneKey(p.number) === phoneKey(phone));
       if (!exists) {
         postBody.phones = [...phones, { number: cleanPhone(phone), type: 1 }];
       }
