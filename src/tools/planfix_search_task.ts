@@ -37,6 +37,7 @@ interface Assignee {
 
 interface FoundTask {
   id: number;
+  name?: string;
   assignees?: { users: Assignee[] };
   description?: string;
   status?: { id: number; name?: string };
@@ -110,11 +111,14 @@ export async function searchPlanfixTask({
   clientId,
   leadId,
   templateId,
+  exactTitle = false,
 }: {
   taskTitle?: string;
   clientId?: number;
   leadId?: number;
   templateId?: number;
+  /** Title search (a substring match in Planfix) keeps only exact names. */
+  exactTitle?: boolean;
 }): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
   let taskId: number | undefined = undefined;
   let assignees: { users: Assignee[] } | undefined;
@@ -171,7 +175,14 @@ export async function searchPlanfixTask({
 
   async function searchWithFilter(
     filtersArr: PlanfixFilter[],
-    { preferActiveLead = false }: { preferActiveLead?: boolean } = {},
+    {
+      preferActiveLead = false,
+      keep,
+    }: {
+      preferActiveLead?: boolean;
+      /** Drops the tasks Planfix returned that do not really match. */
+      keep?: (task: FoundTask) => boolean;
+    } = {},
   ): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
     try {
       const result = (await planfixRequest({
@@ -181,13 +192,9 @@ export async function searchPlanfixTask({
           filters: [...filtersDefault, ...filtersArr],
         },
       })) as { tasks?: FoundTask[] };
-      // Planfix silently ignores the client filter for a nonexistent contact
-      // id and returns unrelated tasks (100 leads for contact:99999999), so
-      // keep only the tasks whose client really is that contact.
-      const tasks =
-        filtersArr.includes(filters.byClient) && clientId
-          ? (result.tasks ?? []).filter((t) => isTaskOfClient(t, clientId))
-          : (result.tasks ?? []);
+      const tasks = keep
+        ? (result.tasks ?? []).filter(keep)
+        : (result.tasks ?? []);
       const totalTasks = tasks.length;
       if (tasks.length > 0) {
         const task = preferActiveLead
@@ -227,6 +234,10 @@ export async function searchPlanfixTask({
         Boolean(clientId),
         () =>
           searchWithFilter([filters.byClient], {
+            // Planfix silently ignores the client filter for a nonexistent
+            // contact id and returns unrelated tasks (100 leads for
+            // contact:99999999), so keep only that contact's tasks.
+            keep: (task) => isTaskOfClient(task, clientId!),
             // Status ids below are the Lead template's; other templates keep
             // the old "last task" pick.
             preferActiveLead:
@@ -234,7 +245,16 @@ export async function searchPlanfixTask({
               templateId === Number(process.env.PLANFIX_LEAD_TEMPLATE_ID),
           }),
       ],
-      [Boolean(taskTitle), () => searchWithFilter([filters.byName])],
+      [
+        Boolean(taskTitle),
+        () =>
+          searchWithFilter([filters.byName], {
+            // Filter 8 matches a substring ("Талакина" found the lead)
+            keep: exactTitle
+              ? (task) => task.name?.trim() === taskTitle?.trim()
+              : undefined,
+          }),
+      ],
       [customFilters.length > 0, () => searchWithFilter(customFilters)],
     ];
     for (const [enabled, search] of steps) {

@@ -285,4 +285,48 @@ describe("searchPlanfixTask", () => {
 
     expect(res.taskId).toBe(30);
   });
+  it("with exactTitle keeps only tasks named exactly as the title", async () => {
+    // Filter 8 matches a substring: "Талакина" found 892373
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        { id: 40, name: "Работа с клиентом Анастасия Талакина" },
+        { id: 41, name: "Работа с клиентом Анастасия Талакина 2" },
+        { id: 42, name: "Звонок: Работа с клиентом Анастасия Талакина" },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({
+      taskTitle: "Работа с клиентом Анастасия Талакина",
+      templateId: 42,
+      exactTitle: true,
+    });
+
+    const call = mockPlanfixRequest.mock.calls[0][0];
+    expect((call.body as any).filters).toEqual([
+      { type: 51, operator: "equal", value: 42 },
+      {
+        type: 8,
+        operator: "equal",
+        value: "Работа с клиентом Анастасия Талакина",
+      },
+    ]);
+    expect(res.taskId).toBe(40);
+    expect(res.totalTasks).toBe(1);
+  });
+
+  it("with exactTitle finds nothing when only substring matches come back", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [{ id: 50, name: "Работа с клиентом Юлия Павлова" }],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({
+      taskTitle: "Юлия Павлова",
+      exactTitle: true,
+    });
+
+    expect(res.found).toBe(false);
+    expect(res.taskId).toBe(0);
+  });
 });
