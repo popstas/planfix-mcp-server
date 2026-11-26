@@ -53,8 +53,10 @@ export async function searchLeadTask(
   );
 
   try {
-    // 1. Determine client ID
-    const shouldSearchContact = userData.clientId === undefined;
+    // 1. Determine client ID. clientId 0 means "not set": callers (the lead
+    // bot) send it by default, and skipping the contact search on it left every
+    // such search with no contact and no lead.
+    const shouldSearchContact = !userData.clientId;
     const contactResult = shouldSearchContact
       ? await planfixSearchContact(userData)
       : {

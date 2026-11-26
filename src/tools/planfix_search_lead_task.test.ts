@@ -78,6 +78,27 @@ describe("searchLeadTask", () => {
     expect(mTask).not.toHaveBeenCalled();
   });
 
+  it("treats clientId 0 as not set and searches the contact", async () => {
+    mContact.mockResolvedValueOnce({ contactId: 24040, found: true } as any);
+    mTask.mockResolvedValueOnce({
+      taskId: 931655,
+      assignees: { users: [] },
+      found: true,
+      totalTasks: 2,
+    } as any);
+
+    const { searchLeadTask } = await import("./planfix_search_lead_task.js");
+    const res = await searchLeadTask({ clientId: 0, name: "Creo" } as any);
+
+    expect(mContact).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Creo" }),
+    );
+    expect(mTask).toHaveBeenCalledWith({ clientId: 24040, templateId: 42 });
+    expect(res.clientId).toBe(24040);
+    expect(res.taskId).toBe(931655);
+    expect(res.found).toBe(true);
+  });
+
   it("skips contact search when clientId provided", async () => {
     mTask.mockResolvedValueOnce({
       taskId: 10,
