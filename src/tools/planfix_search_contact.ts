@@ -48,7 +48,14 @@ export async function planfixSearchContact(
   const { name, nameTranslated, email, additionalEmails, telegram } = args;
   let { phone } = args;
   let contactId: number | null = null;
-  if (phone && (phone.startsWith("@") || !/^[+\d\s\-()]{5,}$/.test(phone))) {
+  // The phone filter (4003) matches by the end of the number ("6745" found 3
+  // different contacts), so search only by a full number of 10+ digits.
+  if (
+    phone &&
+    (phone.startsWith("@") ||
+      !/^[+\d\s\-()]+$/.test(phone) ||
+      phone.replace(/\D/g, "").length < 10)
+  ) {
     phone = "";
   }
 

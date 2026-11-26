@@ -107,6 +107,33 @@ describe("planfixSearchContact", () => {
     expect(result.found).toBe(true);
   });
 
+  // Filter 4003 matches by the end of the number: "6745" found 3 contacts
+  it.each([["6745"], ["000-67-45"], ["913 000 67 4"]])(
+    "skips phone search for %s, shorter than 10 digits",
+    async (phone) => {
+      mockPlanfixRequest.mockResolvedValue({
+        contacts: [{ id: 2, name: "Foo", lastname: "Bar" }],
+      });
+
+      const result = await planfixSearchContact({ phone });
+
+      expect(mockPlanfixRequest).not.toHaveBeenCalled();
+      expect(result.found).toBe(false);
+    },
+  );
+
+  it("searches by a phone of 10 digits", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      contacts: [{ id: 22578, name: "Наталья", lastname: "" }],
+    });
+
+    const result = await planfixSearchContact({ phone: "913 000 67 45" });
+
+    const body = mockPlanfixRequest.mock.calls[0][0].body as any;
+    expect(body.filters[0]).toMatchObject({ value: "913 000 67 45" });
+    expect(result.contactId).toBe(22578);
+  });
+
   it("handles API errors", async () => {
     mockPlanfixRequest
       .mockRejectedValueOnce(new Error("API fail"))
