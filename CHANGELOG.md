@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 
 
+## v1.9.2 - 2026-11-26
+
+### Bug Fixes
+
+- planfix_search_lead_task: Treat clientId 0 as not set
+- Prefer active leads and never create a lead over a failed lead search
+
 ## v1.9.1 - 2026-11-13
 
 ### Bug Fixes
