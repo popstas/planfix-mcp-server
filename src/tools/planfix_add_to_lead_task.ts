@@ -264,6 +264,9 @@ export async function addToLeadTask(
         errors.push(updateResult.error);
       }
     }
+    // A failed lead search is not a miss: the client may already have a lead,
+    // and creating another one here is how duplicate leads appear.
+    let leadSearchError = searchResult.taskSearchError;
     // 4. If task not found and name has space, search by name
     if (
       clientId &&
@@ -278,6 +281,9 @@ export async function addToLeadTask(
       });
       taskId = Number(result.taskId) || 0;
       assignees = result.assignees;
+      if (result.error) {
+        leadSearchError = result.error;
+      }
     }
     // 5. If still no task, create it
     let commentId: number | undefined;
@@ -289,6 +295,16 @@ export async function addToLeadTask(
         taskId: webhookTaskId,
         clientId: Number(clientId) || 0,
         error: joinErrors(),
+      };
+    }
+
+    if (!taskId && leadSearchError) {
+      log(`[leadToTask] Lead search failed, not creating a lead`);
+      return {
+        taskId: 0,
+        clientId: Number(clientId) || 0,
+        clientUrl: getContactUrl(clientId),
+        error: joinErrors(leadSearchError),
       };
     }
 
