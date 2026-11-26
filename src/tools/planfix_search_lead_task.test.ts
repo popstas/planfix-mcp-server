@@ -126,6 +126,31 @@ describe("searchLeadTask", () => {
     expect(res.error).toBe("filter rejected");
   });
 
+  it("propagates a failed lead search instead of reporting no lead", async () => {
+    mContact.mockResolvedValueOnce({ contactId: 1, found: true } as any);
+    mTask.mockResolvedValueOnce({
+      taskId: 0,
+      found: false,
+      totalTasks: 0,
+      error: "Error searching for tasks: timeout",
+    } as any);
+    const { searchLeadTask } = await import("./planfix_search_lead_task.js");
+    const res = await searchLeadTask({ email: "x" } as any);
+    expect(res.clientId).toBe(1);
+    expect(res.found).toBe(false);
+    expect(res.taskSearchError).toBe("Error searching for tasks: timeout");
+    expect(res.error).toBe("Error searching for tasks: timeout");
+  });
+
+  it("reports no task search error when the lead search cleanly missed", async () => {
+    mContact.mockResolvedValueOnce({ contactId: 1, found: true } as any);
+    mTask.mockResolvedValueOnce({ taskId: 0, found: false } as any);
+    const { searchLeadTask } = await import("./planfix_search_lead_task.js");
+    const res = await searchLeadTask({ email: "x" } as any);
+    expect(res.taskSearchError).toBeUndefined();
+    expect(res.error).toBeUndefined();
+  });
+
   it("reports no error when the contact search cleanly missed", async () => {
     mContact.mockResolvedValueOnce({ contactId: 0, found: false } as any);
     const { searchLeadTask } = await import("./planfix_search_lead_task.js");

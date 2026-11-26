@@ -55,6 +55,7 @@ import { updatePlanfixContact } from "./planfix_update_contact.js";
 import { createPlanfixContact } from "./planfix_create_contact.js";
 import { searchLeadTask } from "./planfix_search_lead_task.js";
 import { createLeadTask } from "./planfix_create_lead_task.js";
+import { searchPlanfixTask } from "./planfix_search_task.js";
 import { addToLeadTask } from "./planfix_add_to_lead_task.js";
 import { webhookConfig } from "../customFieldsConfig.js";
 
@@ -62,6 +63,7 @@ const mockUpdate = vi.mocked(updatePlanfixContact);
 const mockCreate = vi.mocked(createPlanfixContact);
 const mockSearch = vi.mocked(searchLeadTask);
 const mockCreateLeadTask = vi.mocked(createLeadTask);
+const mockSearchTask = vi.mocked(searchPlanfixTask);
 
 describe("planfix_add_to_lead_task", () => {
   afterEach(() => {
@@ -130,6 +132,52 @@ describe("planfix_add_to_lead_task", () => {
     );
     expect(res.clientId).toBe(0);
     expect(res.error).toContain("filter 4221 rejected");
+  });
+
+  it("does not create a lead when the lead search failed rather than missed", async () => {
+    mockSearch.mockResolvedValueOnce({
+      taskId: 0,
+      clientId: 24040,
+      url: "",
+      clientUrl: "",
+      assignees: { users: [] },
+      firstName: "",
+      lastName: "",
+      agencyId: undefined,
+      totalTasks: 0,
+      error: "Error searching for tasks: timeout",
+      taskSearchError: "Error searching for tasks: timeout",
+      found: false,
+    });
+
+    const res = await addToLeadTask({
+      name: "Creo",
+      description: "Test",
+    } as any);
+
+    expect(mockCreateLeadTask).not.toHaveBeenCalled();
+    expect(res.taskId).toBe(0);
+    expect(res.clientId).toBe(24040);
+    expect(res.error).toContain("Error searching for tasks: timeout");
+  });
+
+  it("does not create a lead when the fallback title search failed", async () => {
+    mockSearchTask.mockResolvedValueOnce({
+      taskId: 0,
+      found: false,
+      error: "Error searching for tasks: timeout",
+    } as any);
+
+    const res = await addToLeadTask({
+      name: "John Doe",
+      title: "Lead John Doe",
+      description: "Test",
+    } as any);
+
+    expect(mockSearchTask).toHaveBeenCalledWith({ taskTitle: "Lead John Doe" });
+    expect(mockCreateLeadTask).not.toHaveBeenCalled();
+    expect(res.taskId).toBe(0);
+    expect(res.error).toContain("timeout");
   });
 
   it("threads additionalEmails into createPlanfixContact when contact is missing", async () => {

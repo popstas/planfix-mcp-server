@@ -31,9 +31,12 @@ export const SearchLeadTaskOutputSchema = z.object({
   lastName: z.string().optional(),
   agencyId: z.number().optional(),
   totalTasks: z.number().optional(),
-  // Set when the contact search failed rather than missed. Callers must not
-  // treat a zero clientId as "no such contact" while this is present.
+  // Set when the contact or lead search failed rather than missed. Callers must
+  // not treat a zero clientId as "no such contact" while this is present.
   error: z.string().optional(),
+  // Set when the lead search for a found contact failed rather than missed.
+  // Callers must not treat a zero taskId as "no lead" and create a new one.
+  taskSearchError: z.string().optional(),
   found: z.boolean(),
 });
 
@@ -67,6 +70,7 @@ export async function searchLeadTask(
     let taskId = 0;
     let assignees: UsersListType = { users: [] };
     let totalTasks = 0;
+    let taskSearchError: string | undefined;
 
     // 2. If contact found, search for task by clientId
     if (clientId > 0) {
@@ -79,7 +83,12 @@ export async function searchLeadTask(
       }
       taskId = result.taskId || 0;
       totalTasks = result.totalTasks ?? totalTasks;
-      log(`[searchLeadTask] Task found: ${taskId}`);
+      if (result.error) {
+        taskSearchError = result.error;
+        log(`[searchLeadTask] Task search failed: ${result.error}`);
+      } else {
+        log(`[searchLeadTask] Task found: ${taskId}`);
+      }
     }
 
     // 3. If company provided, search for company
@@ -108,7 +117,10 @@ export async function searchLeadTask(
       lastName,
       agencyId,
       totalTasks,
-      error: contactResult.error,
+      error:
+        [contactResult.error, taskSearchError].filter(Boolean).join("\n") ||
+        undefined,
+      ...(taskSearchError ? { taskSearchError } : {}),
       found: taskId > 0,
     };
   } catch (error) {
