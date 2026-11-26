@@ -40,6 +40,18 @@ interface FoundTask {
   assignees?: { users: Assignee[] };
   description?: string;
   status?: { id: number; name?: string };
+  customFieldData?: Array<{ field?: { id?: number }; value?: unknown }>;
+}
+
+/** True when the task's client field holds exactly `contact:<clientId>`. */
+function isTaskOfClient(task: FoundTask, clientId: number): boolean {
+  return Boolean(
+    task.customFieldData?.some(
+      (f) =>
+        f.field?.id === PLANFIX_FIELD_IDS.client &&
+        (f.value as { id?: unknown } | undefined)?.id === `contact:${clientId}`,
+    ),
+  );
 }
 
 /**
@@ -112,7 +124,11 @@ export async function searchPlanfixTask({
     offset: 0,
     pageSize: 100,
     filters: [],
-    fields: "id,name,description,template,assignees,status",
+    // The client field is read back to verify client-filter results
+    fields: [
+      "id,name,description,template,assignees,status",
+      ...(PLANFIX_FIELD_IDS.client ? [PLANFIX_FIELD_IDS.client] : []),
+    ].join(","),
   };
 
   const filtersDefault: PlanfixFilter[] = [];
@@ -165,11 +181,18 @@ export async function searchPlanfixTask({
           filters: [...filtersDefault, ...filtersArr],
         },
       })) as { tasks?: FoundTask[] };
-      const totalTasks = result.tasks?.length ?? 0;
-      if (result.tasks && result.tasks.length > 0) {
+      // Planfix silently ignores the client filter for a nonexistent contact
+      // id and returns unrelated tasks (100 leads for contact:99999999), so
+      // keep only the tasks whose client really is that contact.
+      const tasks =
+        filtersArr.includes(filters.byClient) && clientId
+          ? (result.tasks ?? []).filter((t) => isTaskOfClient(t, clientId))
+          : (result.tasks ?? []);
+      const totalTasks = tasks.length;
+      if (tasks.length > 0) {
         const task = preferActiveLead
-          ? pickLeadTask(result.tasks)!
-          : result.tasks[result.tasks.length - 1];
+          ? pickLeadTask(tasks)!
+          : tasks[tasks.length - 1];
         return {
           taskId: task.id,
           assignees: task.assignees,
