@@ -17,7 +17,12 @@ export type ToolOutput = CallToolResult;
 
 // Input and Output Schemas
 export const UserDataInputSchemaBase = z.object({
-  name: z.string().optional(),
+  name: z
+    .string()
+    .optional()
+    .describe(
+      "Client's full name: first name and last name (e.g. from the signature), not just the first name",
+    ),
   nameTranslated: z
     .string()
     .optional()
