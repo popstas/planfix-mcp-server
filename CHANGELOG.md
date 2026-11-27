@@ -3,6 +3,17 @@
 All notable changes to this project are documented here.
 
 
+## v1.9.3 - 2026-11-27
+
+### Bug Fixes
+
+- planfix_search_task: Start a new lead when the client's last lead is closed as 255
+- planfix_add_to_lead_task: Bind by title only to a lead with the exact title
+- planfix_search_contact: Search by phone only with 10+ digits
+- planfix_search_task: Drop tasks of other clients from a client search
+- types: Describe name as the client's full name
+- planfix_update_contact: Treat 8-, +7- and 10-digit forms of a phone as one number
+
 ## v1.9.2 - 2026-11-26
 
 ### Bug Fixes
