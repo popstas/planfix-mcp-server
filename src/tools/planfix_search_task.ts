@@ -37,9 +37,22 @@ interface Assignee {
 
 interface FoundTask {
   id: number;
+  name?: string;
   assignees?: { users: Assignee[] };
   description?: string;
   status?: { id: number; name?: string };
+  customFieldData?: Array<{ field?: { id?: number }; value?: unknown }>;
+}
+
+/** True when the task's client field holds exactly `contact:<clientId>`. */
+function isTaskOfClient(task: FoundTask, clientId: number): boolean {
+  return Boolean(
+    task.customFieldData?.some(
+      (f) =>
+        f.field?.id === PLANFIX_FIELD_IDS.client &&
+        (f.value as { id?: unknown } | undefined)?.id === `contact:${clientId}`,
+    ),
+  );
 }
 
 /**
@@ -50,6 +63,9 @@ interface FoundTask {
 export const LEAD_CLOSED_STATUS_IDS: ReadonlySet<number> = new Set([
   255, 245, 3, 4,
 ]);
+
+/** "Не клиент или дубль": a lead closed so is never reused for a new request. */
+export const LEAD_NOT_A_CLIENT_STATUS_ID = 255;
 
 /**
  * Lead funnel, least to most advanced (Planfix object "Lead", template 634921).
@@ -76,7 +92,9 @@ function funnelRank(task: FoundTask): number {
 /**
  * Picks the lead a new request should go to: among active leads the most
  * advanced one in the funnel, ties going to the oldest (smallest id). With no
- * active lead it falls back to the last task in the list, as before.
+ * active lead it falls back to the last task in the list (Planfix lists them
+ * by ascending id, so the newest one), unless that lead is closed as "Не клиент
+ * или дубль": then there is no lead to reuse and the caller creates a new one.
  */
 export function pickLeadTask(tasks: FoundTask[]): FoundTask | undefined {
   const active = tasks.filter(
@@ -84,7 +102,10 @@ export function pickLeadTask(tasks: FoundTask[]): FoundTask | undefined {
       task.status?.id === undefined ||
       !LEAD_CLOSED_STATUS_IDS.has(task.status.id),
   );
-  if (!active.length) return tasks[tasks.length - 1];
+  if (!active.length) {
+    const last = tasks[tasks.length - 1];
+    return last?.status?.id === LEAD_NOT_A_CLIENT_STATUS_ID ? undefined : last;
+  }
   return active.reduce((best, task) => {
     const diff = funnelRank(task) - funnelRank(best);
     if (diff > 0) return task;
@@ -98,11 +119,14 @@ export async function searchPlanfixTask({
   clientId,
   leadId,
   templateId,
+  exactTitle = false,
 }: {
   taskTitle?: string;
   clientId?: number;
   leadId?: number;
   templateId?: number;
+  /** Title search (a substring match in Planfix) keeps only exact names. */
+  exactTitle?: boolean;
 }): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
   let taskId: number | undefined = undefined;
   let assignees: { users: Assignee[] } | undefined;
@@ -112,7 +136,11 @@ export async function searchPlanfixTask({
     offset: 0,
     pageSize: 100,
     filters: [],
-    fields: "id,name,description,template,assignees,status",
+    // The client field is read back to verify client-filter results
+    fields: [
+      "id,name,description,template,assignees,status",
+      ...(PLANFIX_FIELD_IDS.client ? [PLANFIX_FIELD_IDS.client] : []),
+    ].join(","),
   };
 
   const filtersDefault: PlanfixFilter[] = [];
@@ -155,7 +183,14 @@ export async function searchPlanfixTask({
 
   async function searchWithFilter(
     filtersArr: PlanfixFilter[],
-    { preferActiveLead = false }: { preferActiveLead?: boolean } = {},
+    {
+      preferActiveLead = false,
+      keep,
+    }: {
+      preferActiveLead?: boolean;
+      /** Drops the tasks Planfix returned that do not really match. */
+      keep?: (task: FoundTask) => boolean;
+    } = {},
   ): Promise<z.infer<typeof SearchPlanfixTaskOutputSchema>> {
     try {
       const result = (await planfixRequest({
@@ -165,11 +200,14 @@ export async function searchPlanfixTask({
           filters: [...filtersDefault, ...filtersArr],
         },
       })) as { tasks?: FoundTask[] };
-      const totalTasks = result.tasks?.length ?? 0;
-      if (result.tasks && result.tasks.length > 0) {
-        const task = preferActiveLead
-          ? pickLeadTask(result.tasks)!
-          : result.tasks[result.tasks.length - 1];
+      const tasks = keep
+        ? (result.tasks ?? []).filter(keep)
+        : (result.tasks ?? []);
+      const totalTasks = tasks.length;
+      const task = preferActiveLead
+        ? pickLeadTask(tasks)
+        : tasks[tasks.length - 1];
+      if (task) {
         return {
           taskId: task.id,
           assignees: task.assignees,
@@ -198,20 +236,35 @@ export async function searchPlanfixTask({
   try {
     // A failed request is not a miss: report it instead of falling through to
     // the next filter, so callers don't create a duplicate lead over it.
+    // Status ids in pickLeadTask are the Lead template's; other templates keep
+    // the old "last task" pick.
+    const isLeadTemplate =
+      templateId !== undefined &&
+      templateId === Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
     const steps: Array<[boolean, () => ReturnType<typeof searchWithFilter>]> = [
       [Boolean(leadId), () => searchWithFilter([filters.byLeadId])],
       [
         Boolean(clientId),
         () =>
           searchWithFilter([filters.byClient], {
-            // Status ids below are the Lead template's; other templates keep
-            // the old "last task" pick.
-            preferActiveLead:
-              templateId !== undefined &&
-              templateId === Number(process.env.PLANFIX_LEAD_TEMPLATE_ID),
+            // Planfix silently ignores the client filter for a nonexistent
+            // contact id and returns unrelated tasks (100 leads for
+            // contact:99999999), so keep only that contact's tasks.
+            keep: (task) => isTaskOfClient(task, clientId!),
+            preferActiveLead: isLeadTemplate,
           }),
       ],
-      [Boolean(taskTitle), () => searchWithFilter([filters.byName])],
+      [
+        Boolean(taskTitle),
+        () =>
+          searchWithFilter([filters.byName], {
+            preferActiveLead: isLeadTemplate,
+            // Filter 8 matches a substring ("Талакина" found the lead)
+            keep: exactTitle
+              ? (task) => task.name?.trim() === taskTitle?.trim()
+              : undefined,
+          }),
+      ],
       [customFilters.length > 0, () => searchWithFilter(customFilters)],
     ];
     for (const [enabled, search] of steps) {

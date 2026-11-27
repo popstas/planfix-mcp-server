@@ -22,6 +22,16 @@ import { planfixRequest } from "../helpers.js";
 
 const mockPlanfixRequest = vi.mocked(planfixRequest);
 
+// Client field (id 200 in the mocked config) as task/list returns it
+const ofClient = (clientId: number) => ({
+  customFieldData: [
+    {
+      field: { id: 200 },
+      value: { id: `contact:${clientId}`, name: "Client" },
+    },
+  ],
+});
+
 beforeEach(() => {
   process.env.PLANFIX_LEAD_TEMPLATE_ID = "42";
 });
@@ -58,7 +68,7 @@ describe("searchPlanfixTask", () => {
   it("falls back to clientId when lead search fails", async () => {
     mockPlanfixRequest
       .mockResolvedValueOnce({ tasks: [] })
-      .mockResolvedValueOnce({ tasks: [{ id: 2 }] });
+      .mockResolvedValueOnce({ tasks: [{ id: 2, ...ofClient(3) }] });
     const { searchPlanfixTask } = await import("./planfix_search_task.js");
 
     const res = await searchPlanfixTask({ leadId: 1, clientId: 3 });
@@ -135,11 +145,11 @@ describe("searchPlanfixTask", () => {
   it("prefers the most advanced active lead of the client over closed ones", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       tasks: [
-        { id: 10, status: { id: 1 } }, // Новая
-        { id: 11, status: { id: 205 } }, // Коммерческое предложение
-        { id: 12, status: { id: 263 } }, // Первый звонок
-        { id: 13, status: { id: 255 } }, // Не клиент или дубль
-        { id: 14, status: { id: 3 } }, // Завершенная
+        { id: 10, status: { id: 1 }, ...ofClient(3) }, // Новая
+        { id: 11, status: { id: 205 }, ...ofClient(3) }, // Коммерческое предложение
+        { id: 12, status: { id: 263 }, ...ofClient(3) }, // Первый звонок
+        { id: 13, status: { id: 255 }, ...ofClient(3) }, // Не клиент или дубль
+        { id: 14, status: { id: 3 }, ...ofClient(3) }, // Завершенная
       ],
     });
     const { searchPlanfixTask } = await import("./planfix_search_task.js");
@@ -154,8 +164,8 @@ describe("searchPlanfixTask", () => {
   it("breaks a funnel tie in favour of the older lead", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       tasks: [
-        { id: 931658, status: { id: 1 } },
-        { id: 931655, status: { id: 1 } },
+        { id: 931658, status: { id: 1 }, ...ofClient(24040) },
+        { id: 931655, status: { id: 1 }, ...ofClient(24040) },
       ],
     });
     const { searchPlanfixTask } = await import("./planfix_search_task.js");
@@ -168,9 +178,9 @@ describe("searchPlanfixTask", () => {
   it("does not return a closed lead while an active one exists", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       tasks: [
-        { id: 1, status: { id: 999 } }, // unknown status, still active
-        { id: 2, status: { id: 245 } }, // Клиент ничего не купил
-        { id: 3, status: { id: 4 } }, // Отложенная
+        { id: 1, status: { id: 999 }, ...ofClient(3) }, // unknown status, still active
+        { id: 2, status: { id: 245 }, ...ofClient(3) }, // Клиент ничего не купил
+        { id: 3, status: { id: 4 }, ...ofClient(3) }, // Отложенная
       ],
     });
     const { searchPlanfixTask } = await import("./planfix_search_task.js");
@@ -180,25 +190,57 @@ describe("searchPlanfixTask", () => {
     expect(res.taskId).toBe(1);
   });
 
+  // Planfix lists leads by ascending id, so the last one is the newest
   it("falls back to the last lead when all of them are closed", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       tasks: [
-        { id: 5, status: { id: 3 } },
-        { id: 4, status: { id: 255 } },
+        { id: 4, status: { id: 255 }, ...ofClient(3) },
+        { id: 5, status: { id: 3 }, ...ofClient(3) },
       ],
     });
     const { searchPlanfixTask } = await import("./planfix_search_task.js");
 
     const res = await searchPlanfixTask({ clientId: 3, templateId: 42 });
 
-    expect(res.taskId).toBe(4);
+    expect(res.taskId).toBe(5);
+  });
+
+  it("finds no lead when the last one is closed as not a client or a duplicate", async () => {
+    // 854209: the client's only lead is in 255 "Не клиент или дубль"
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        { id: 5, status: { id: 245 }, ...ofClient(3) },
+        { id: 6, status: { id: 255 }, ...ofClient(3) },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({ clientId: 3, templateId: 42 });
+
+    expect(res.found).toBe(false);
+    expect(res.taskId).toBe(0);
+    expect(res.error).toBeUndefined();
+  });
+
+  it("still prefers an active lead over a newer lead closed as 255", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        { id: 5, status: { id: 263 }, ...ofClient(3) },
+        { id: 6, status: { id: 255 }, ...ofClient(3) },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({ clientId: 3, templateId: 42 });
+
+    expect(res.taskId).toBe(5);
   });
 
   it("keeps the last task for client searches outside the lead template", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       tasks: [
-        { id: 7, status: { id: 2 } },
-        { id: 8, status: { id: 3 } },
+        { id: 7, status: { id: 2 }, ...ofClient(3) },
+        { id: 8, status: { id: 3 }, ...ofClient(3) },
       ],
     });
     const { searchPlanfixTask } = await import("./planfix_search_task.js");
@@ -219,5 +261,142 @@ describe("searchPlanfixTask", () => {
     expect(res.error).toContain("timeout");
     // No fallback to the title search: it could pick another client's task.
     expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+  });
+  it("requests the client field to check client search results", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({ tasks: [] });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    await searchPlanfixTask({ clientId: 3 });
+
+    const call = mockPlanfixRequest.mock.calls[0][0];
+    expect((call.body as any).fields.split(",")).toContain("200");
+  });
+
+  it("drops leads of other clients when Planfix ignores the client filter", async () => {
+    // Planfix returns 100 unrelated leads for a nonexistent contact id
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        {
+          id: 644124,
+          status: { id: 1 },
+          customFieldData: [{ field: { id: 200 } }],
+        },
+        { id: 644152, status: { id: 205 }, ...ofClient(17972) },
+        { id: 644471, status: { id: 263 } },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({ clientId: 99999999, templateId: 42 });
+
+    expect(res.found).toBe(false);
+    expect(res.taskId).toBe(0);
+    expect(res.totalTasks).toBe(0);
+  });
+
+  it("keeps only the client's own leads from a mixed result", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        { id: 20, status: { id: 205 }, ...ofClient(17972) },
+        { id: 21, status: { id: 1 }, ...ofClient(3) },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({ clientId: 3, templateId: 42 });
+
+    expect(res.taskId).toBe(21);
+    expect(res.totalTasks).toBe(1);
+  });
+
+  it("does not check the client of tasks found by other filters", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({ tasks: [{ id: 30 }] });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({ taskTitle: "Lead" });
+
+    expect(res.taskId).toBe(30);
+  });
+  it("with exactTitle keeps only tasks named exactly as the title", async () => {
+    // Filter 8 matches a substring: "Талакина" found 892373
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        { id: 40, name: "Работа с клиентом Анастасия Талакина" },
+        { id: 41, name: "Работа с клиентом Анастасия Талакина 2" },
+        { id: 42, name: "Звонок: Работа с клиентом Анастасия Талакина" },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({
+      taskTitle: "Работа с клиентом Анастасия Талакина",
+      templateId: 42,
+      exactTitle: true,
+    });
+
+    const call = mockPlanfixRequest.mock.calls[0][0];
+    expect((call.body as any).filters).toEqual([
+      { type: 51, operator: "equal", value: 42 },
+      {
+        type: 8,
+        operator: "equal",
+        value: "Работа с клиентом Анастасия Талакина",
+      },
+    ]);
+    expect(res.taskId).toBe(40);
+    expect(res.totalTasks).toBe(1);
+  });
+
+  it("with exactTitle finds nothing when only substring matches come back", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [{ id: 50, name: "Работа с клиентом Юлия Павлова" }],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({
+      taskTitle: "Юлия Павлова",
+      exactTitle: true,
+    });
+
+    expect(res.found).toBe(false);
+    expect(res.taskId).toBe(0);
+  });
+  it("does not reuse a lead closed as 255 found by its exact title", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        {
+          id: 854209,
+          name: "Работа с клиентом Юлия Павлова",
+          status: { id: 255 },
+        },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({
+      taskTitle: "Работа с клиентом Юлия Павлова",
+      templateId: 42,
+      exactTitle: true,
+    });
+
+    expect(res.found).toBe(false);
+    expect(res.taskId).toBe(0);
+  });
+
+  it("reuses a lead closed otherwise found by its exact title", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        { id: 70, name: "Работа с клиентом Юлия Павлова", status: { id: 245 } },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({
+      taskTitle: "Работа с клиентом Юлия Павлова",
+      templateId: 42,
+      exactTitle: true,
+    });
+
+    expect(res.taskId).toBe(70);
   });
 });

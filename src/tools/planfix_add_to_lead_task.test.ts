@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 
 vi.mock("./planfix_search_lead_task.js", () => ({
   searchLeadTask: vi.fn().mockResolvedValue({
@@ -55,6 +55,7 @@ import { updatePlanfixContact } from "./planfix_update_contact.js";
 import { createPlanfixContact } from "./planfix_create_contact.js";
 import { searchLeadTask } from "./planfix_search_lead_task.js";
 import { createLeadTask } from "./planfix_create_lead_task.js";
+import { createComment } from "./planfix_create_comment.js";
 import { searchPlanfixTask } from "./planfix_search_task.js";
 import { addToLeadTask } from "./planfix_add_to_lead_task.js";
 import { webhookConfig } from "../customFieldsConfig.js";
@@ -66,6 +67,10 @@ const mockCreateLeadTask = vi.mocked(createLeadTask);
 const mockSearchTask = vi.mocked(searchPlanfixTask);
 
 describe("planfix_add_to_lead_task", () => {
+  beforeEach(() => {
+    process.env.PLANFIX_LEAD_TEMPLATE_ID = "42";
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();
@@ -174,10 +179,54 @@ describe("planfix_add_to_lead_task", () => {
       description: "Test",
     } as any);
 
-    expect(mockSearchTask).toHaveBeenCalledWith({ taskTitle: "Lead John Doe" });
+    expect(mockSearchTask).toHaveBeenCalledWith({
+      taskTitle: "Lead John Doe",
+      templateId: 42,
+      exactTitle: true,
+    });
     expect(mockCreateLeadTask).not.toHaveBeenCalled();
     expect(res.taskId).toBe(0);
     expect(res.error).toContain("timeout");
+  });
+
+  it("searches the title fallback only among leads, by exact title", async () => {
+    mockSearchTask.mockResolvedValueOnce({
+      taskId: 892373,
+      assignees: { users: [] },
+      found: true,
+    } as any);
+
+    await addToLeadTask({
+      name: "Анастасия Талакина",
+      title: "Работа с клиентом Анастасия Талакина",
+      description: "Test",
+    } as any);
+
+    expect(mockSearchTask).toHaveBeenCalledTimes(1);
+    expect(mockSearchTask).toHaveBeenCalledWith({
+      taskTitle: "Работа с клиентом Анастасия Талакина",
+      templateId: 42,
+      exactTitle: true,
+    });
+    // The found lead gets the request as a comment instead of a new lead
+    expect(mockCreateLeadTask).not.toHaveBeenCalled();
+    expect(vi.mocked(createComment)).toHaveBeenCalledWith(
+      expect.objectContaining({ taskId: 892373 }),
+    );
+  });
+
+  it("skips the title fallback when the lead template is not configured", async () => {
+    delete process.env.PLANFIX_LEAD_TEMPLATE_ID;
+
+    const res = await addToLeadTask({
+      name: "John Doe",
+      title: "Lead John Doe",
+      description: "Test",
+    } as any);
+
+    expect(mockSearchTask).not.toHaveBeenCalled();
+    expect(mockCreateLeadTask).toHaveBeenCalled();
+    expect(res.taskId).toBe(3);
   });
 
   it("threads additionalEmails into createPlanfixContact when contact is missing", async () => {

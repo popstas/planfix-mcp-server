@@ -267,10 +267,15 @@ export async function addToLeadTask(
     // A failed lead search is not a miss: the client may already have a lead,
     // and creating another one here is how duplicate leads appear.
     let leadSearchError = searchResult.taskSearchError;
-    // 4. If task not found and name has space, search by name
+    // 4. If task not found and name has space, search the client's lead by
+    // title: only among leads and only an exact title, because the title
+    // filter matches a substring and would bind the request to any task
+    // containing it. Without a configured lead template the step is skipped.
+    const leadTemplateId = Number(process.env.PLANFIX_LEAD_TEMPLATE_ID);
     if (
       clientId &&
       !taskId &&
+      leadTemplateId &&
       userData.name &&
       userData.name.includes(" ") &&
       finalTaskTitle
@@ -278,6 +283,8 @@ export async function addToLeadTask(
       // console.log('[leadToTask] Searching for task by name...');
       const result = await searchPlanfixTask({
         taskTitle: finalTaskTitle,
+        templateId: leadTemplateId,
+        exactTitle: true,
       });
       taskId = Number(result.taskId) || 0;
       assignees = result.assignees;

@@ -261,6 +261,48 @@ describe("planfix_update_contact tool", () => {
     expect(result.contactId).toBe(1);
   });
 
+  describe("phone in another format of an already stored number", () => {
+    const stored = [
+      { number: "79936106745", type: 1 },
+      { number: "79130006745", type: 1 },
+    ];
+    const contact = {
+      ...mockContact,
+      phones: stored,
+      customFieldData: [{ field: { id: 37612 }, value: "В процессе" }],
+    };
+    const mockContactWithPhones = () =>
+      mockPlanfixRequest.mockImplementation(async (args: any) =>
+        args.method === "GET" ? { contact } : {},
+      );
+
+    it.each([["+7 (913) 000-67-45"], ["8 913 000-67-45"], ["913 000 67 45"]])(
+      "does not append %s as a duplicate",
+      async (phone) => {
+        mockContactWithPhones();
+
+        await updatePlanfixContact({ contactId: 1, phone });
+
+        // GET only: the number is already stored as 79130006745
+        expect(mockPlanfixRequest).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("still appends a genuinely new number", async () => {
+      mockContactWithPhones();
+
+      await updatePlanfixContact({ contactId: 1, phone: "8 913 000-67-46" });
+
+      const post = mockPlanfixRequest.mock.calls.find(
+        (c) => c[0].method !== "GET",
+      );
+      expect((post?.[0].body as { phones: unknown }).phones).toEqual([
+        ...stored,
+        { number: "89130006746", type: 1 },
+      ]);
+    });
+  });
+
   it("writes the union of stored and genuinely-new additional emails", async () => {
     setupMocks({
       customFieldData: [
