@@ -190,18 +190,50 @@ describe("searchPlanfixTask", () => {
     expect(res.taskId).toBe(1);
   });
 
+  // Planfix lists leads by ascending id, so the last one is the newest
   it("falls back to the last lead when all of them are closed", async () => {
     mockPlanfixRequest.mockResolvedValueOnce({
       tasks: [
-        { id: 5, status: { id: 3 }, ...ofClient(3) },
         { id: 4, status: { id: 255 }, ...ofClient(3) },
+        { id: 5, status: { id: 3 }, ...ofClient(3) },
       ],
     });
     const { searchPlanfixTask } = await import("./planfix_search_task.js");
 
     const res = await searchPlanfixTask({ clientId: 3, templateId: 42 });
 
-    expect(res.taskId).toBe(4);
+    expect(res.taskId).toBe(5);
+  });
+
+  it("finds no lead when the last one is closed as not a client or a duplicate", async () => {
+    // 854209: the client's only lead is in 255 "Не клиент или дубль"
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        { id: 5, status: { id: 245 }, ...ofClient(3) },
+        { id: 6, status: { id: 255 }, ...ofClient(3) },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({ clientId: 3, templateId: 42 });
+
+    expect(res.found).toBe(false);
+    expect(res.taskId).toBe(0);
+    expect(res.error).toBeUndefined();
+  });
+
+  it("still prefers an active lead over a newer lead closed as 255", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        { id: 5, status: { id: 263 }, ...ofClient(3) },
+        { id: 6, status: { id: 255 }, ...ofClient(3) },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({ clientId: 3, templateId: 42 });
+
+    expect(res.taskId).toBe(5);
   });
 
   it("keeps the last task for client searches outside the lead template", async () => {
@@ -328,5 +360,43 @@ describe("searchPlanfixTask", () => {
 
     expect(res.found).toBe(false);
     expect(res.taskId).toBe(0);
+  });
+  it("does not reuse a lead closed as 255 found by its exact title", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        {
+          id: 854209,
+          name: "Работа с клиентом Юлия Павлова",
+          status: { id: 255 },
+        },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({
+      taskTitle: "Работа с клиентом Юлия Павлова",
+      templateId: 42,
+      exactTitle: true,
+    });
+
+    expect(res.found).toBe(false);
+    expect(res.taskId).toBe(0);
+  });
+
+  it("reuses a lead closed otherwise found by its exact title", async () => {
+    mockPlanfixRequest.mockResolvedValueOnce({
+      tasks: [
+        { id: 70, name: "Работа с клиентом Юлия Павлова", status: { id: 245 } },
+      ],
+    });
+    const { searchPlanfixTask } = await import("./planfix_search_task.js");
+
+    const res = await searchPlanfixTask({
+      taskTitle: "Работа с клиентом Юлия Павлова",
+      templateId: 42,
+      exactTitle: true,
+    });
+
+    expect(res.taskId).toBe(70);
   });
 });
